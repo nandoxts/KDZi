@@ -24,8 +24,7 @@ ClanConstants.CONFIG = {
 		{name = "Rosa", rgb = {255, 105, 180}},
 		{name = "Cian", rgb = {0, 255, 255}},
 		{name = "Blanco", rgb = {255, 255, 255}},
-	},
-	emojis = {"🔱", "⚔️", "🛡️", "👑", "💀", "🔥", "😈", "🦁", "🐉", "⭐", "💎", "🎯"}
+	}
 }
 
 -- Estado centralizado
@@ -35,7 +34,6 @@ ClanConstants.State = {
 	loadingId = 0,  -- Sistema de cancelación de refreshes obsoletos
 	isOpen = false,
 	selectedColor = 1,
-	selectedEmoji = 1,
 	clanData = nil,
 	playerRole = nil,
 	views = {},
