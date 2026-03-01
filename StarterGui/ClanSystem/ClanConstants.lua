@@ -34,13 +34,11 @@ ClanConstants.State = {
 	currentView = "main",
 	loadingId = 0,  -- Sistema de cancelación de refreshes obsoletos
 	isOpen = false,
-	isUpdating = false,
 	selectedColor = 1,
 	selectedEmoji = 1,
 	clanData = nil,
 	playerRole = nil,
 	views = {},
-	viewFactories = {},
 	membersList = nil,
 	pendingList = nil,
 }

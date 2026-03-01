@@ -16,6 +16,7 @@ function ClanHelpers.safeLoading(container, asyncFn, onComplete, State)
 
 	State.loadingId = State.loadingId + 1
 	local myId = State.loadingId
+	local expectedPage = State.currentPage
 
 	Memory:destroyChildren(container, "UIListLayout")
 	local loadingFrame = UI.loading(container)
@@ -25,6 +26,7 @@ function ClanHelpers.safeLoading(container, asyncFn, onComplete, State)
 		local success = table.remove(results, 1)
 
 		if myId ~= State.loadingId then return end
+		if expectedPage ~= State.currentPage then return end
 		if not State.isOpen then return end
 
 		UI.cleanupLoading()
