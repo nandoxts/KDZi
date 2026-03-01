@@ -9,9 +9,9 @@ local ClanClient = require(ReplicatedStorage:WaitForChild("Systems"):WaitForChil
 local Notify = require(ReplicatedStorage:WaitForChild("Systems"):WaitForChild("NotificationSystem"):WaitForChild("NotificationSystem"))
 local ConfirmationModal = require(ReplicatedStorage:WaitForChild("Modal"):WaitForChild("ConfirmationModal"))
 local THEME = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("ThemeConfig"))
+local COLORS = require(ReplicatedStorage:WaitForChild("RemotesGlobal"):WaitForChild("SelectedPlayer"):WaitForChild("COLORS"))
 local ClanConstants = require(script.Parent.ClanConstants)
 local ClanHelpers = require(script.Parent.ClanHelpers)
-local CONFIG = ClanConstants.CONFIG
 
 local ClanActions = {}
 
@@ -97,14 +97,15 @@ end
 -- Editar color
 function ClanActions:editColor(gui, onSuccess)
 	local colorList = {}
-	for _, c in ipairs(CONFIG.colors) do
-		table.insert(colorList, c.name:lower())
+	for colorName, _ in pairs(COLORS.colors) do
+		table.insert(colorList, colorName)
 	end
+	table.sort(colorList)
 	local colorNames = table.concat(colorList, ", ")
 
 	showModal(gui, {
 		title = "Cambiar Color", 
-		message = "Colores disponibles:\n" .. colorNames,
+		message = "Colores disponibles (" .. #colorList .. "):\n" .. colorNames,
 		input = true, inputPlaceholder = "ej: dorado", inputDefault = "",
 		confirm = "Cambiar",
 		validate = function(v) 
@@ -114,16 +115,8 @@ function ClanActions:editColor(gui, onSuccess)
 			end
 
 			local colorName = v:lower():gsub("%s+", "")
-			local found = false
-			for _, c in ipairs(CONFIG.colors) do
-				if c.name:lower() == colorName then
-					found = true
-					break
-				end
-			end
-
-			if not found then
-				Notify:Warning("Color inválido", "Usa uno de: " .. colorNames, 4)
+			if not COLORS.colors[colorName] then
+				Notify:Warning("Color inválido", "Color no existe. Usa uno de los disponibles", 4)
 				return false
 			end
 
@@ -131,17 +124,10 @@ function ClanActions:editColor(gui, onSuccess)
 		end,
 		action = function(v) 
 			local colorName = v:lower():gsub("%s+", "")
-			local colorRGB = nil
+			local color = COLORS.colors[colorName]
 
-			for _, c in ipairs(CONFIG.colors) do
-				if c.name:lower() == colorName then
-					colorRGB = c.rgb
-					break
-				end
-			end
-
-			if colorRGB then
-				return ClanClient:ChangeClanColor(colorRGB)
+			if color then
+				return ClanClient:ChangeClanColor(color)
 			else
 				return false, "Color no encontrado"
 			end

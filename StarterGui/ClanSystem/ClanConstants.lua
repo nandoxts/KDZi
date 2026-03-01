@@ -15,16 +15,7 @@ ClanConstants.CONFIG = {
 	blur = { enabled = true, size = 14 },
 	cooldown = 1.5,
 	listenerCooldown = 3,
-	colors = {
-		{name = "Dorado", rgb = {255, 215, 0}},
-		{name = "Rojo", rgb = {255, 69, 0}},
-		{name = "Morado", rgb = {128, 0, 128}},
-		{name = "Azul", rgb = {0, 122, 255}},
-		{name = "Verde", rgb = {34, 177, 76}},
-		{name = "Rosa", rgb = {255, 105, 180}},
-		{name = "Cian", rgb = {0, 255, 255}},
-		{name = "Blanco", rgb = {255, 255, 255}},
-	}
+
 }
 
 -- Estado centralizado
