@@ -1,174 +1,122 @@
 --[[
 	═══════════════════════════════════════════════════════════
-	USER PANEL CLIENT - v3.0 (Optimizado)
+	REMOTES SETUP - Inicialización de servicios y remotes
 	═══════════════════════════════════════════════════════════
-	• Lógica principal slim: open/close/input
-	• Vista delegada a PanelView module
-	• Carga rápida con defer de datos async
+	Setup centralizado de todos los servicios y remotes
 ]]
 
--- ═══════════════════════════════════════════════════════════════
--- MÓDULOS
--- ═══════════════════════════════════════════════════════════════
-local Modules = script.Parent.Modules
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local MarketplaceService = game:GetService("MarketplaceService")
+local TweenService = game:GetService("TweenService")
+local GuiService = game:GetService("GuiService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local TextChatService = game:GetService("TextChatService")
 
-local Config = require(Modules.Config)
-local State = require(Modules.State)
-local RemotesSetup = require(Modules.RemotesSetup)
-local GroupRoles = require(Modules.GroupEfectModule)
-local Utils = require(Modules.Utils)
-local SyncSystem = require(Modules.SyncSystem)
-local LikesSystem = require(Modules.LikesSystem)
-local EventListeners = require(Modules.EventListeners)
-local InputHandler = require(Modules.InputHandler)
-local PanelView = require(Modules.PanelView)
+return function()
+	local player = Players.LocalPlayer
+	local playerGui = player:FindFirstChild("PlayerGui") or player:WaitForChild("PlayerGui", 2)
+	local mouse = player:GetMouse()
+	local camera = workspace.CurrentCamera
 
--- ═══════════════════════════════════════════════════════════════
--- INICIALIZACIÓN
--- ═══════════════════════════════════════════════════════════════
-local Remotes = RemotesSetup()
-local Services = Remotes.Services
-local player = Services.Player
-local ColorEffects = Remotes.Systems.ColorEffects
+	-- Remotes folder
+	local remoteGlobal = ReplicatedStorage:FindFirstChild("RemotesGlobal") or ReplicatedStorage:WaitForChild("RemotesGlobal", 2)
+	local remotesFolder = remoteGlobal:FindFirstChild("UserPanel") or remoteGlobal:WaitForChild("UserPanel", 2)
 
-Utils.init(Config, State)
-SyncSystem.init(Remotes, State)
-LikesSystem.init(Remotes, State, Config)
-EventListeners.init(Remotes)
-PanelView.init(Config, State, Utils, GroupRoles, Remotes)
+	-- Sistema de sincronización
+	local RemotesSync = remoteGlobal:FindFirstChild("Emotes_Sync")
 
--- ═══════════════════════════════════════════════════════════════
--- CERRAR PANEL
--- ═══════════════════════════════════════════════════════════════
-local function closePanel()
-	if State.closing or not State.ui then return end
-	State.closing = true
+	-- Sistema de likes
+	local LikesEvents = remoteGlobal:WaitForChild("LikesEvents")
 
-	if State.refreshThread then task.cancel(State.refreshThread) end
+	-- Sistema de regalos
+	local GiftingFolder = remoteGlobal:FindFirstChild("Gamepass Gifting")
+	local GiftingRemotes = GiftingFolder and GiftingFolder:FindFirstChild("Remotes")
 
+	-- Sistema de SelectedPlayer
+	local SelectedPlayerModule = remoteGlobal:FindFirstChild("SelectedPlayer")
+
+	-- GlobalModalManager
+	local GlobalModalManager = nil
 	pcall(function()
-		if Remotes.Systems.GlobalModalManager then
-			Remotes.Systems.GlobalModalManager.isUserPanelOpen = false
-		end
+		local Systems = ReplicatedStorage:FindFirstChild("Systems") or ReplicatedStorage:WaitForChild("Systems", 2)
+		GlobalModalManager = require(Systems:FindFirstChild("GlobalModalManager") or Systems:WaitForChild("GlobalModalManager", 2))
 	end)
 
-	local L = PanelView.getLayout()
-
-	if State.container then
-		PanelView.safeTween(State.container, {
-			Position = UDim2.new(0.5, -L.panelWidth / 2, 1, 50)
-		}, 0.45, Enum.EasingStyle.Sine, Enum.EasingDirection.In)
-	end
-
-	task.delay(0.45, function()
-		PanelView.cleanupTweens()
-		Utils.clearConnections()
-		Utils.detachHighlight(State)
-
-		if State.ui then State.ui:Destroy() end
-
-		State.ui = nil
-		State.userId = nil
-		State.target = nil
-		State.container = nil
-		State.panel = nil
-		State.buttonsFrame = nil
-		State.buttonsOverlay = nil
-		State.dynamicSection = nil
-		State.statsLabels = {}
-		State.currentView = "buttons"
-		State.isLoadingDynamic = false
-		State.dragging = false
-		State.closing = false
-		State.isPanelOpening = false
-		State.playerColor = nil
+	-- NotificationSystem
+	local NotificationSystem = nil
+	pcall(function()
+		local Systems = ReplicatedStorage:FindFirstChild("Systems") or ReplicatedStorage:WaitForChild("Systems", 2)
+		local NotifSys = Systems:FindFirstChild("NotificationSystem") or Systems:WaitForChild("NotificationSystem", 2)
+		local NotifModule = NotifSys:FindFirstChild("NotificationSystem") or NotifSys:WaitForChild("NotificationSystem", 2)
+		NotificationSystem = require(NotifModule)
 	end)
-end
 
--- ═══════════════════════════════════════════════════════════════
--- ABRIR PANEL
--- ═══════════════════════════════════════════════════════════════
-local function openPanel(target)
-	if State.isPanelOpening or State.closing or not target then return end
-	State.isPanelOpening = true
+	-- ColorEffects
+	local Highlight = SelectedPlayerModule and SelectedPlayerModule:FindFirstChild("Highlight")
+	local ColorEffects = Highlight and require(SelectedPlayerModule:FindFirstChild("COLORS")) or nil
 
-	if State.refreshThread then task.cancel(State.refreshThread) end
+	-- Configuration
+	local Configuration = {}
+	pcall(function()
+		local configModule = remoteGlobal:FindFirstChild("Configuration") or remoteGlobal:WaitForChild("Configuration", 5)
+		if configModule then Configuration = require(configModule) end
+	end)
 
-	-- Cleanup previo
-	Utils.detachHighlight(State)
-	Utils.clearConnections()
-	PanelView.cleanupTweens()
+	return {
+		-- Servicios
+		Services = {
+			Players = Players,
+			PlayerGui = playerGui,
+			Mouse = mouse,
+			Camera = camera,
+			ReplicatedStorage = ReplicatedStorage,
+			MarketplaceService = MarketplaceService,
+			TweenService = TweenService,
+			GuiService = GuiService,
+			UserInputService = UserInputService,
+			RunService = RunService,
+			TextChatService = TextChatService,
+			Player = player
+		},
 
-	if State.ui then State.ui:Destroy() end
+		-- Remotes de UserPanel
+		Remotes = {
+			GetUserData      = remotesFolder:WaitForChild("GetUserData"),
+			GetUserDonations = remotesFolder:WaitForChild("GetUserDonations"),
+			GetGamePasses    = remotesFolder:WaitForChild("GetGamePasses"),
+			DonationNotify   = remotesFolder:FindFirstChild("DonationNotify"),
+			DonationMessage  = remotesFolder:FindFirstChild("DonationMessage"),
+			CheckGamePass    = remotesFolder:WaitForChild("CheckGamePass")
+		},
 
-	State.userId = target.UserId
-	State.target = target
+		-- Sistema de Sync
+		Sync = {
+			SyncRemote = RemotesSync and RemotesSync:FindFirstChild("Sync"),
+			GetSyncState = RemotesSync and RemotesSync:FindFirstChild("GetSyncState"),
+			SyncUpdate = RemotesSync and RemotesSync:FindFirstChild("SyncUpdate")
+		},
 
-	-- Datos iniciales (instantáneos, sin esperar red)
-	local cached = State.userDataCache[target.UserId]
-	local hasCached = cached and (tick() - cached.lastUpdate) < 30
+		-- Sistema de Likes
+		Likes = {
+			GiveLikeEvent = LikesEvents and (LikesEvents:FindFirstChild("GiveLikeEvent") or LikesEvents:WaitForChild("GiveLikeEvent", 2)),
+			GiveSuperLikeEvent = LikesEvents and (LikesEvents:FindFirstChild("GiveSuperLikeEvent") or LikesEvents:WaitForChild("GiveSuperLikeEvent", 2)),
+			BroadcastEvent = LikesEvents and (LikesEvents:FindFirstChild("BroadcastEvent") or LikesEvents:WaitForChild("BroadcastEvent", 2))
+		},
 
-	local initialData = {
-		userId = target.UserId,
-		username = target.Name,
-		displayName = target.DisplayName,
-		avatar = Utils.getAvatarImage(target.UserId),
-		followers = hasCached and cached.followers or 0,
-		friends = hasCached and cached.friends or 0,
-		likes = 0,
+		-- Sistema de Regalos
+		Gifting = {
+			GiftingRemote = GiftingRemotes and GiftingRemotes:FindFirstChild("Gifting"),
+			GiftBroadcastEvent = GiftingRemotes and (GiftingRemotes:FindFirstChild("GiftBroadcastEvent") or GiftingRemotes:WaitForChild("GiftBroadcastEvent", 2))
+		},
+
+		-- Sistemas
+		Systems = {
+			GlobalModalManager = GlobalModalManager,
+			NotificationSystem = NotificationSystem,
+			ColorEffects = ColorEffects,
+			Configuration = Configuration
+		}
 	}
-
-	-- Crear panel con datos locales (frame 1 visible)
-	local success, result = pcall(PanelView.createPanel, initialData)
-
-	if success and result then
-		State.ui = result
-		State.target = target
-
-		Utils.attachHighlight(target, State, ColorEffects)
-
-		pcall(function()
-			local gmm = Remotes.Systems.GlobalModalManager
-			if gmm then
-				if gmm.isEmoteOpen == nil then gmm.isEmoteOpen = false end
-				gmm.isUserPanelOpen = true
-			end
-		end)
-
-		-- Fetch real data async (no bloquea apertura)
-		task.spawn(function()
-			local ok, data = pcall(function()
-				return Remotes.Remotes.GetUserData:InvokeServer(target.UserId)
-			end)
-			if ok and data and State.ui then
-				State.userDataCache[target.UserId] = {
-					followers = data.followers or 0,
-					friends = data.friends or 0,
-					lastUpdate = tick(),
-				}
-				Utils.updateStats(data, true, State)
-			end
-		end)
-
-		State.isPanelOpening = false
-	else
-		State.isPanelOpening = false
-		warn("[UserPanel] Error creando panel:", result)
-	end
 end
-
--- ═══════════════════════════════════════════════════════════════
--- INPUT & CURSOR
--- ═══════════════════════════════════════════════════════════════
-InputHandler.setupListeners(openPanel, closePanel, State)
-InputHandler.setupCursor(State, Services)
-
--- ═══════════════════════════════════════════════════════════════
--- EXPORT
--- ═══════════════════════════════════════════════════════════════
-_G.CloseUserPanel = closePanel
-
-return {
-	open = openPanel,
-	close = closePanel,
-}
