@@ -1,16 +1,6 @@
 --[[
-GamepassShop v4 — Rediseno Profesional
-by George Bellota
-───────────────────────────────────────────────────────
-CAMBIOS PRINCIPALES vs v3:
-  [1] Grid de 2 columnas en lugar de scroll horizontal
-  [2] Tabs con underline deslizante (no pills)
-  [3] Hero card simplificado sin chips
-  [4] Paleta refinada con mejor contraste
-  [5] CERO emojis: R$ para Robux, PTS para puntos
-  [6] Animaciones precisas sin bounce
-  [7] Tipografia con jerarquia clara
-  [8] Badge owned limpio sin mascaras
+GamepassShop
+by ignxts- Nando
 ]]
 
 local Players = game:GetService("Players")
@@ -194,12 +184,12 @@ local SHOP_CATEGORIES = {
 		},
 
 		products = {
-			{name = "ATOMIC",   price = 1000, gamepassId = Configuration.AURA_ATOMIC,   icon = "129517460766852", fondo = "129517460766852", cmd = ""},
-			{name = "BLAZING",  price = 1000, gamepassId = Configuration.AURA_BLAZING,  icon = "129517460766852", fondo = "129517460766852", cmd = ""},
-			{name = "NANO",     price = 1000, gamepassId = Configuration.AURA_NANO,     icon = "129517460766852", fondo = "129517460766852", cmd = ""},
-			{name = "RED HEART",price = 1000, gamepassId = Configuration.AURA_REDHEART, icon = "129517460766852", fondo = "129517460766852", cmd = ""},
-			{name = "SNOW",     price = 1000, gamepassId = Configuration.AURA_SNOW,     icon = "129517460766852", fondo = "129517460766852", cmd = ""},
-			{name = "DRAGON",   price = 1000, gamepassId = Configuration.AURA_DRAGON,   icon = "129517460766852", fondo = "129517460766852", cmd = ""},
+			{name = "ATOMIC",   price = 1000, gamepassId = Configuration.AURA_ATOMIC,   icon = "129517460766852", fondo = "83009199157541", cmd = ""},
+			{name = "BLAZING",  price = 1000, gamepassId = Configuration.AURA_BLAZING,  icon = "129517460766852", fondo = "117387885139799", cmd = ""},
+			{name = "NANO",     price = 1000, gamepassId = Configuration.AURA_NANO,     icon = "129517460766852", fondo = "94554178589687", cmd = ""},
+			{name = "RED HEART",price = 1000, gamepassId = Configuration.AURA_REDHEART, icon = "129517460766852", fondo = "126464363919641", cmd = ""},
+			{name = "SNOW",     price = 1000, gamepassId = Configuration.AURA_SNOW,     icon = "129517460766852", fondo = "122129911643253", cmd = ""},
+			{name = "DRAGON",   price = 1000, gamepassId = Configuration.AURA_DRAGON,   icon = "129517460766852", fondo = "96767553403764", cmd = ""},
 		},
 	},
 
@@ -601,16 +591,6 @@ local function refreshContent(animate)
 		if c.id == targetCatId then cat = c break end
 	end
 	if not cat then cat = SHOP_CATEGORIES[1] end
-
-	-- Limpiar callbacks anteriores de esta categoria para evitar acumulacion
-	if cat and cat.products then
-		for _, p in ipairs(cat.products) do
-			if p.gamepassId then purchaseCbs[p.gamepassId] = nil end
-		end
-		if cat.featured and cat.featured.gamepassId then
-			purchaseCbs[cat.featured.gamepassId] = nil
-		end
-	end
 
 	local featured = cat.featured
 	local products = cat.products
