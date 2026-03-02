@@ -1,7 +1,7 @@
---[[ Music Dashboard - Professional Edition v8 (Refactored)
-	by ignxts
+--[[ Music Dashboard - Professional 
+	by ignxts- Nando
 	REDISEÑO: Layout 3 columnas (DJ List | Songs | Queue) + Barra inferior
-	Refactored: Helpers reutilizables, ~40% menos líneas
+	Refactored: Helpers reutilizables, 
 ]]
 
 -- ════════════════════════════════════════════════════════════════
@@ -126,7 +126,7 @@ local function makeScrollColumn(parent, offsetY, paddingOpts, theme)
 		Parent = parent,
 	})
 
-	local scrollbar = ModernScrollbar.setup(scroll, parent, theme, {color = theme.accent, colorHover = theme.accent, transparency = 0, transparencyHover = 0})
+	local scrollbar = ModernScrollbar.setup(scroll, parent, theme, {transparency = 0})
 
 	if paddingOpts.padding then
 		make("UIPadding", {
@@ -206,9 +206,11 @@ local VISIBLE_BUFFER, BATCH_SIZE, MAX_POOL_SIZE = 3, 15, 25
 
 local ICONS = {
 	PLAY_ADD = "rbxassetid://84692791859484",
-	CHECK = "rbxassetid://102926522001210",
-	DELETE = "rbxassetid://94904012825024",
-	LOADING = "rbxassetid://122161736287488",
+	CHECK    = "rbxassetid://102926522001210",
+	DELETE   = "rbxassetid://94904012825024",
+	LOADING  = "rbxassetid://122161736287488",
+	VOL_DOWN = "rbxassetid://118993192034241", -- rellena con tu asset id
+	VOL_UP   = "rbxassetid://114456072508401", -- rellena con tu asset id
 }
 
 -- ════════════════════════════════════════════════════════════════
@@ -238,7 +240,7 @@ local headerDJName, headerSongID, songTitle, songIdDisplay
 local miniCover, bottomBarBg
 local songsPlaceholder, songsTitle
 local progressFill, currentTimeLabel, totalTimeLabel
-local volSliderFill, volSliderBg, volLabelText, volInput
+local volLabelText, volInput
 
 -- ════════════════════════════════════════════════════════════════
 -- HELPERS
@@ -421,7 +423,7 @@ do
 		CanvasSize = UDim2.new(0, 0, 0, 0),
 		ClipsDescendants = true, ZIndex = 101, Parent = djColumn,
 	})
-	ModernScrollbar.setup(djsScroll, djColumn, THEME, {color = THEME.accent, colorHover = THEME.accent, transparency = 0, transparencyHover = 0})
+	ModernScrollbar.setup(djsScroll, djColumn, THEME, {transparency = 0})
 
 	local layout = make("UIListLayout", {Padding = UDim.new(0, 2), SortOrder = Enum.SortOrder.LayoutOrder, Parent = djsScroll})
 	make("UIPadding", {PaddingLeft = UDim.new(0, 4), PaddingRight = UDim.new(0, 4), PaddingTop = UDim.new(0, 2), Parent = djsScroll})
@@ -480,7 +482,7 @@ songsScroll = make("ScrollingFrame", {
 	CanvasSize = UDim2.new(0, 0, 0, 0),
 	ClipsDescendants = true, ZIndex = 101, Parent = songsColumn,
 })
-ModernScrollbar.setup(songsScroll, songsColumn, THEME, {color = THEME.accent, colorHover = THEME.accent, transparency = 0, transparencyHover = 0})
+ModernScrollbar.setup(songsScroll, songsColumn, THEME, {transparency = 0})
 
 songsContainer = makeFrame({name = "SongsContainer", dim = UDim2.new(1, 0, 0, 0), z = 101, parent = songsScroll})
 
@@ -573,9 +575,9 @@ headerDJName = makeLabel({
 })
 
 headerSongID = makeLabel({
-	dim = UDim2.new(1, -MINI_COVER - 12, 0, 14),
+	dim = UDim2.new(1, -MINI_COVER - 12, 0, 16),
 	pos = UDim2.new(0, infoX, 0, mob and 40 or 48),
-	color = THEME.accent, font = Enum.Font.GothamBold, size = mob and 10 or 12,
+	color = THEME.accent, font = Enum.Font.GothamBold, size = mob and 12 or 14,
 	z = 113, name = "SongID", parent = nowPlaying,
 })
 
@@ -674,51 +676,73 @@ make("UIListLayout", {
 make("UIPadding", {PaddingRight = UDim.new(0, 4), Parent = rightSection})
 
 local skipB = makeBtn({
-	dim = UDim2.new(0, 90, 0, 34), bg = THEME.accent,
-	text = "Skip song", textSize = 13, z = 113,
+	dim = UDim2.new(0, 70, 0, 34), bg = THEME.accent,
+	text = "Skip", textSize = 13, z = 113,
 	round = 8, parent = rightSection, name = "SkipBtn",
 })
 skipB.LayoutOrder = 2
 
 -- Volume control
 local volFrame = makeFrame({
-	dim = UDim2.new(0, 140, 0, 34), z = 113,
+	dim = UDim2.new(0, 150, 0, 36), z = 113,
 	name = "VolumeControl", parent = rightSection,
 })
 volFrame.LayoutOrder = 1
-
-makeImage({
-	dim = UDim2.new(0, 22, 0, 22), pos = UDim2.new(0, 0, 0.5, -11),
-	image = "rbxassetid://14861812886", imageColor = THEME.muted,
-	z = 114, parent = volFrame,
+make("UIListLayout", {
+	FillDirection = Enum.FillDirection.Horizontal,
+	VerticalAlignment = Enum.VerticalAlignment.Center,
+	HorizontalAlignment = Enum.HorizontalAlignment.Center,
+	Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder,
+	Parent = volFrame,
 })
 
-volSliderBg = makeFrame({
-	dim = UDim2.new(0, 70, 0, 6), pos = UDim2.new(0, 28, 0.5, -3),
-	bg = Color3.fromRGB(40, 40, 48), bgT = 0, z = 114, parent = volFrame,
+-- Botón bajar volumen
+local volDownBtn = makeBtn({
+	dim = UDim2.new(0, 36, 0, 36), bg = THEME.elevated, z = 114,
+	round = 8, name = "VolDown", parent = volFrame,
 })
-UI.rounded(volSliderBg, 3)
+volDownBtn.LayoutOrder = 1
+if ICONS.VOL_DOWN ~= "" then
+	makeImage({dim = UDim2.new(0.65,0,0.65,0), pos = UDim2.new(0.175,0,0.175,0), image = ICONS.VOL_DOWN, z = 115, parent = volDownBtn})
+else
+	volDownBtn.Text = "−"; volDownBtn.Font = Enum.Font.GothamBold; volDownBtn.TextSize = 18
+end
 
-volSliderFill = makeFrame({
-	dim = UDim2.new(1, 0, 1, 0), bg = THEME.accent, bgT = 0, z = 115, parent = volSliderBg,
+-- Slot central: label + input superpuesto
+local volSlot = makeFrame({
+	dim = UDim2.new(0, 60, 0, 36), bg = THEME.card, bgT = THEME.frameAlpha,
+	z = 114, name = "VolSlot", parent = volFrame,
 })
-UI.rounded(volSliderFill, 3)
+volSlot.LayoutOrder = 2
+UI.rounded(volSlot, 6)
 
 volLabelText = makeLabel({
-	dim = UDim2.new(0, 38, 0, 24), pos = UDim2.new(0, 102, 0.5, -12),
-	text = "100%", color = THEME.muted, font = Enum.Font.GothamMedium,
-	size = 11, alignX = Enum.TextXAlignment.Center, z = 114, parent = volFrame,
+	dim = UDim2.new(1, 0, 1, 0), text = "100%",
+	color = THEME.text, font = Enum.Font.GothamBold,
+	size = 13, alignX = Enum.TextXAlignment.Center, z = 115, parent = volSlot,
 })
 
 volInput = make("TextBox", {
-	Size = UDim2.new(0, 40, 0, 24), Position = UDim2.new(0, 100, 0.5, -12),
-	BackgroundColor3 = Color3.fromRGB(60, 60, 70), Text = "100",
-	TextColor3 = THEME.text, Font = Enum.Font.GothamBold, TextSize = 12,
+	Size = UDim2.new(1, 0, 1, 0), Position = UDim2.new(0, 0, 0, 0),
+	BackgroundColor3 = THEME.elevated, Text = "",
+	TextColor3 = THEME.text, Font = Enum.Font.GothamBold, TextSize = 13,
 	BorderSizePixel = 0, ZIndex = 116, Visible = false,
-	ClearTextOnFocus = true, TextXAlignment = Enum.TextXAlignment.Center,
-	Parent = volFrame,
+	ClearTextOnFocus = false, TextXAlignment = Enum.TextXAlignment.Center,
+	Parent = volSlot,
 })
-UI.rounded(volInput, 4)
+UI.rounded(volInput, 6)
+
+-- Botón subir volumen
+local volUpBtn = makeBtn({
+	dim = UDim2.new(0, 36, 0, 36), bg = THEME.elevated, z = 114,
+	round = 8, name = "VolUp", parent = volFrame,
+})
+volUpBtn.LayoutOrder = 3
+if ICONS.VOL_UP ~= "" then
+	makeImage({dim = UDim2.new(0.65,0,0.65,0), pos = UDim2.new(0.175,0,0.175,0), image = ICONS.VOL_UP, z = 115, parent = volUpBtn})
+else
+	volUpBtn.Text = "+"; volUpBtn.Font = Enum.Font.GothamBold; volUpBtn.TextSize = 18
+end
 
 -- ════════════════════════════════════════════════════════════════
 -- ADD BUTTON STATE MACHINE
@@ -836,22 +860,18 @@ end
 local maxVolume = MusicSystemConfig.PLAYBACK.MaxVolume
 local minVolume = MusicSystemConfig.PLAYBACK.MinVolume
 local currentVolume = player:GetAttribute("MusicVolume") or MusicSystemConfig.PLAYBACK.DefaultVolume
-local dragging = false
+local VOL_STEP = (maxVolume - minVolume) * 0.05 -- 5% por click
 
 local function updateVolume(volume)
 	currentVolume = math.clamp(volume, minVolume, maxVolume)
-	local fill = (currentVolume - minVolume) / (maxVolume - minVolume)
-	volSliderFill.Size = UDim2.new(fill, 0, 1, 0)
 
 	if isMusicMuted() then
 		volLabelText.Text = "MUTE"; volLabelText.TextColor3 = Color3.fromRGB(200, 80, 80)
 	else
-		volLabelText.Text = math.floor(currentVolume * 100) .. "%"; volLabelText.TextColor3 = THEME.muted
+		volLabelText.Text = math.floor(currentVolume * 100) .. "%"; volLabelText.TextColor3 = THEME.text
 	end
 
-	volInput.Text = tostring(math.floor(currentVolume * 100))
 	player:SetAttribute("MusicVolume", currentVolume)
-
 	local sg = SoundService:FindFirstChild("MusicSoundGroup")
 	if sg then sg.Volume = isMusicMuted() and 0 or currentVolume end
 	if R.ChangeVolume then pcall(function() R.ChangeVolume:FireServer(currentVolume) end) end
@@ -869,9 +889,7 @@ task.spawn(function()
 			if musicSoundGroup then
 				musicSoundGroup.Volume = muted and 0 or currentVolume
 				volLabelText.Text = muted and "MUTE" or (math.floor(currentVolume * 100) .. "%")
-				volLabelText.TextColor3 = muted and Color3.fromRGB(200, 80, 80) or THEME.muted
-				tween(volSliderBg, 0.2, {BackgroundColor3 = muted and Color3.fromRGB(50, 30, 30) or Color3.fromRGB(40, 40, 48)})
-				volSliderFill.BackgroundColor3 = muted and Color3.fromRGB(150, 70, 70) or THEME.accent
+				volLabelText.TextColor3 = muted and Color3.fromRGB(200, 80, 80) or THEME.text
 			end
 		end
 	end
@@ -879,7 +897,6 @@ end)
 
 updateVolume(currentVolume)
 
--- Volume slider interaction
 local function handleMuteCheck()
 	if isMusicMuted() then
 		Notify:Info("Música Silenciada", "Desmutea el sonido en el topbar para cambiar el volumen", 2)
@@ -888,28 +905,25 @@ local function handleMuteCheck()
 	return false
 end
 
-volSliderBg.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		if handleMuteCheck() then return end
-		dragging = true
-		updateVolume(math.clamp((input.Position.X - volSliderBg.AbsolutePosition.X) / volSliderBg.AbsoluteSize.X, 0, 1))
-	end
+-- Botones vol
+volDownBtn.MouseButton1Click:Connect(function()
+	if handleMuteCheck() then return end
+	updateVolume(currentVolume - VOL_STEP)
 end)
-volSliderBg.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+volUpBtn.MouseButton1Click:Connect(function()
+	if handleMuteCheck() then return end
+	updateVolume(currentVolume + VOL_STEP)
 end)
-volSliderBg.InputChanged:Connect(function(input)
-	if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-		updateVolume(math.clamp((input.Position.X - volSliderBg.AbsolutePosition.X) / volSliderBg.AbsoluteSize.X, 0, 1))
-	end
-end)
+addHover(volDownBtn, THEME.elevated, THEME.elevated, THEME.lightAlpha)
+addHover(volUpBtn, THEME.elevated, THEME.elevated, THEME.lightAlpha)
 
--- Volume label click → input
-volLabelText.Parent.InputBegan:Connect(function(input)
+-- Click en label → abre input manual
+volLabelText.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then
 		if handleMuteCheck() then return end
+		volInput.Text = tostring(math.floor(currentVolume * 100))
 		volInput.Visible = true; volLabelText.Visible = false
-		volInput:CaptureFocus(); volInput.Text = tostring(math.floor(currentVolume * 100))
+		volInput:CaptureFocus()
 	end
 end)
 
@@ -923,7 +937,8 @@ volInput:GetPropertyChangedSignal("Text"):Connect(function()
 end)
 
 local function applyVolumeInput()
-	updateVolume(math.clamp(tonumber(volInput.Text) or 100, 0, math.floor(maxVolume * 100)) / 100)
+	local parsed = tonumber(volInput.Text)
+	updateVolume(parsed and math.clamp(parsed, 0, math.floor(maxVolume * 100)) / 100 or currentVolume)
 	volInput.Visible = false; volLabelText.Visible = true
 end
 
@@ -1016,7 +1031,7 @@ local function drawQueue()
 
 		local card = makeFrame({
 			dim = UDim2.new(1, 0, 0, 54),
-			bg = isActive and THEME.accent or THEME.card, bgT = 0,
+			bg = isActive and THEME.accent or THEME.card, bgT = isActive and THEME.subtleAlpha or THEME.frameAlpha,
 			z = 101, parent = queueScroll,
 		})
 		UI.rounded(card, 8)
@@ -1085,7 +1100,7 @@ end
 -- SONG CARD POOL (virtualización)
 -- ════════════════════════════════════════════════════════════════
 local function createSongCard()
-	local card = makeFrame({dim = UDim2.new(1, -8, 0, CARD_HEIGHT), bg = THEME.card, bgT = 0, z = 102})
+	local card = makeFrame({dim = UDim2.new(1, -8, 0, CARD_HEIGHT), bg = THEME.card, bgT = THEME.frameAlpha, z = 102})
 	card.Visible = false
 	UI.rounded(card, 8); UI.stroked(card, 0.3)
 	make("UIPadding", {PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12), Parent = card})
@@ -1304,7 +1319,7 @@ local function updateHeaderCover(song)
 		end)
 	end
 	headerDJName.Text = song.dj or ""
-	headerSongID.Text = song.id and ("ID: " .. tostring(song.id)) or ""
+	headerSongID.Text = song.id and tostring(song.id) or ""
 	songIdDisplay.Text = song.id and tostring(song.id) or ""
 end
 
@@ -1325,8 +1340,8 @@ local function drawDJs()
 
 		local card = makeFrame({
 			dim = UDim2.new(1, 0, 0, 68),
-			bg = Color3.fromRGB(22, 22, 28),
-			bgT = isSel and 0.1 or 0.3, z = 102, parent = djsScroll,
+			bg = THEME.card,
+			bgT = isSel and THEME.subtleAlpha or THEME.frameAlpha, z = 102, parent = djsScroll,
 		})
 		UI.rounded(card, 8)
 
@@ -1367,7 +1382,7 @@ local function drawDJs()
 		makeLabel({
 			dim = UDim2.new(1, -80, 0, 18), pos = UDim2.new(0, 64, 0, 32),
 			text = dj.songCount .. " songs", color = THEME.accent,
-			font = Enum.Font.GothamMedium, size = 12, z = 103, parent = card,
+			font = Enum.Font.GothamBold, size = 13, z = 103, parent = card,
 		})
 
 		local clickBtn = makeBtn({dim = UDim2.new(1, 0, 1, 0), z = 105, parent = card})
@@ -1376,13 +1391,13 @@ local function drawDJs()
 		-- Hover suave sobre la card
 		clickBtn.MouseEnter:Connect(function()
 			if selectedDJCard ~= card then
-				tween(card, 0.2, {BackgroundTransparency = 0.15})
+				tween(card, 0.2, {BackgroundTransparency = THEME.lightAlpha})
 				tween(stroke, 0.2, {Color = THEME.accentHover, Transparency = 0.5})
 			end
 		end)
 		clickBtn.MouseLeave:Connect(function()
 			if selectedDJCard ~= card then
-				tween(card, 0.2, {BackgroundTransparency = 0.3})
+				tween(card, 0.2, {BackgroundTransparency = THEME.frameAlpha})
 				tween(stroke, 0.2, {Color = THEME.stroke, Transparency = 0.6})
 			end
 		end)
@@ -1393,14 +1408,14 @@ local function drawDJs()
 				local prevStroke = selectedDJCard:FindFirstChildWhichIsA("UIStroke")
 				if prevStroke then
 					tween(prevStroke, 0.25, {Color = THEME.stroke, Transparency = 0.6})
-					tween(prevStroke.Parent, 0.25, {BackgroundTransparency = 0.3})
+					tween(prevStroke.Parent, 0.25, {BackgroundTransparency = THEME.frameAlpha})
 				end
 			end
 
 			-- Seleccionar nueva card con tween suave
 			selectedDJ = dj.name; selectedDJInfo = dj; selectedDJCard = card
 			tween(stroke, 0.25, {Color = THEME.accent, Transparency = 0.3})
-			tween(card, 0.25, {BackgroundTransparency = 0.1})
+			tween(card, 0.25, {BackgroundTransparency = THEME.subtleAlpha})
 
 			virtualScrollState.totalSongs = dj.songCount
 			virtualScrollState.songData = {}
@@ -1483,7 +1498,7 @@ local function updateNowPlayingInfo(song)
 	if song then
 		songTitle.Text = song.name
 		headerDJName.Text = song.artist or "Unknown"
-		headerSongID.Text = song.id and ("ID: " .. tostring(song.id)) or ""
+		headerSongID.Text = song.id and tostring(song.id) or ""
 		songIdDisplay.Text = song.id and tostring(song.id) or ""
 	else
 		songTitle.Text = "No song playing"
