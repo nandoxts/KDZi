@@ -86,7 +86,7 @@ local AURA_COMMANDS = {
 	nano     = { gamepassKey = Configuration.AURA_NANO,     folder = "NANO"      },
 	redheart = { gamepassKey = Configuration.AURA_REDHEART, folder = "RED HEART" },
 	snow     = { gamepassKey = Configuration.AURA_SNOW,     folder = "SNOW"      },
-	dragon   = { gamepassKey = Configuration.AURA_DRAGON,   folder = "DRAGON"    },
+	dragon   = { gamepassKey = Configuration.AURA_PACK,   folder = "DRAGON"    },
 }
 
 -- Tracking de aura activa por jugador
@@ -837,7 +837,9 @@ local function handleAuraCommand(player, auraName)
 	local config = AURA_COMMANDS[key]
 	if not config then return end
 
-	local hasPass = GamepassManager.HasGamepass(player, config.gamepassKey)
+	-- Si tiene el AURA PACK, puede usar todas las auras
+	local hasAuraPack = GamepassManager.HasGamepass(player, Configuration.AURA_PACK)
+	local hasPass = GamepassManager.HasGamepass(player, config.gamepassKey) or hasAuraPack
 	if not hasPass then return end
 
 	local character = player.Character
@@ -928,7 +930,7 @@ local function handleAuraCommand(player, auraName)
 						clonedEffect.Enabled = true
 						clonedEffect.Rate = 0  -- Empezar sin emitir
 						clonedEffect.Parent = targetPart
-						
+
 						-- Fade in en 0.5 segundos
 						local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 						local tween = TweenService:Create(clonedEffect, tweenInfo, {Rate = effect.Rate or 10})
@@ -937,7 +939,7 @@ local function handleAuraCommand(player, auraName)
 					elseif clonedEffect:IsA("PointLight") then
 						clonedEffect.Brightness = 0  -- Empezar sin brillo
 						clonedEffect.Parent = targetPart
-						
+
 						-- Fade in en 0.6 segundos
 						local tweenInfo = TweenInfo.new(0.6, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
 						local tween = TweenService:Create(clonedEffect, tweenInfo, {Brightness = effect.Brightness or 5})

@@ -136,7 +136,7 @@ local ALL_PRODUCTS = {
 	{
 		name       = "AURA PACK",
 		price      = 1000,
-		gamepassId = Configuration.AURA_DRAGON,
+		gamepassId = Configuration.AURA_PACK,
 		icon       = "129517460766852",
 		fondo      = "79346090571461",
 		cmd        = "",
