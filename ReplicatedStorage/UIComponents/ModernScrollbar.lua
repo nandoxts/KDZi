@@ -39,14 +39,34 @@ function ModernScrollbar.setup(scrollFrame, parentFrame, THEME, options)
 	local offset            = options.offset            or 0
 	local width             = options.width             or 4
 	local widthHover        = options.widthHover        or (width + 2)
-	local paddingV          = options.paddingV          or 12
+	local paddingV          = options.paddingV          or 6
 	local color             = options.color             or THEME.accent
 	local colorHover        = options.colorHover        or THEME.accent
 	local transparency      = options.transparency      or 0.3
 	local transparencyHover = options.transparencyHover or 0
 	local zIndex            = options.zIndex            or 115
 
-	-- ── Container ─────────────────────────────────────────────────
+	-- ── Mirror frame (mismo Size/Position que scrollFrame) ────────
+	-- Así el container usa coords relativas al scrollFrame sin math complejo
+	local mirror = Instance.new("Frame")
+	mirror.Name = "ScrollbarMirror"
+	mirror.Size = scrollFrame.Size
+	mirror.Position = scrollFrame.Position
+	mirror.BackgroundTransparency = 1
+	mirror.BorderSizePixel = 0
+	mirror.ZIndex = zIndex
+	mirror.ClipsDescendants = false
+	mirror.Parent = parentFrame
+
+	-- Mantener el espejo sincronizado si el scrollFrame cambia
+	scrollFrame:GetPropertyChangedSignal("Size"):Connect(function()
+		mirror.Size = scrollFrame.Size
+	end)
+	scrollFrame:GetPropertyChangedSignal("Position"):Connect(function()
+		mirror.Position = scrollFrame.Position
+	end)
+
+	-- ── Container (relativo al mirror = relativo al scrollFrame) ──
 	local container = Instance.new("Frame")
 	container.Name = "ScrollbarContainer"
 	container.Size = UDim2.new(0, width, 1, -paddingV * 2)
@@ -61,7 +81,7 @@ function ModernScrollbar.setup(scrollFrame, parentFrame, THEME, options)
 	container.BackgroundTransparency = 1
 	container.ZIndex = zIndex
 	container.Visible = false
-	container.Parent = parentFrame
+	container.Parent = mirror
 
 	-- ── Track ──────────────────────────────────────────────────────
 	local track = Instance.new("Frame")
