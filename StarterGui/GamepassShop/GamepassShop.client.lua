@@ -17,6 +17,7 @@ local playerGui = player:WaitForChild("PlayerGui")
 local ModalManager = require(ReplicatedStorage:WaitForChild("Modal"):WaitForChild("ModalManager"))
 local UI = require(ReplicatedStorage:WaitForChild("Core"):WaitForChild("UI"))
 local THEME = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("ThemeConfig"))
+local SidebarNav = require(ReplicatedStorage:WaitForChild("UIComponents"):WaitForChild("SidebarNav"))
 local Configuration = require(ReplicatedStorage:WaitForChild("RemotesGlobal"):WaitForChild("Configuration"))
 local CheckGamepassOwnership = ReplicatedStorage:WaitForChild("RemotesGlobal"):WaitForChild("Gamepass Gifting"):WaitForChild("Remotes"):WaitForChild("Ownership")
 
@@ -290,121 +291,27 @@ local function createPurchaseHandler(btnFrame, btnLabel, parentCard, product)
 end
 
 -- ════════════════════════════════════════════════════════════════
--- SIDEBAR DECORATIVO
+-- SIDEBAR
 -- ════════════════════════════════════════════════════════════════
 local SIDEBAR_W = isMobile and 100 or 130
 
-local sidebar = UI.frame({
-	name = "Sidebar",
-	size = UDim2.new(0, SIDEBAR_W, 1, 0),
-	bg = THEME.deep, bgT = THEME.lightAlpha,
-	z = 200, parent = CONTAINER, clips = true,
+local switchTab
+local contentTitle
+
+local shopSidebar = SidebarNav.new({
+	parent     = CONTAINER,
+	UI         = UI,
+	THEME      = THEME,
+	title      = "SHOP",
+	items      = {
+		{ id = "Gamepasses", label = "GAMEPASSES", image = "76721656269888" },
+	},
+	width      = SIDEBAR_W,
+	isMobile   = isMobile,
+	footerText = tostring(#ALL_PRODUCTS) .. " ITEMS",
+	onSelect   = function(id) switchTab(id) end,
 })
-
-do
-	local sidebarStroke = Instance.new("UIStroke")
-	sidebarStroke.Color = THEME.stroke
-	sidebarStroke.Thickness = 1
-	sidebarStroke.Transparency = THEME.mediumAlpha
-	sidebarStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	sidebarStroke.Parent = sidebar
-end
-
--- Separador vertical
-local sidebarLine = Instance.new("Frame")
-sidebarLine.Size = UDim2.new(0, 1, 1, -20)
-sidebarLine.Position = UDim2.new(1, 0, 0, 10)
-sidebarLine.BackgroundColor3 = THEME.stroke
-sidebarLine.BackgroundTransparency = THEME.mediumAlpha
-sidebarLine.BorderSizePixel = 0
-sidebarLine.ZIndex = 201
-sidebarLine.Parent = sidebar
-
--- Titulo SHOP
-UI.label({
-	name = "ShopTitle",
-	size = UDim2.new(1, -16, 0, 36),
-	pos = UDim2.new(0, 8, 0, 20),
-	text = "SHOP",
-	color = THEME.text,
-	font = Enum.Font.GothamBlack,
-	textSize = 18,
-	alignX = Enum.TextXAlignment.Center,
-	z = 202, parent = sidebar,
-})
-
--- (ShopSub eliminado)
-
--- Linea decorativa
-local decoLine1 = Instance.new("Frame")
-decoLine1.Size = UDim2.new(0.6, 0, 0, 1)
-decoLine1.Position = UDim2.new(0.2, 0, 0, 80)
-decoLine1.BackgroundColor3 = THEME.accent
-decoLine1.BackgroundTransparency = THEME.mediumAlpha
-decoLine1.BorderSizePixel = 0
-decoLine1.ZIndex = 202
-decoLine1.Parent = sidebar
-
--- Icono decorativo
-local decoIconSize = isMobile and 52 or 64
-local decoIcon = UI.frame({
-	name = "DecoIcon",
-	size = UDim2.new(0, decoIconSize, 0, decoIconSize),
-	pos = UDim2.new(0.5, -decoIconSize / 2, 0, 96),
-	bg = THEME.card,
-	bgT = THEME.frameAlpha,
-	z = 203, parent = sidebar, corner = decoIconSize / 2,
-})
-
-local decoIconStroke = Instance.new("UIStroke")
-decoIconStroke.Color = THEME.accent
-decoIconStroke.Thickness = 1.5
-decoIconStroke.Transparency = THEME.lightAlpha
-decoIconStroke.Parent = decoIcon
-
-local decoIconImg = Instance.new("ImageLabel")
-decoIconImg.Size = UDim2.new(0.65, 0, 0.65, 0)
-decoIconImg.Position = UDim2.new(0.175, 0, 0.175, 0)
-decoIconImg.BackgroundTransparency = 1
-decoIconImg.Image = "rbxassetid://76721656269888"
-decoIconImg.ScaleType = Enum.ScaleType.Fit
-decoIconImg.ZIndex = 204
-decoIconImg.Parent = decoIcon
-
-UI.label({
-	name = "DecoText",
-	size = UDim2.new(1, -8, 0, 36),
-	pos = UDim2.new(0, 4, 0, decoIconSize + 108),
-	text = "GAMEPASSES",
-	color = THEME.accent,
-	font = Enum.Font.GothamBlack,
-	textSize = 14,
-	alignX = Enum.TextXAlignment.Center,
-	z = 202, parent = sidebar,
-})
-
--- Linea decorativa 2
-local decoLine2 = Instance.new("Frame")
-decoLine2.Size = UDim2.new(0.4, 0, 0, 1)
-decoLine2.Position = UDim2.new(0.3, 0, 0, decoIconSize + 150)
-decoLine2.BackgroundColor3 = THEME.stroke
-decoLine2.BackgroundTransparency = THEME.lightAlpha
-decoLine2.BorderSizePixel = 0
-decoLine2.ZIndex = 202
-decoLine2.Parent = sidebar
-
--- Items count (abajo)
-UI.label({
-	name = "BottomInfo",
-	size = UDim2.new(1, -12, 0, 30),
-	pos = UDim2.new(0, 6, 1, -46),
-	text = tostring(#ALL_PRODUCTS) .. " ITEMS",
-	color = THEME.muted,
-	font = Enum.Font.GothamBold,
-	textSize = 12,
-	alignX = Enum.TextXAlignment.Center,
-	z = 202, parent = sidebar,
-})
+shopSidebar:selectItem("Gamepasses")
 
 -- ════════════════════════════════════════════════════════════════
 -- CONTENT AREA
@@ -427,7 +334,7 @@ local contentHeader = UI.frame({
 	parent = contentArea,
 })
 
-UI.label({
+contentTitle = UI.label({
 	name = "Title",
 	size = UDim2.new(1, -60, 0, HEADER_H),
 	pos = UDim2.new(0, 18, 0, 0),
@@ -450,14 +357,42 @@ headerLine.Parent = contentHeader
 
 
 -- ════════════════════════════════════════════════════════════════
+-- PAGES CONTAINER
+-- ════════════════════════════════════════════════════════════════
+local pagesContainer = UI.frame({
+	name   = "PagesContainer",
+	size   = UDim2.new(1, 0, 1, -HEADER_H),
+	pos    = UDim2.new(0, 0, 0, HEADER_H),
+	bgT    = 1, z = 101,
+	parent = contentArea, clips = true,
+})
+
+local pageLayout = Instance.new("UIPageLayout")
+pageLayout.FillDirection          = Enum.FillDirection.Vertical
+pageLayout.SortOrder              = Enum.SortOrder.LayoutOrder
+pageLayout.HorizontalAlignment    = Enum.HorizontalAlignment.Center
+pageLayout.EasingStyle            = Enum.EasingStyle.Quad
+pageLayout.EasingDirection        = Enum.EasingDirection.Out
+pageLayout.TweenTime              = 0.25
+pageLayout.ScrollWheelInputEnabled = false
+pageLayout.TouchInputEnabled      = false
+pageLayout.Parent                 = pagesContainer
+
+-- ════════════════════════════════════════════════════════════════
+-- PAGE: GAMEPASSES
+-- ════════════════════════════════════════════════════════════════
+local pageGamepasses = UI.frame({name = "Gamepasses", size = UDim2.fromScale(1, 1), bgT = 1, z = 102, parent = pagesContainer})
+pageGamepasses.LayoutOrder = 1
+
+-- ════════════════════════════════════════════════════════════════
 -- SCROLL + GRID
 -- ════════════════════════════════════════════════════════════════
 local scrollContainer = UI.frame({
 	name = "ScrollContainer",
-	size = UDim2.new(1, 0, 1, -HEADER_H),
-	pos = UDim2.new(0, 0, 0, HEADER_H),
-	bgT = 1, z = 100,
-	parent = contentArea, clips = true,
+	size = UDim2.new(1, 0, 1, 0),
+	pos  = UDim2.new(0, 0, 0, 0),
+	bgT  = 1, z = 100,
+	parent = pageGamepasses, clips = true,
 })
 
 local scroll = Instance.new("ScrollingFrame")
@@ -800,6 +735,20 @@ scroll.CanvasSize = UDim2.new(0, 0, 0, gridMaxY + 20)
 
 -- Preload
 preloadOwnership(ALL_PRODUCTS)
+
+-- ════════════════════════════════════════════════════════════════
+-- TAB SWITCHING
+-- ════════════════════════════════════════════════════════════════
+local TAB_TITLES = {
+	Gamepasses = "GAMEPASSES",
+}
+
+switchTab = function(tabName)
+	shopSidebar:selectItem(tabName)
+	if contentTitle then contentTitle.Text = TAB_TITLES[tabName] or tabName end
+	local pageFrame = pagesContainer:FindFirstChild(tabName)
+	if pageFrame then pageLayout:JumpTo(pageFrame) end
+end
 
 -- ════════════════════════════════════════════════════════════════
 -- OPEN / CLOSE
