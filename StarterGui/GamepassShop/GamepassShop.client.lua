@@ -195,24 +195,8 @@ local modal = ModalManager.new({
 local panel = modal:getPanel()
 panel.BackgroundColor3 = THEME.bg
 panel.BackgroundTransparency = THEME.mediumAlpha
-panel.ClipsDescendants = false
 
--- CanvasGroup: recorta hijos respetando UICorner (a diferencia de ClipsDescendants)
-local canvasGroup = Instance.new("CanvasGroup")
-canvasGroup.Name = "Canvas"
-canvasGroup.Size = UDim2.new(1, 0, 1, 0)
-canvasGroup.BackgroundTransparency = 1
-canvasGroup.BorderSizePixel = 0
-canvasGroup.GroupTransparency = 0
-canvasGroup.ZIndex = panel.ZIndex
-canvasGroup.Parent = panel
-do
-	local c = Instance.new("UICorner")
-	c.CornerRadius = UDim.new(0, 14)
-	c.Parent = canvasGroup
-end
-
-local CONTAINER = canvasGroup  -- sidebar y contentArea van aqui
+local CONTAINER = modal:getCanvas()  -- recorta hijos respetando UICorner
 
 -- ════════════════════════════════════════════════════════════════
 -- HELPERS

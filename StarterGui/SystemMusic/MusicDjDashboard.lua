@@ -365,23 +365,22 @@ local modal = ModalManager.new({
 })
 
 local panel = modal:getPanel()
-panel.ClipsDescendants = true
+local canvas = modal:getCanvas()  -- recorta hijos respetando UICorner
 
 -- ════════════════════════════════════════════════════════════════
 -- MAIN LAYOUT
 -- ════════════════════════════════════════════════════════════════
 local contentArea = makeFrame({
 	dim = UDim2.new(1, 0, 1, -BOTTOM_BAR_H),
-	z = 100, clip = true, name = "ContentArea", parent = panel,
+	z = 100, clip = true, name = "ContentArea", parent = canvas,
 })
 
 local bottomBar = makeFrame({
 	dim = UDim2.new(1, 0, 0, BOTTOM_BAR_H),
 	pos = UDim2.new(0, 0, 1, -BOTTOM_BAR_H),
 	bg = Color3.fromRGB(14, 14, 18), bgT = 0,
-	z = 110, name = "BottomBar", parent = panel,
+	z = 110, name = "BottomBar", parent = canvas,
 })
-UI.rounded(bottomBar, R_PANEL)
 
 make("UIGradient", {
 	Color = ColorSequence.new{
@@ -401,12 +400,6 @@ bottomBarBg = makeImage({
 	dim = UDim2.new(1, 0, 1, 0), z = 110, imageT = 0.6,
 	name = "BottomBarBg", parent = bottomBar,
 })
-UI.rounded(bottomBarBg, R_PANEL)
-
-local bbOverlay = makeFrame({
-	bg = Color3.fromRGB(10, 10, 14), bgT = 0.45, z = 110, parent = bottomBar,
-})
-UI.rounded(bbOverlay, R_PANEL)
 
 -- ════════════════════════════════════════════════════════════════
 -- COLUMNA IZQUIERDA: DJ LIST
@@ -416,7 +409,6 @@ local djColumn = makeFrame({
 	bg = THEME.deep, bgT = THEME.lightAlpha,
 	z = 100, name = "DJColumn", parent = contentArea,
 })
-UI.rounded(djColumn, R_PANEL)
 
 makeFrame({dim = UDim2.new(0, 1, 1, -20), pos = UDim2.new(1, 0, 0, 10), bg = THEME.stroke, bgT = 0.5, z = 101, parent = djColumn})
 
@@ -516,7 +508,6 @@ local queueColumn = makeFrame({
 	bg = THEME.deep, bgT = THEME.lightAlpha,
 	z = 100, name = "QueueColumn", parent = contentArea,
 })
-UI.rounded(queueColumn, R_PANEL)
 
 makeFrame({dim = UDim2.new(0, 1, 1, -20), pos = UDim2.new(0, 0, 0, 10), bg = THEME.stroke, bgT = 0.5, z = 101, parent = queueColumn})
 

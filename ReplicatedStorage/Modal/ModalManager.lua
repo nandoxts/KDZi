@@ -219,6 +219,21 @@ function ModalManager:_createPanel()
 	rounded(self.panel, self.cornerRadius)
 	stroked(self.panel, THEME.mediumAlpha or 0.5)
 
+	-- CanvasGroup: recorta hijos respetando UICorner en todos los modales
+	self.canvas = Instance.new("CanvasGroup")
+	self.canvas.Name = "Canvas"
+	self.canvas.Size = UDim2.new(1, 0, 1, 0)
+	self.canvas.BackgroundTransparency = 1
+	self.canvas.BorderSizePixel = 0
+	self.canvas.GroupTransparency = 0
+	self.canvas.ZIndex = self.panel.ZIndex
+	self.canvas.Parent = self.panel
+	do
+		local c = Instance.new("UICorner")
+		c.CornerRadius = UDim.new(0, self.cornerRadius)
+		c.Parent = self.canvas
+	end
+
 	-- Optional background image for the panel (behind content)
 	if self.panelBackgroundImage and self.panelBackgroundImage ~= "" then
 		local bg = Instance.new("ImageLabel")
@@ -336,6 +351,10 @@ end
 
 function ModalManager:getPanel()
 	return self.panel
+end
+
+function ModalManager:getCanvas()
+	return self.canvas
 end
 
 function ModalManager:isModalOpen()
