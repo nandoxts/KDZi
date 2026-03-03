@@ -247,7 +247,7 @@ ClanSystemConfig.DEFAULT_CLANS = {
 		clanEmoji = "🏍️",
 		clanColor = {255, 0, 0}, -- Rojo
 	},
-	
+
 	{
 		clanName = "ECLIPSE ROSA",
 		ownerId = 8659516822,
@@ -258,13 +258,22 @@ ClanSystemConfig.DEFAULT_CLANS = {
 		clanColor = {255, 192, 203}, -- Rosado
 	},
 	{
-		clanName = "CHEROS",
+		clanName = "💥CHEROS💥",
 		ownerId = 5425316102,
 		clanTag = "CHR",
 		clanLogo = "rbxassetid://105573309779066",
 		descripcion = "CLAN CHEROS💥 REPRESENTACION DE LA FIDELIDAD",
 		clanEmoji = "💥",
 		clanColor = {0, 200, 80}, -- Verde
+	},
+	{
+		clanName = "La Vida Loca",
+		ownerId = 2920094465,
+		clanTag = "LvL",
+		clanLogo = "rbxassetid://89677751320941",
+		descripcion = "La Vida Loca",
+		clanEmoji = "☠️",
+		clanColor = {255, 140, 0}, -- Naranja
 	},
 }
 

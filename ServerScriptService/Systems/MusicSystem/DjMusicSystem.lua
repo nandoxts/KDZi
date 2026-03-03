@@ -286,19 +286,20 @@ local function getOrLoadMetadata(audioId)
 	return nil, nil, false
 end
 
-local function loadMetadataBatch(ids, callback)
+local function loadMetadataBatch(ids, callback, perBatchCallback)
 	if #ids == 0 then
 		if callback then callback({}) end
 		return
 	end
 
-	local BATCH_SIZE  = 3
-	local BATCH_DELAY = 0.5
+	local BATCH_SIZE  = 10   -- aumentado de 3 → 10 (reduce tiempo total ~3x)
+	local BATCH_DELAY = 0.1  -- reducido de 0.5 → 0.1s
 	local results = {}
 	local pending = #ids
 
 	for batchStart = 1, #ids, BATCH_SIZE do
 		local batchEnd = math.min(batchStart + BATCH_SIZE - 1, #ids)
+		local batchPending = batchEnd - batchStart + 1
 		for i = batchStart, batchEnd do
 			local id = ids[i]
 			task.spawn(function()
@@ -307,6 +308,9 @@ local function loadMetadataBatch(ids, callback)
 					and { name = name, artist = artist, loaded = true }
 					or  { name = "Audio " .. id, artist = "Unknown", loaded = true, error = true }
 				pending = pending - 1
+				batchPending = batchPending - 1
+				-- Notificar al finalizar cada batch (update progresivo)
+				if batchPending == 0 and perBatchCallback then perBatchCallback(results) end
 				if pending == 0 and callback then callback(results) end
 			end)
 		end
@@ -853,9 +857,10 @@ R.GetSongRange.OnServerEvent:Connect(function(player, djName, startIdx, endIdx)
 	fireClient(R.GetSongRange, player, result)
 
 	if result.idsToLoad and #result.idsToLoad > 0 then
-		loadMetadataBatch(result.idsToLoad, function()
+		-- perBatchCallback: envía update progresivo por cada batch completado
+		loadMetadataBatch(result.idsToLoad, nil, function()
 			local updated = getSongRange(djName, startIdx, endIdx)
-			updated.djName  = djName
+			updated.djName   = djName
 			updated.isUpdate = true
 			fireClient(R.GetSongRange, player, updated)
 		end)
@@ -875,9 +880,10 @@ R.SearchSongs.OnServerEvent:Connect(function(player, djName, query)
 	end
 
 	if #idsToLoad > 0 then
-		loadMetadataBatch(idsToLoad, function()
+		-- perBatchCallback: update progresivo también en búsqueda
+		loadMetadataBatch(idsToLoad, nil, function()
 			local updated = searchSongs(djName, query)
-			updated.djName  = djName
+			updated.djName   = djName
 			updated.isUpdate = true
 			fireClient(R.SearchSongs, player, updated)
 		end)
