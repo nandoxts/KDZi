@@ -25,9 +25,16 @@ function ClanHelpers.safeLoading(container, asyncFn, onComplete, State)
 		local results = {pcall(asyncFn)}
 		local success = table.remove(results, 1)
 
-		if myId ~= State.loadingId then return end
-		if expectedPage ~= State.currentPage then return end
-		if not State.isOpen then return end
+		-- Solicitud obsoleta: limpiar loading y liberar el flag isUpdating
+		local function cancelCleanup()
+			UI.cleanupLoading()
+			if loadingFrame and loadingFrame.Parent then loadingFrame:Destroy() end
+			State.isUpdating = false
+		end
+
+		if myId ~= State.loadingId then cancelCleanup() return end
+		if expectedPage ~= State.currentPage then cancelCleanup() return end
+		if not State.isOpen then cancelCleanup() return end
 
 		UI.cleanupLoading()
 		if loadingFrame and loadingFrame.Parent then loadingFrame:Destroy() end
@@ -37,6 +44,7 @@ function ClanHelpers.safeLoading(container, asyncFn, onComplete, State)
 			onComplete(table.unpack(results))
 		elseif not success then
 			warn("[ClanUI] Error async:", results[1])
+			State.isUpdating = false  -- liberar también si el pcall falla
 		end
 	end)
 

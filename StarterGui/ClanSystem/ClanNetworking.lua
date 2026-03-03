@@ -87,8 +87,16 @@ function ClanNetworking.reloadAndKeepView(tuClanContainer, screenGui, State, tar
 			return ClanClient:GetPlayerClan()
 		end)
 
-		if myId ~= State.loadingId then return end
-		if not State.isOpen then return end
+		if myId ~= State.loadingId then
+			UI.cleanupLoading()
+			if loadingFrame and loadingFrame.Parent then loadingFrame:Destroy() end
+			return
+		end
+		if not State.isOpen then
+			UI.cleanupLoading()
+			if loadingFrame and loadingFrame.Parent then loadingFrame:Destroy() end
+			return
+		end
 
 		UI.cleanupLoading()
 		if loadingFrame and loadingFrame.Parent then loadingFrame:Destroy() end
