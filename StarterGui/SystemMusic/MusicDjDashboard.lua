@@ -443,7 +443,7 @@ end
 -- ════════════════════════════════════════════════════════════════
 local songsColumn = makeFrame({
 	dim = UDim2.new(SONGS_W, 0, 1, 0), pos = UDim2.new(DJ_W, 0, 0, 0),
-	z = 100, name = "SongsColumn", parent = contentArea,
+	bgT = 1, z = 100, name = "SongsColumn", parent = contentArea,
 })
 
 local songsHeader = makeFrame({
