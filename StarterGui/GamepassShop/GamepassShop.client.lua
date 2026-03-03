@@ -328,7 +328,7 @@ UI.label({
 	text = "SHOP",
 	color = THEME.text,
 	font = Enum.Font.GothamBlack,
-	textSize = 22,
+	textSize = 18,
 	alignX = Enum.TextXAlignment.Center,
 	z = 202, parent = sidebar,
 })
@@ -423,7 +423,7 @@ local contentArea = UI.frame({
 local contentHeader = UI.frame({
 	name = "ContentHeader",
 	size = UDim2.new(1, 0, 0, HEADER_H),
-	bg = THEME.bg, bgT = THEME.lightAlpha, z = 150,
+	bg = THEME.deep, bgT = THEME.lightAlpha, z = 150,
 	parent = contentArea,
 })
 

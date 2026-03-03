@@ -413,7 +413,7 @@ local djColumn = makeFrame({
 makeFrame({dim = UDim2.new(0, 1, 1, -20), pos = UDim2.new(1, 0, 0, 10), bg = THEME.stroke, bgT = 0.5, z = 101, parent = djColumn})
 
 makeLabel({
-	text = "DJ LIST", font = Enum.Font.GothamBold, size = 16,
+	text = "DJ LIST", font = Enum.Font.GothamBlack, size = 18,
 	dim = UDim2.new(1, -16, 0, COL_HEADER_H), pos = UDim2.new(0, 12, 0, 0),
 	z = 102, parent = djColumn,
 })
@@ -452,7 +452,7 @@ local songsHeader = makeFrame({
 })
 
 songsTitle = makeLabel({
-	text = "Mix", font = Enum.Font.GothamBold, size = 15,
+	text = "Mix", font = Enum.Font.GothamBlack, size = 18,
 	dim = UDim2.new(1, -70, 0, 28), pos = UDim2.new(0, 0, 0, 0),
 	truncate = Enum.TextTruncate.AtEnd,
 	alignX = Enum.TextXAlignment.Left, z = 102,
@@ -514,7 +514,7 @@ makeFrame({dim = UDim2.new(0, 1, 1, -20), pos = UDim2.new(0, 0, 0, 10), bg = THE
 local queueHeader = makeFrame({dim = UDim2.new(1, 0, 0, COL_HEADER_H), z = 101, parent = queueColumn})
 
 makeLabel({
-	text = "PLAYLIST QUEUE", font = Enum.Font.GothamBold, size = 15,
+	text = "PLAYLIST QUEUE", font = Enum.Font.GothamBlack, size = 18,
 	dim = UDim2.new(1, -16, 1, 0), pos = UDim2.new(0, 12, 0, 0),
 	z = 102, parent = queueHeader,
 })
