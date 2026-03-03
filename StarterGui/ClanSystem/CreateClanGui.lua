@@ -82,11 +82,11 @@ local SIDEBAR_W = isMobileDevice and 100 or 130
 local HEADER_H  = 52
 
 local CLAN_NAV_ITEMS = {
-	{ id = "TuClan",      label = "Tu Clan"   },  -- reemplaza 0 con tu asset id
-	{ id = "Disponibles", label = "Disponibles"}, -- reemplaza 0 con tu asset id
+	{ id = "TuClan",      label = "Tu Clan",     image = "92400453309538" },
+	{ id = "Disponibles", label = "Disponibles", image = "73958056241305" },
 }
 if isAdmin then
-	table.insert(CLAN_NAV_ITEMS, { id = "Admin", label = "Admin"})  -- reemplaza 0 con tu asset id
+	table.insert(CLAN_NAV_ITEMS, { id = "Admin", label = "Admin", image = "91597166299022" })
 end
 
 local sidebarNavInstance = SidebarNav.new({

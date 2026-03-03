@@ -304,7 +304,7 @@ local shopSidebar = SidebarNav.new({
 	THEME      = THEME,
 	title      = "SHOP",
 	items      = {
-		{ id = "Gamepasses", label = "GAMEPASSES", image = "76721656269888" },
+		{ id = "Gamepasses", label = "GAMEPASSES" },
 	},
 	width      = SIDEBAR_W,
 	isMobile   = isMobile,

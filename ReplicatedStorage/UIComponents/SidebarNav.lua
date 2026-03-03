@@ -163,8 +163,9 @@ function SidebarNav.new(opts)
 
 		local img = Instance.new("ImageLabel")
 		img.Name                   = "Icon"
-		img.Size                   = UDim2.new(1, 0, 1, 0)
-		img.Position               = UDim2.new(0, 0, 0, 0)
+		img.Size                   = UDim2.new(0.7, 0, 0.7, 0)
+		img.AnchorPoint            = Vector2.new(0.5, 0.5)
+		img.Position               = UDim2.new(0.5, 0, 0.5, 0)
 		img.BackgroundTransparency = 1
 		img.Image                  = "rbxassetid://" .. tostring(item.image or "79346090571461")
 		img.ScaleType              = Enum.ScaleType.Crop
