@@ -180,7 +180,7 @@ local function createCreditsPage(container, THEME)
 	creditsScroll.ScrollingDirection = Enum.ScrollingDirection.Y
 	creditsScroll.ZIndex = 103
 	creditsScroll.Parent = creditsCover
-	ModernScrollbar.setup(creditsScroll, creditsCover, THEME, {transparency = 0})
+	ModernScrollbar.setup(creditsScroll, creditsCover, THEME, {transparency = 0, offset = -8})
 
 	-- Inner container dentro del scroll
 	local innerWrap = UI.frame({
@@ -575,7 +575,7 @@ function SettingsCreator.CreateSettingsModal(panel, THEME)
 			scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 			scrollFrame.ZIndex = 104
 			scrollFrame.Parent = page
-			ModernScrollbar.setup(scrollFrame, page, THEME, {transparency = 0})
+			ModernScrollbar.setup(scrollFrame, page, THEME, {transparency = 0, offset = -8})
 
 			local layout = Instance.new("UIListLayout")
 			layout.Padding = UDim.new(0, CARD_GAP)

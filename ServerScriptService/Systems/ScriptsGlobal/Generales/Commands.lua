@@ -1,170 +1,242 @@
---> Loaded services
+--[[
+	Command System (Refactored)
+	- Efectos visuales, auras, comandos especiales, items por gamepass
+	- Refactorizado: sin memory leaks, anti-spam funcional, código centralizado
+]]
+
+--> Services
 local MarketplaceService = game:GetService("MarketplaceService")
-local Players = game:GetService("Players")
-local InsertService = game:GetService("InsertService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ServerStorage = game:GetService("ServerStorage"):WaitForChild("Systems")
+local Players            = game:GetService("Players")
+local InsertService      = game:GetService("InsertService")
+local ReplicatedStorage  = game:GetService("ReplicatedStorage")
+local ServerStorage      = game:GetService("ServerStorage"):WaitForChild("Systems")
 local ServerScriptService = game:GetService("ServerScriptService"):WaitForChild("Systems")
-local RunService = game:GetService("RunService")
+local TweenService       = game:GetService("TweenService")
+local Debris             = game:GetService("Debris")
 
 --> Modules
-local Configuration = require(game:GetService("ServerScriptService"):WaitForChild("Systems"):WaitForChild("Configuration"))
+local Configuration  = require(game:GetService("ServerScriptService"):WaitForChild("Systems"):WaitForChild("Configuration"))
 local GamepassManager = require(ServerScriptService["Gamepass Gifting"].GamepassManager)
-local ColorEffects = require(ServerScriptService.Effects.ColorEffectsModule)
+local ColorEffects   = require(ServerScriptService.Effects.ColorEffectsModule)
 
--- ClanData para obtener información del clan
+--> ClanData (carga segura)
 local ClanData = nil
-pcall(function()
-	local serverStorage = game:GetService("ServerStorage")
-	local systems = serverStorage:FindFirstChild("Systems")
-	if systems then
-		local clanSystem = systems:FindFirstChild("ClanSystem")
-		if clanSystem then
-			-- Buscar V2 primero, luego V1 como fallback
-			local clanDataModule = clanSystem:FindFirstChild("ClanDataV2") 
-				or clanSystem:FindFirstChild("ClanData")
-			if clanDataModule then
-				ClanData = require(clanDataModule)
-			end
+do
+	local clanSystem = game:GetService("ServerStorage"):FindFirstChild("Systems")
+	clanSystem = clanSystem and clanSystem:FindFirstChild("ClanSystem")
+	if clanSystem then
+		local module = clanSystem:FindFirstChild("ClanDataV2") or clanSystem:FindFirstChild("ClanData")
+		if module then
+			local ok, result = pcall(require, module)
+			if ok then ClanData = result end
 		end
 	end
-end)
+end
 
 --> Constants
 local EFFECT_PARTS = {"Head", "LeftLowerArm", "RightLowerArm", "LeftLowerLeg", "RightLowerLeg"}
 local BLACKLISTED_USERIDS = Configuration.OWS
+local COOLDOWN_SECONDS = 0.5 -- Anti-spam entre comandos
 
---> Estado global
-local activeEffects = {}
-local giftItemsEquipped = {}
-local originalAccessories = {}
-local originalTools = {}
-local commandCooldowns = {} -- Anti-spam
-
---> Configuración de comandos especiales
 local SPECIAL_COMMANDS = {
 	TOMBO = {
 		gamepassKey = Configuration.TOMBO,
-		clothing = {
-			pantsID = 10820482467,
-			shirtID = 16963556758
-		},
-		itemFolder = "TOMBO"
+		clothing    = { pantsID = 10820482467, shirtID = 16963556758 },
+		itemFolder  = "TOMBO",
 	},
 	SERE = {
 		gamepassKey = Configuration.SERE,
-		clothing = {
-			shirtID = 7650880991
-		},
-		accessories = {
-			hatID = 125648027192051,
-			backAccessoryID = 125602307013071
-		},
-		itemFolder = "SERE"
+		clothing    = { shirtID = 7650880991 },
+		accessories = { hatID = 125648027192051, backAccessoryID = 125602307013071 },
+		itemFolder  = "SERE",
 	},
 	CHORO = {
 		gamepassKey = Configuration.CHORO,
-		itemFolder = "CHORO"
+		itemFolder  = "CHORO",
 	},
 	ARMYBOOMS = {
 		gamepassKey = Configuration.ARMYBOOMS,
-		itemFolder = "ARMYBOOMS"
+		itemFolder  = "ARMYBOOMS",
 	},
 	LIGHTSTICK = {
 		gamepassKey = Configuration.LIGHTSTICK,
-		itemFolder = "LIGHTSTICK"
-	}
+		itemFolder  = "LIGHTSTICK",
+	},
 }
 
--- Tracking de comandos activos por jugador
-local activeSpecialCommands = {}
-
---> Configuracion de auras (gamepass → carpeta en AurasGMPS)
 local AURA_COMMANDS = {
 	atomic   = { gamepassKey = Configuration.AURA_ATOMIC,   folder = "ATOMIC"    },
 	blazing  = { gamepassKey = Configuration.AURA_BLAZING,  folder = "BLAZING"   },
 	nano     = { gamepassKey = Configuration.AURA_NANO,     folder = "NANO"      },
 	redheart = { gamepassKey = Configuration.AURA_REDHEART, folder = "RED HEART" },
 	snow     = { gamepassKey = Configuration.AURA_SNOW,     folder = "SNOW"      },
-	dragon   = { gamepassKey = Configuration.AURA_PACK,   folder = "DRAGON"    },
+	dragon   = { gamepassKey = Configuration.AURA_PACK,     folder = "DRAGON"    },
 }
 
--- Tracking de aura activa por jugador
-local activeAuras = {}
+local AURA_SOUNDS = {
+	atomic   = "rbxassetid://96776624852409",
+	blazing  = "rbxassetid://82388464656965",
+	nano     = "rbxassetid://139565608032266",
+	redheart = "rbxassetid://82388464656965",
+	snow     = "rbxassetid://9125402528",
+	dragon   = "rbxassetid://121322612850251",
+}
 
------------------------------------------------------------------------------------
---> EFFECT SYSTEM
------------------------------------------------------------------------------------
+local R6_TO_R15 = {
+	["Head"]             = {"Head"},
+	["Torso"]            = {"UpperTorso", "LowerTorso"},
+	["HumanoidRootPart"] = {"HumanoidRootPart"},
+	["Left Arm"]         = {"LeftUpperArm", "LeftLowerArm", "LeftHand"},
+	["Right Arm"]        = {"RightUpperArm", "RightLowerArm", "RightHand"},
+	["Left Leg"]         = {"LeftUpperLeg", "LeftLowerLeg", "LeftFoot"},
+	["Right Leg"]        = {"RightUpperLeg", "RightLowerLeg", "RightFoot"},
+}
 
-local PlayerEffects = {
-	fire = function(character, color)
-		local created = {}
-		for _, name in ipairs(EFFECT_PARTS) do
-			local part = character:FindFirstChild(name)
-			if part then
-				local fire = Instance.new("Fire")
-				fire.Color = color
-				fire.SecondaryColor = Color3.new(color.r * 0.5, color.g * 0.5, color.b * 0.5)
-				fire.Size = 3
-				fire.Parent = part
-				table.insert(created, fire)
-			end
+local MANNEQUIN_SKIP = {
+	ThumbnailCamera = true, ["Body Colors"] = true,
+	Description = true, Humanoid = true,
+}
+
+local PAID_ITEM_FOLDERS = {"VIP", "TOMBO", "CHORO", "SERE", "ARMYBOOMS", "LIGHTSTICK"}
+
+--> Player State (todo centralizado en una tabla por UserId)
+local playerState = {} -- [userId] = { effects, activeCommand, activeAura, origAccessories, origTools, giftEquipped, lastCommandTime }
+
+local function getState(player)
+	local uid = player.UserId
+	if not playerState[uid] then
+		playerState[uid] = {
+			effects          = {},    -- instancias de efectos activos
+			activeCommand    = nil,   -- comando especial activo (TOMBO, SERE, etc.)
+			activeAura       = nil,   -- aura activa ("atomic", "blazing", etc.)
+			origAccessories  = {},    -- nombres de accesorios originales
+			origTools        = {},    -- nombres de tools originales
+			giftEquipped     = false, -- si ya se equiparon gift items
+			lastCommandTime  = 0,     -- timestamp del último comando (anti-spam)
+		}
+	end
+	return playerState[uid]
+end
+
+local function clearState(player)
+	playerState[player.UserId] = nil
+end
+
+--=============================================================================
+-- UTILIDADES
+--=============================================================================
+
+local function resolveColor(token)
+	if not token or token == "" then
+		return Color3.new(1, 0, 0)
+	end
+
+	local key = string.lower(token)
+	if ColorEffects.colors[key] then
+		return ColorEffects.colors[key]
+	end
+
+	local hex = key:gsub("#", "")
+	if hex:match("^%x%x%x%x%x%x$") then
+		local r = tonumber(hex:sub(1, 2), 16) / 255
+		local g = tonumber(hex:sub(3, 4), 16) / 255
+		local b = tonumber(hex:sub(5, 6), 16) / 255
+		return Color3.new(r, g, b)
+	end
+
+	return Color3.new(1, 0, 0)
+end
+
+local function isOnCooldown(player)
+	local state = getState(player)
+	local now = tick()
+	if now - state.lastCommandTime < COOLDOWN_SECONDS then
+		return true
+	end
+	state.lastCommandTime = now
+	return false
+end
+
+local function getHumanoid(character)
+	local hum = character:FindFirstChildOfClass("Humanoid")
+	if not hum then
+		local ok, result = pcall(function()
+			return character:WaitForChild("Humanoid", 2)
+		end)
+		if ok then hum = result end
+	end
+	return hum
+end
+
+local function isVIPItem(item)
+	local itemsFolder = ServerStorage:FindFirstChild("Items")
+	if not itemsFolder then return false end
+
+	for _, folderName in ipairs(PAID_ITEM_FOLDERS) do
+		local folder = itemsFolder:FindFirstChild(folderName)
+		if folder and folder:FindFirstChild(item.Name) then
+			return true
 		end
-		return created
+	end
+	return false
+end
+
+--=============================================================================
+-- EFFECT SYSTEM
+--=============================================================================
+
+-- Generador genérico: crea una instancia por cada parte del efecto
+local function createEffectOnParts(character, className, propertySetup)
+	local created = {}
+	for _, name in ipairs(EFFECT_PARTS) do
+		local part = character:FindFirstChild(name)
+		if part then
+			local inst = Instance.new(className)
+			propertySetup(inst)
+			inst.Parent = part
+			table.insert(created, inst)
+		end
+	end
+	return created
+end
+
+local EffectCreators = {
+	fire = function(character, color)
+		return createEffectOnParts(character, "Fire", function(fire)
+			fire.Color = color
+			fire.SecondaryColor = Color3.new(color.R * 0.5, color.G * 0.5, color.B * 0.5)
+			fire.Size = 3
+		end)
 	end,
 
 	smk = function(character, color)
-		local created = {}
-		for _, name in ipairs(EFFECT_PARTS) do
-			local part = character:FindFirstChild(name)
-			if part then
-				local smoke = Instance.new("Smoke")
-				smoke.Color = color
-				smoke.Size = 0.0005
-				smoke.Opacity = 0.005
-				smoke.RiseVelocity = 1
-				smoke.Parent = part
-				table.insert(created, smoke)
-			end
-		end
-		return created
+		return createEffectOnParts(character, "Smoke", function(smoke)
+			smoke.Color = color
+			smoke.Size = 0.0005
+			smoke.Opacity = 0.005
+			smoke.RiseVelocity = 1
+		end)
 	end,
 
 	lght = function(character, color)
-		local created = {}
-		for _, name in ipairs(EFFECT_PARTS) do
-			local part = character:FindFirstChild(name)
-			if part then
-				local light = Instance.new("PointLight")
-				light.Color = color
-				light.Brightness = 5
-				light.Range = 10
-				light.Shadows = true
-				light.Parent = part
-				table.insert(created, light)
-			end
-		end
-		return created
+		return createEffectOnParts(character, "PointLight", function(light)
+			light.Color = color
+			light.Brightness = 5
+			light.Range = 10
+			light.Shadows = true
+		end)
 	end,
 
 	prtcl = function(character, color)
-		local created = {}
-		for _, name in ipairs(EFFECT_PARTS) do
-			local part = character:FindFirstChild(name)
-			if part then
-				local emitter = Instance.new("ParticleEmitter")
-				emitter.Color = ColorSequence.new(color)
-				emitter.Size = NumberSequence.new(0.4, 0.8)
-				emitter.LightEmission = 0.5
-				emitter.Texture = "rbxasset://textures/particles/sparkles_main.dds"
-				emitter.Lifetime = NumberRange.new(1, 2)
-				emitter.Rate = 10
-				emitter.Speed = NumberRange.new(1)
-				emitter.Parent = part
-				table.insert(created, emitter)
-			end
-		end
-		return created
+		return createEffectOnParts(character, "ParticleEmitter", function(emitter)
+			emitter.Color = ColorSequence.new(color)
+			emitter.Size = NumberSequence.new(0.4, 0.8)
+			emitter.LightEmission = 0.5
+			emitter.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+			emitter.Lifetime = NumberRange.new(1, 2)
+			emitter.Rate = 10
+			emitter.Speed = NumberRange.new(1)
+		end)
 	end,
 
 	trail = function(character, color)
@@ -182,14 +254,13 @@ local PlayerEffects = {
 				trail.Transparency = NumberSequence.new({
 					NumberSequenceKeypoint.new(0, 0),
 					NumberSequenceKeypoint.new(0.6, 0.2),
-					NumberSequenceKeypoint.new(1, 0.9)
+					NumberSequenceKeypoint.new(1, 0.9),
 				})
 				trail.WidthScale = NumberSequence.new(0.2, 1)
 				trail.Lifetime = 0.6
 				trail.Attachment0 = att0
 				trail.Attachment1 = att1
 				trail.Parent = part
-
 				table.insert(created, {trail, att0, att1})
 			end
 		end
@@ -197,9 +268,9 @@ local PlayerEffects = {
 	end,
 
 	destacar = function(character, color)
-		local existingHighlight = character:FindFirstChild("Destacar")
-		if existingHighlight then
-			pcall(function() existingHighlight:Destroy() end)
+		local existing = character:FindFirstChild("Destacar")
+		if existing then
+			pcall(function() existing:Destroy() end)
 			task.wait()
 		end
 
@@ -211,33 +282,30 @@ local PlayerEffects = {
 		highlight.OutlineTransparency = 0.1
 		highlight.Parent = character
 		return {highlight}
-	end
+	end,
 }
 
 local function clearPlayerEffect(player)
-	if activeEffects[player] then
-		for _, inst in ipairs(activeEffects[player]) do
-			-- Manejar tanto instancias directas como tablas de instancias
-			if typeof(inst) == "table" then
-				-- Es una tabla (como trail con attachments)
-				for _, subInst in ipairs(inst) do
-					if typeof(subInst) == "Instance" and subInst.Parent then
-						pcall(function() subInst:Destroy() end)
-					end
+	local state = getState(player)
+
+	for _, inst in ipairs(state.effects) do
+		if typeof(inst) == "table" then
+			for _, sub in ipairs(inst) do
+				if typeof(sub) == "Instance" and sub.Parent then
+					pcall(function() sub:Destroy() end)
 				end
-			elseif typeof(inst) == "Instance" and inst.Parent then
-				-- Es una instancia directa
-				pcall(function() inst:Destroy() end)
 			end
+		elseif typeof(inst) == "Instance" and inst.Parent then
+			pcall(function() inst:Destroy() end)
 		end
-		activeEffects[player] = nil
 	end
+	state.effects = {}
 
 	local character = player.Character
 	if character then
-		local existingHighlight = character:FindFirstChild("Destacar")
-		if existingHighlight and existingHighlight:IsA("Highlight") then
-			pcall(function() existingHighlight:Destroy() end)
+		local h = character:FindFirstChild("Destacar")
+		if h and h:IsA("Highlight") then
+			pcall(function() h:Destroy() end)
 		end
 	end
 end
@@ -246,9 +314,7 @@ local function applyEffectToPlayer(targetPlayer, effectType, color, commandingPl
 	local character = targetPlayer.Character
 	if not character then return end
 
-	-- Si commandingPlayer es diferente a targetPlayer, verificar permisos
 	if commandingPlayer and commandingPlayer ~= targetPlayer then
-		-- Solo Owner/Admin pueden aplicar efectos a otros
 		if not ColorEffects.hasPermission(commandingPlayer, Configuration.GroupID, Configuration.ALLOWED_RANKS_OWS) then
 			return
 		end
@@ -256,565 +322,15 @@ local function applyEffectToPlayer(targetPlayer, effectType, color, commandingPl
 
 	clearPlayerEffect(targetPlayer)
 
-	local fn = PlayerEffects[effectType]
+	local fn = EffectCreators[effectType]
 	if fn then
-		activeEffects[targetPlayer] = fn(character, color)
+		getState(targetPlayer).effects = fn(character, color)
 	end
 end
 
-local function resolveColor(token)
-	if not token or token == "" then
-		return Color3.new(1, 0, 0) -- Rojo por defecto
-	end
-
-	local key = string.lower(token)
-	if ColorEffects.colors[key] then
-		return ColorEffects.colors[key]
-	end
-
-	local hex = key:gsub("#", "")
-	if hex:match("^%x%x%x%x%x%x$") then
-		local r = tonumber(hex:sub(1, 2), 16) / 255
-		local g = tonumber(hex:sub(3, 4), 16) / 255
-		local b = tonumber(hex:sub(5, 6), 16) / 255
-		return Color3.new(r, g, b)
-	end
-
-	return Color3.new(1, 0, 0) -- Rojo por defecto si no encuentra el color
-end
-
------------------------------------------------------------------------------------
---> CHARACTER MODIFICATION
------------------------------------------------------------------------------------
-
-local function modifyCharacter(character, modification)
-	if not character or not character.Parent or not character:IsDescendantOf(game) then
-		return false
-	end
-
-	local humanoid = character:FindFirstChildOfClass("Humanoid")
-	if not humanoid then
-		local success, result = pcall(function()
-			return character:WaitForChild("Humanoid", 2)
-		end)
-		if not success then return false end
-		humanoid = result
-	end
-
-	if not humanoid then return false end
-
-	local success, err = pcall(function()
-		if modification.type == "description" then
-			local humanoidDescription = humanoid:GetAppliedDescription()
-			humanoidDescription[modification.part] = modification.value
-			humanoid:ApplyDescription(humanoidDescription)
-		elseif modification.type == "scale" then
-			humanoid:WaitForChild("BodyHeightScale").Value = modification.value
-			humanoid:WaitForChild("BodyDepthScale").Value = modification.value
-			humanoid:WaitForChild("BodyWidthScale").Value = modification.value
-			humanoid:WaitForChild("HeadScale").Value = modification.value
-		end
-	end)
-
-	if not success then
-		warn("Error al modificar personaje:", err)
-		return false
-	end
-
-	return true
-end
-
-local function equipAccessory(character, accessoryId)
-	if not character then return end
-
-	local success, asset = pcall(function()
-		return InsertService:LoadAsset(accessoryId)
-	end)
-
-	if success and asset then
-		local accessory = asset:FindFirstChildOfClass("Accessory")
-		if accessory then
-			accessory.Parent = character
-			task.wait(0.05) -- Esperar a que se parente correctamente
-		end
-	end
-end
-
-local function applyClothing(character, clothingConfig)
-	if not character then return end
-
-	local humanoid = character:FindFirstChildOfClass("Humanoid")
-	if not humanoid then return end
-
-	local success, err = pcall(function()
-		local desc = humanoid:GetAppliedDescription()
-
-		if clothingConfig.shirtID then
-			desc.Shirt = clothingConfig.shirtID
-		end
-
-		if clothingConfig.pantsID then
-			desc.Pants = clothingConfig.pantsID
-		end
-
-		humanoid:ApplyDescription(desc)
-	end)
-
-	if not success then
-		warn("Error aplicando ropa:", err)
-	end
-end
-
-local function removeSpecialCommandItems(player, commandName)
-	local commandConfig = SPECIAL_COMMANDS[commandName]
-	if not commandConfig then return end
-
-	local character = player.Character
-	local backpack = player.Backpack
-
-	-- Remover items del folder específico
-	if commandConfig.itemFolder then
-		local itemsFolder = ServerStorage:FindFirstChild("Items")
-		if itemsFolder then
-			local typeFolder = itemsFolder:FindFirstChild(commandConfig.itemFolder)
-			if typeFolder then
-				-- Remover del backpack
-				for _, tool in ipairs(backpack:GetChildren()) do
-					if tool:IsA("Tool") and typeFolder:FindFirstChild(tool.Name) then
-						tool:Destroy()
-					end
-				end
-
-				-- Remover del personaje (si está equipado)
-				if character then
-					for _, tool in ipairs(character:GetChildren()) do
-						if tool:IsA("Tool") and typeFolder:FindFirstChild(tool.Name) then
-							tool:Destroy()
-						end
-					end
-				end
-			end
-		end
-	end
-
-	-- Remover accesorios específicos (para SERE)
-	if commandConfig.accessories and character then
-		for _, accessoryId in pairs(commandConfig.accessories) do
-			-- Buscar y remover accesorios por ID
-			for _, accessory in ipairs(character:GetChildren()) do
-				if accessory:IsA("Accessory") then
-					-- Intentar obtener el ID del accessory
-					local success, assetId = pcall(function()
-						return accessory:GetAttribute("AssetId") or 
-							(accessory.PrimaryPart and accessory.PrimaryPart:GetAttribute("AssetId"))
-					end)
-					if success and assetId == accessoryId then
-						accessory:Destroy()
-					end
-				end
-			end
-		end
-	end
-
-	-- Reset ropa a la original solo si el comando tenía ropa
-	if commandConfig.clothing and character then
-		local humanoid = character:FindFirstChildOfClass("Humanoid")
-		if humanoid then
-			local success, originalDesc = pcall(function()
-				return Players:GetHumanoidDescriptionFromUserId(player.UserId)
-			end)
-
-			if success and originalDesc then
-				pcall(function()
-					local currentDesc = humanoid:GetAppliedDescription()
-
-					if commandConfig.clothing.shirtID then
-						currentDesc.Shirt = originalDesc.Shirt
-					end
-
-					if commandConfig.clothing.pantsID then
-						currentDesc.Pants = originalDesc.Pants
-					end
-
-					humanoid:ApplyDescription(currentDesc)
-				end)
-			end
-		end
-	end
-end
-
-local function clearAllSpecialCommands(player)
-	-- Remover todos los comandos especiales activos
-	for commandName, _ in pairs(SPECIAL_COMMANDS) do
-		removeSpecialCommandItems(player, commandName)
-	end
-	activeSpecialCommands[player.UserId] = nil
-end
-
------------------------------------------------------------------------------------
---> ITEM MANAGEMENT
------------------------------------------------------------------------------------
-
-local function equipItems(player, itemType)
-	local itemsFolder = ServerStorage:FindFirstChild("Items")
-	if not itemsFolder then return end
-
-	local typeFolder = itemsFolder:FindFirstChild(itemType)
-	if not typeFolder then return end
-
-	local backpack = player:WaitForChild("Backpack")
-	for _, item in ipairs(typeFolder:GetChildren()) do
-		if not backpack:FindFirstChild(item.Name) then
-			local clonedItem = item:Clone()
-			if clonedItem:IsA("Tool") then
-				clonedItem.CanBeDropped = false
-			end
-			clonedItem.Parent = backpack
-		end
-	end
-end
-
-local function grantItemsBasedOnPasses(player)
-	-- Otorgar automáticamente al inicio
-	local gamepassesToCheck = {
-		{key = "VIP", folder = "VIP", id = Configuration.VIP},
-		{key = "ARMYBOOMS", folder = "ARMYBOOMS", id = Configuration.ARMYBOOMS},
-		{key = "LIGHTSTICK", folder = "LIGHTSTICK", id = Configuration.LIGHTSTICK},
-	}
-
-	for _, gamepass in ipairs(gamepassesToCheck) do
-		if gamepass.id then
-			local hasPass = GamepassManager.HasGamepass(player, gamepass.id)
-			if hasPass then
-				equipItems(player, gamepass.folder)
-			end
-		end
-	end
-end
-
-local function equipGiftItems(player)
-	if giftItemsEquipped[player.UserId] then return end
-
-	local giftItems = ServerStorage:FindFirstChild("Items")
-	if giftItems then
-		giftItems = giftItems:FindFirstChild("GiftItems")
-	end
-
-	if not giftItems then return end
-
-	for _, item in ipairs(giftItems:GetChildren()) do
-		local clonedItem = item:Clone()
-		if clonedItem:IsA("Tool") then
-			clonedItem.CanBeDropped = false
-		end
-		clonedItem.Parent = player.Backpack
-	end
-
-	giftItemsEquipped[player.UserId] = true
-end
-
------------------------------------------------------------------------------------
---> ORIGINAL ITEMS TRACKING
------------------------------------------------------------------------------------
-
-local function storeOriginalItems(player)
-	local character = player.Character or player.CharacterAdded:Wait()
-
-	originalAccessories[player.UserId] = {}
-	for _, accessory in ipairs(character:GetChildren()) do
-		if accessory:IsA("Accessory") then
-			table.insert(originalAccessories[player.UserId], accessory.Name)
-		end
-	end
-
-	local backpack = player:WaitForChild("Backpack")
-	originalTools[player.UserId] = {}
-	for _, tool in ipairs(backpack:GetChildren()) do
-		if tool:IsA("Tool") then
-			table.insert(originalTools[player.UserId], tool.Name)
-		end
-	end
-end
-
-local function isVIPItem(item)
-	local itemsFolder = ServerStorage:FindFirstChild("Items")
-	if not itemsFolder then return false end
-
-	local paidItemsFolders = {
-		"VIP", "TOMBO", "CHORO", "SERE", "ARMYBOOMS", "LIGHTSTICK"
-	}
-
-	for _, folderName in ipairs(paidItemsFolders) do
-		local folder = itemsFolder:FindFirstChild(folderName)
-		if folder and folder:FindFirstChild(item.Name) then
-			return true
-		end
-	end
-
-	return false
-end
-
-local function resetCharacter(player)
-	local character = player.Character or player.CharacterAdded:Wait()
-	local humanoid = character:WaitForChild('Humanoid')
-
-	-- Guardar overhead
-	local overheadClone = nil
-	if character:FindFirstChild("Head") then
-		local overhead = character.Head:FindFirstChild("Overhead")
-		if overhead then
-			overheadClone = overhead:Clone()
-		end
-	end
-
-	-- Remover accesorios no originales y no VIP
-	for _, accessory in ipairs(character:GetChildren()) do
-		if accessory:IsA("Accessory") and not isVIPItem(accessory) and 
-			not table.find(originalAccessories[player.UserId] or {}, accessory.Name) then
-			accessory:Destroy()
-		end
-	end
-
-	-- Remover tools duplicados
-	local backpack = player:WaitForChild("Backpack")
-	local toolsSeen = {}
-	for _, tool in ipairs(backpack:GetChildren()) do
-		if tool:IsA("Tool") then
-			local isProtected = isVIPItem(tool) or table.find(originalTools[player.UserId] or {}, tool.Name)
-			if not isProtected and toolsSeen[tool.Name] then
-				tool:Destroy()
-			else
-				toolsSeen[tool.Name] = true
-			end
-		end
-	end
-
-	-- Reset apariencia
-	local success, humanoidDescription = pcall(function()
-		return Players:GetHumanoidDescriptionFromUserId(player.UserId)
-	end)
-
-	if success and humanoidDescription then
-		humanoid:ApplyDescription(humanoidDescription)
-	end
-
-	-- Restaurar overhead
-	if overheadClone then
-		task.delay(0.5, function()
-			local head = character:FindFirstChild("Head")
-			if head then
-				local oldOverhead = head:FindFirstChild("Overhead")
-				if oldOverhead then oldOverhead:Destroy() end
-				pcall(function()
-					overheadClone.Parent = head
-				end)
-			end
-		end)
-	end
-
-	-- Reset gift items
-	giftItemsEquipped[player.UserId] = false
-
-	-- Remover partículas
-	local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-	if humanoidRootPart then
-		local commandParticles = humanoidRootPart:FindFirstChild("CommandParticles")
-		if commandParticles and commandParticles:IsA("ParticleEmitter") then
-			commandParticles:Destroy()
-		end
-	end
-
-	-- Clear efectos
-	clearPlayerEffect(player)
-
-	-- Clear comandos especiales activos
-	clearAllSpecialCommands(player)
-
-	-- Clear aura activa
-	removeAura(player)
-
-	-- Guardar ítems originales de nuevo
-	storeOriginalItems(player)
-end
-
------------------------------------------------------------------------------------
---> COMMAND HANDLERS
------------------------------------------------------------------------------------
-
-local function handleParticleCommand(player, character, textureId)
-	local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-	if not humanoidRootPart then 
-		return 
-	end
-
-	local isClan = string.lower(textureId) == "clan"
-	local textureIdToUse = textureId
-
-	-- Si es clan, obtener el logo del clan
-	if isClan and ClanData then
-		local playerClan = ClanData:GetPlayerClan(player.UserId)
-		if playerClan and playerClan.logo then
-			textureIdToUse = playerClan.logo:gsub("rbxassetid://", "")
-		end
-	end
-
-	local existingParticleEmitter = humanoidRootPart:FindFirstChild("CommandParticles")
-	local particleEmitter = existingParticleEmitter
-
-	if not particleEmitter then
-		local commandParticles = ServerStorage:FindFirstChild("Commands")
-		if commandParticles then
-			commandParticles = commandParticles:FindFirstChild("CommandParticles")
-			if commandParticles then
-				particleEmitter = commandParticles:Clone()
-				particleEmitter.Name = "CommandParticles"
-				particleEmitter.Parent = humanoidRootPart
-			else
-				return
-			end
-		else
-			return
-		end
-	end
-
-	-- Configurar propiedades para que reboten alrededor del cuerpo
-	particleEmitter.Size = NumberSequence.new(0.25, 0.35)
-	particleEmitter.Lifetime = NumberRange.new(2, 3)
-	particleEmitter.Rate = 15
-	particleEmitter.Speed = NumberRange.new(2, 4)
-	particleEmitter.Drag = 1.5
-	particleEmitter.VelocityInheritance = 0.1
-	particleEmitter.Acceleration = Vector3.new(0, 0, 0)
-	particleEmitter.SpreadAngle = Vector2.new(180, 180)
-	particleEmitter.Transparency = NumberSequence.new(0.2, 0.5, 1)
-
-	pcall(function()
-		local fullTexture = "rbxassetid://" .. textureIdToUse
-		particleEmitter.Texture = fullTexture
-	end)
-
-	particleEmitter.Enabled = true
-end
-
-local function handleCloneCommand(player, targetName)
-	local success, targetUserId = pcall(function()
-		return Players:GetUserIdFromNameAsync(targetName)
-	end)
-
-	if not success then return end
-
-	-- Verificar blacklist
-	for _, blockedUserId in ipairs(BLACKLISTED_USERIDS) do
-		if targetUserId == blockedUserId then
-			player:Kick("No puedes clonar a este usuario")
-			return
-		end
-	end
-
-	local targetPlayer = Players:FindFirstChild(targetName)
-	local humanoidDescription
-
-	if targetPlayer then
-		local targetCharacter = targetPlayer.Character
-		if targetCharacter then
-			local targetHumanoid = targetCharacter:FindFirstChild("Humanoid")
-			if targetHumanoid then
-				humanoidDescription = targetHumanoid:GetAppliedDescription()
-			end
-		end
-	else
-		local success, result = pcall(function()
-			return Players:GetHumanoidDescriptionFromUserId(targetUserId)
-		end)
-		if success then humanoidDescription = result end
-	end
-
-	if humanoidDescription then
-		local playerCharacter = player.Character
-		if playerCharacter then
-			local playerHumanoid = playerCharacter:FindFirstChild("Humanoid")
-			if playerHumanoid then
-				playerHumanoid:ApplyDescription(humanoidDescription)
-			end
-		end
-	end
-end
-
-local function handleAppearanceCommand(player, commandType)
-	local character = player.Character
-	if not character or not character.Parent then
-		task.delay(1, function()
-			handleAppearanceCommand(player, commandType)
-		end)
-		return
-	end
-
-	local modification = {}
-	if commandType == "headless" then
-		modification = {type = "description", part = "Head", value = 15093053680}
-	elseif commandType == "korblox" then
-		modification = {type = "description", part = "RightLeg", value = 139607718}
-	end
-
-	local maxAttempts = 3
-	local attempt = 1
-
-	local function attemptModification()
-		if attempt > maxAttempts then return end
-
-		local success = modifyCharacter(character, modification)
-		if not success and attempt < maxAttempts then
-			attempt = attempt + 1
-			task.delay(0.5 * attempt, attemptModification)
-		end
-	end
-
-	attemptModification()
-end
-
--- NUEVO: Handler para comandos especiales (TOMBO, SERE, CHORO)
-local function handleSpecialCommand(player, commandName)
-	local commandConfig = SPECIAL_COMMANDS[commandName]
-	if not commandConfig then return end
-
-	-- Verificar gamepass
-	if not GamepassManager.HasGamepass(player, commandConfig.gamepassKey) then
-		return
-	end
-
-	local character = player.Character
-	if not character then return end
-
-	-- Si el jugador ya tiene un comando especial activo, removerlo primero
-	local currentCommand = activeSpecialCommands[player.UserId]
-	if currentCommand and currentCommand ~= commandName then
-		removeSpecialCommandItems(player, currentCommand)
-	end
-
-	-- Aplicar ropa si existe
-	if commandConfig.clothing then
-		applyClothing(character, commandConfig.clothing)
-	end
-
-	-- Equipar accesorios si existen
-	if commandConfig.accessories then
-		for _, accessoryId in pairs(commandConfig.accessories) do
-			equipAccessory(character, accessoryId)
-		end
-	end
-
-	-- Equipar items del folder
-	if commandConfig.itemFolder then
-		equipItems(player, commandConfig.itemFolder)
-	end
-
-	-- Registrar el comando activo
-	activeSpecialCommands[player.UserId] = commandName
-end
-
------------------------------------------------------------------------------------
---> AURA SYSTEM
------------------------------------------------------------------------------------
+--=============================================================================
+-- AURA SYSTEM
+--=============================================================================
 
 local function removeAura(player)
 	local character = player.Character
@@ -829,7 +345,7 @@ local function removeAura(player)
 			pcall(function() obj:Destroy() end)
 		end
 	end
-	activeAuras[player.UserId] = nil
+	getState(player).activeAura = nil
 end
 
 local function handleAuraCommand(player, auraName)
@@ -845,10 +361,9 @@ local function handleAuraCommand(player, auraName)
 	local character = player.Character
 	if not character then return end
 
-	-- Remover aura anterior
 	removeAura(player)
 
-	-- Buscar carpeta del aura
+	-- Buscar carpeta del aura (Assets está dentro de Systems = ServerStorage)
 	local assetsFolder = ServerStorage:FindFirstChild("Assets")
 	if not assetsFolder then return end
 	local aurasGMPS = assetsFolder:FindFirstChild("AurasGMPS")
@@ -859,284 +374,614 @@ local function handleAuraCommand(player, auraName)
 	local hrp = character:FindFirstChild("HumanoidRootPart")
 	if not hrp then return end
 
-	-- ✨ SONIDO DE INICIO (diferente por aura)
-	local auraSoundIds = {
-		atomic   = "rbxassetid://96776624852409",
-		blazing  = "rbxassetid://82388464656965",
-		nano     = "rbxassetid://139565608032266",
-		redheart = "rbxassetid://82388464656965",
-		snow     = "rbxassetid://9125402528",
-		dragon   = "rbxassetid://121322612850251",
-	}
-	local auraSound = Instance.new("Sound")
-	auraSound.SoundId = auraSoundIds[key] or "rbxassetid://9122258437"
-	auraSound.Volume = 1
-	auraSound.Parent = hrp
+	-- Sonido de inicio
+	local sound = Instance.new("Sound")
+	sound.SoundId = AURA_SOUNDS[key] or "rbxassetid://9122258437"
+	sound.Volume = 1
+	sound.Parent = hrp
 	task.defer(function()
-		if hrp.Parent and auraSound.Parent then
-			auraSound:Play()
-			game:GetService("Debris"):AddItem(auraSound, 5)
+		if hrp.Parent and sound.Parent then
+			sound:Play()
+			Debris:AddItem(sound, 5)
 		end
 	end)
 
-	-- Mapa R6 → partes R15 equivalentes
-	local R6_TO_R15 = {
-		["Head"]             = {"Head"},
-		["Torso"]            = {"UpperTorso", "LowerTorso"},
-		["HumanoidRootPart"] = {"HumanoidRootPart"},
-		["Left Arm"]         = {"LeftUpperArm", "LeftLowerArm", "LeftHand"},
-		["Right Arm"]        = {"RightUpperArm", "RightLowerArm", "RightHand"},
-		["Left Leg"]         = {"LeftUpperLeg", "LeftLowerLeg", "LeftFoot"},
-		["Right Leg"]        = {"RightUpperLeg", "RightLowerLeg", "RightFoot"},
-	}
-
-	-- Items del maniquí que NO son partes del cuerpo (ignorar)
-	local SKIP_CHILDREN = {
-		ThumbnailCamera  = true,
-		["Body Colors"]  = true,
-		Description      = true,
-		Humanoid         = true,
-	}
-
-	-- TweenService para animaciones suaves
-	local TweenService = game:GetService("TweenService")
-
-	-- Clonar efectos de cada parte del maniquí al personaje
-	local appliedCount = 0
+	-- Clonar efectos del maniquí al personaje
 	for _, auraPartContainer in ipairs(auraFolder:GetChildren()) do
 		local partName = auraPartContainer.Name
-		if SKIP_CHILDREN[partName] then continue end
+		if MANNEQUIN_SKIP[partName] then continue end
 
-		-- Resolver partes objetivo (R6→R15 o match directo)
 		local targetNames = R6_TO_R15[partName] or {partName}
 
 		for _, targetName in ipairs(targetNames) do
 			local targetPart = character:FindFirstChild(targetName)
-			if targetPart then
-				for _, effect in ipairs(auraPartContainer:GetChildren()) do
-					-- Saltar el Decal de cara del maniquí, para no pisar la cara del personaje
-					if effect:IsA("Decal") and string.lower(effect.Name) == "face" then
-						continue
-					end
-					local clonedEffect = effect:Clone()
-					-- Marcar el efecto Y todos sus descendientes con el atributo
-					clonedEffect:SetAttribute("PlayerAura", true)
-					for _, descendant in ipairs(clonedEffect:GetDescendants()) do
-						descendant:SetAttribute("PlayerAura", true)
-					end
+			if not targetPart then continue end
 
-					-- 🎨 FADE IN SUAVE según tipo de efecto
-					if clonedEffect:IsA("ParticleEmitter") then
-						clonedEffect.Enabled = true
-						clonedEffect.Rate = 0  -- Empezar sin emitir
-						clonedEffect.Parent = targetPart
+			for _, effect in ipairs(auraPartContainer:GetChildren()) do
+				if effect:IsA("Decal") and string.lower(effect.Name) == "face" then
+					continue
+				end
 
-						-- Fade in en 0.5 segundos
-						local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-						local tween = TweenService:Create(clonedEffect, tweenInfo, {Rate = effect.Rate or 10})
-						tween:Play()
+				local clone = effect:Clone()
+				clone:SetAttribute("PlayerAura", true)
+				for _, desc in ipairs(clone:GetDescendants()) do
+					desc:SetAttribute("PlayerAura", true)
+				end
 
-					elseif clonedEffect:IsA("PointLight") then
-						clonedEffect.Brightness = 0  -- Empezar sin brillo
-						clonedEffect.Parent = targetPart
+				-- Fade in según tipo
+				if clone:IsA("ParticleEmitter") then
+					local originalRate = effect.Rate or 10
+					clone.Rate = 0
+					clone.Enabled = true
+					clone.Parent = targetPart
+					TweenService:Create(clone, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Rate = originalRate}):Play()
 
-						-- Fade in en 0.6 segundos
-						local tweenInfo = TweenInfo.new(0.6, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
-						local tween = TweenService:Create(clonedEffect, tweenInfo, {Brightness = effect.Brightness or 5})
-						tween:Play()
+				elseif clone:IsA("PointLight") then
+					local originalBrightness = effect.Brightness or 5
+					clone.Brightness = 0
+					clone.Parent = targetPart
+					TweenService:Create(clone, TweenInfo.new(0.6, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {Brightness = originalBrightness}):Play()
 
-					else
-						-- Otros efectos (Decal, etc.) aparecen directamente
-						clonedEffect.Parent = targetPart
-					end
-
-					appliedCount = appliedCount + 1
+				else
+					clone.Parent = targetPart
 				end
 			end
 		end
 	end
 
-	activeAuras[player.UserId] = key
+	getState(player).activeAura = key
 end
 
------------------------------------------------------------------------------------
---> PLAYER SETUP
------------------------------------------------------------------------------------
+--=============================================================================
+-- CHARACTER MODIFICATION
+--=============================================================================
+
+local function modifyCharacter(character, modification)
+	if not character or not character:IsDescendantOf(game) then return false end
+
+	local humanoid = getHumanoid(character)
+	if not humanoid then return false end
+
+	local ok, err = pcall(function()
+		if modification.type == "description" then
+			local desc = humanoid:GetAppliedDescription()
+			desc[modification.part] = modification.value
+			humanoid:ApplyDescription(desc)
+		elseif modification.type == "scale" then
+			humanoid:WaitForChild("BodyHeightScale").Value = modification.value
+			humanoid:WaitForChild("BodyDepthScale").Value  = modification.value
+			humanoid:WaitForChild("BodyWidthScale").Value  = modification.value
+			humanoid:WaitForChild("HeadScale").Value       = modification.value
+		end
+	end)
+
+	if not ok then warn("Error al modificar personaje:", err) end
+	return ok
+end
+
+local function equipAccessory(character, accessoryId)
+	if not character then return end
+	local ok, asset = pcall(InsertService.LoadAsset, InsertService, accessoryId)
+	if ok and asset then
+		local acc = asset:FindFirstChildOfClass("Accessory")
+		if acc then
+			acc.Parent = character
+			task.wait(0.05)
+		end
+	end
+end
+
+local function applyClothing(character, clothingConfig)
+	if not character then return end
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if not humanoid then return end
+
+	pcall(function()
+		local desc = humanoid:GetAppliedDescription()
+		if clothingConfig.shirtID then desc.Shirt = clothingConfig.shirtID end
+		if clothingConfig.pantsID then desc.Pants = clothingConfig.pantsID end
+		humanoid:ApplyDescription(desc)
+	end)
+end
+
+--=============================================================================
+-- ITEM MANAGEMENT
+--=============================================================================
+
+local function equipItems(player, itemType)
+	local itemsFolder = ServerStorage:FindFirstChild("Items")
+	if not itemsFolder then return end
+	local typeFolder = itemsFolder:FindFirstChild(itemType)
+	if not typeFolder then return end
+
+	local backpack = player:WaitForChild("Backpack")
+	for _, item in ipairs(typeFolder:GetChildren()) do
+		if not backpack:FindFirstChild(item.Name) then
+			local clone = item:Clone()
+			if clone:IsA("Tool") then clone.CanBeDropped = false end
+			clone.Parent = backpack
+		end
+	end
+end
+
+local function grantItemsBasedOnPasses(player)
+	local autoGrant = {
+		{folder = "VIP",        id = Configuration.VIP},
+		{folder = "ARMYBOOMS",  id = Configuration.ARMYBOOMS},
+		{folder = "LIGHTSTICK", id = Configuration.LIGHTSTICK},
+	}
+
+	for _, gp in ipairs(autoGrant) do
+		if gp.id and GamepassManager.HasGamepass(player, gp.id) then
+			equipItems(player, gp.folder)
+		end
+	end
+end
+
+--=============================================================================
+-- SPECIAL COMMANDS (TOMBO, SERE, CHORO, etc.)
+--=============================================================================
+
+local function removeSpecialCommandItems(player, commandName)
+	local config = SPECIAL_COMMANDS[commandName]
+	if not config then return end
+
+	local character = player.Character
+	local backpack = player.Backpack
+
+	-- Remover tools del folder
+	if config.itemFolder then
+		local itemsFolder = ServerStorage:FindFirstChild("Items")
+		local typeFolder = itemsFolder and itemsFolder:FindFirstChild(config.itemFolder)
+		if typeFolder then
+			local function removeMatchingTools(container)
+				for _, tool in ipairs(container:GetChildren()) do
+					if tool:IsA("Tool") and typeFolder:FindFirstChild(tool.Name) then
+						tool:Destroy()
+					end
+				end
+			end
+			removeMatchingTools(backpack)
+			if character then removeMatchingTools(character) end
+		end
+	end
+
+	-- Reset ropa a la original
+	if config.clothing and character then
+		local humanoid = character:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			local ok, origDesc = pcall(Players.GetHumanoidDescriptionFromUserId, Players, player.UserId)
+			if ok and origDesc then
+				pcall(function()
+					local currentDesc = humanoid:GetAppliedDescription()
+					if config.clothing.shirtID then currentDesc.Shirt = origDesc.Shirt end
+					if config.clothing.pantsID then currentDesc.Pants = origDesc.Pants end
+					humanoid:ApplyDescription(currentDesc)
+				end)
+			end
+		end
+	end
+end
+
+local function clearAllSpecialCommands(player)
+	for commandName in pairs(SPECIAL_COMMANDS) do
+		removeSpecialCommandItems(player, commandName)
+	end
+	getState(player).activeCommand = nil
+end
+
+local function handleSpecialCommand(player, commandName)
+	local config = SPECIAL_COMMANDS[commandName]
+	if not config then return end
+	if not GamepassManager.HasGamepass(player, config.gamepassKey) then return end
+
+	local character = player.Character
+	if not character then return end
+
+	local state = getState(player)
+
+	-- Si hay otro comando activo, limpiarlo primero
+	if state.activeCommand and state.activeCommand ~= commandName then
+		removeSpecialCommandItems(player, state.activeCommand)
+	end
+
+	if config.clothing then applyClothing(character, config.clothing) end
+
+	if config.accessories then
+		for _, accId in pairs(config.accessories) do
+			equipAccessory(character, accId)
+		end
+	end
+
+	if config.itemFolder then equipItems(player, config.itemFolder) end
+
+	state.activeCommand = commandName
+end
+
+--=============================================================================
+-- ORIGINAL ITEMS TRACKING & RESET
+--=============================================================================
+
+local function storeOriginalItems(player)
+	local character = player.Character
+	if not character then return end
+
+	local state = getState(player)
+
+	state.origAccessories = {}
+	for _, acc in ipairs(character:GetChildren()) do
+		if acc:IsA("Accessory") then
+			table.insert(state.origAccessories, acc.Name)
+		end
+	end
+
+	local backpack = player:WaitForChild("Backpack")
+	state.origTools = {}
+	for _, tool in ipairs(backpack:GetChildren()) do
+		if tool:IsA("Tool") then
+			table.insert(state.origTools, tool.Name)
+		end
+	end
+end
+
+local function resetCharacter(player)
+	local character = player.Character
+	if not character then return end
+
+	local humanoid = character:WaitForChild("Humanoid")
+	local state = getState(player)
+
+	-- Guardar overhead
+	local overheadClone = nil
+	local head = character:FindFirstChild("Head")
+	if head then
+		local overhead = head:FindFirstChild("Overhead")
+		if overhead then overheadClone = overhead:Clone() end
+	end
+
+	-- Remover accesorios no originales y no VIP
+	for _, acc in ipairs(character:GetChildren()) do
+		if acc:IsA("Accessory")
+			and not isVIPItem(acc)
+			and not table.find(state.origAccessories, acc.Name) then
+			acc:Destroy()
+		end
+	end
+
+	-- Remover tools duplicados
+	local backpack = player:WaitForChild("Backpack")
+	local seen = {}
+	for _, tool in ipairs(backpack:GetChildren()) do
+		if tool:IsA("Tool") then
+			local isProtected = isVIPItem(tool) or table.find(state.origTools, tool.Name)
+			if not isProtected and seen[tool.Name] then
+				tool:Destroy()
+			else
+				seen[tool.Name] = true
+			end
+		end
+	end
+
+	-- Reset apariencia
+	local ok, desc = pcall(Players.GetHumanoidDescriptionFromUserId, Players, player.UserId)
+	if ok and desc then
+		humanoid:ApplyDescription(desc)
+	end
+
+	-- Restaurar overhead
+	if overheadClone then
+		task.delay(0.5, function()
+			local h = character:FindFirstChild("Head")
+			if h then
+				local old = h:FindFirstChild("Overhead")
+				if old then old:Destroy() end
+				pcall(function() overheadClone.Parent = h end)
+			end
+		end)
+	end
+
+	-- Remover partículas de comando
+	local hrp = character:FindFirstChild("HumanoidRootPart")
+	if hrp then
+		local cp = hrp:FindFirstChild("CommandParticles")
+		if cp and cp:IsA("ParticleEmitter") then cp:Destroy() end
+	end
+
+	-- Limpiar todo
+	clearPlayerEffect(player)
+	clearAllSpecialCommands(player)
+	removeAura(player)
+	state.giftEquipped = false
+	storeOriginalItems(player)
+end
+
+--=============================================================================
+-- COMMAND HANDLERS
+--=============================================================================
+
+local function handleParticleCommand(player, character, textureId)
+	local hrp = character:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+
+	local textureIdToUse = textureId
+
+	if string.lower(textureId) == "clan" and ClanData then
+		local clan = ClanData:GetPlayerClan(player.UserId)
+		if clan and clan.logo then
+			textureIdToUse = clan.logo:gsub("rbxassetid://", "")
+		end
+	end
+
+	local emitter = hrp:FindFirstChild("CommandParticles")
+	if not emitter then
+		local templates = ServerStorage:FindFirstChild("Commands")
+		local template = templates and templates:FindFirstChild("CommandParticles")
+		if not template then return end
+		emitter = template:Clone()
+		emitter.Name = "CommandParticles"
+		emitter.Parent = hrp
+	end
+
+	emitter.Size = NumberSequence.new(0.25, 0.35)
+	emitter.Lifetime = NumberRange.new(2, 3)
+	emitter.Rate = 15
+	emitter.Speed = NumberRange.new(2, 4)
+	emitter.Drag = 1.5
+	emitter.VelocityInheritance = 0.1
+	emitter.Acceleration = Vector3.new(0, 0, 0)
+	emitter.SpreadAngle = Vector2.new(180, 180)
+	emitter.Transparency = NumberSequence.new(0.2, 0.5, 1)
+	pcall(function() emitter.Texture = "rbxassetid://" .. textureIdToUse end)
+	emitter.Enabled = true
+end
+
+local function handleCloneCommand(player, targetName)
+	local ok, targetUserId = pcall(Players.GetUserIdFromNameAsync, Players, targetName)
+	if not ok then return end
+
+	for _, blocked in ipairs(BLACKLISTED_USERIDS) do
+		if targetUserId == blocked then
+			player:Kick("No puedes clonar a este usuario")
+			return
+		end
+	end
+
+	local humanoidDescription
+	local targetPlayer = Players:FindFirstChild(targetName)
+
+	if targetPlayer and targetPlayer.Character then
+		local hum = targetPlayer.Character:FindFirstChild("Humanoid")
+		if hum then humanoidDescription = hum:GetAppliedDescription() end
+	end
+
+	if not humanoidDescription then
+		local s, r = pcall(Players.GetHumanoidDescriptionFromUserId, Players, targetUserId)
+		if s then humanoidDescription = r end
+	end
+
+	if humanoidDescription and player.Character then
+		local hum = player.Character:FindFirstChild("Humanoid")
+		if hum then hum:ApplyDescription(humanoidDescription) end
+	end
+end
+
+local function handleAppearanceCommand(player, commandType)
+	local character = player.Character
+	if not character or not character:IsDescendantOf(game) then
+		task.delay(1, function() handleAppearanceCommand(player, commandType) end)
+		return
+	end
+
+	local MODIFICATIONS = {
+		headless = {type = "description", part = "Head", value = 15093053680},
+		korblox  = {type = "description", part = "RightLeg", value = 139607718},
+	}
+
+	local modification = MODIFICATIONS[commandType]
+	if not modification then return end
+
+	local attempt = 0
+	local function tryModify()
+		attempt += 1
+		if attempt > 3 then return end
+		if not modifyCharacter(character, modification) and attempt < 3 then
+			task.delay(0.5 * attempt, tryModify)
+		end
+	end
+	tryModify()
+end
+
+--=============================================================================
+-- EFFECT TARGETING (centralizado)
+--=============================================================================
+
+local function applyEffectWithTarget(player, effectType, input)
+	if not input then return end
+
+	local parts = {}
+	for part in string.gmatch(input, "%S+") do
+		table.insert(parts, part)
+	end
+
+	local color = resolveColor(parts[1])
+	local targetName = parts[2]
+
+	if not targetName then
+		applyEffectToPlayer(player, effectType, color, player)
+		return
+	end
+
+	local lower = string.lower(targetName)
+	if lower == "all" or lower == "todos" then
+		local isAdmin = ColorEffects.hasPermission(player, Configuration.GroupID, Configuration.ALLOWED_RANKS_OWS)
+		for _, target in ipairs(Players:GetPlayers()) do
+			if target == player or isAdmin then
+				applyEffectToPlayer(target, effectType, color, player)
+			end
+		end
+	else
+		local target = Players:FindFirstChild(targetName)
+		if target then
+			applyEffectToPlayer(target, effectType, color, player)
+		end
+	end
+end
+
+--=============================================================================
+-- COMMAND ROUTER
+--=============================================================================
+
+local function processCommand(player, message)
+	if isOnCooldown(player) then return end
+
+	local character = player.Character
+	if not character then return end
+
+	-- Mapeo de efectos: patrón → tipo
+	local EFFECT_MAP = {
+		{pattern = Configuration.CommandFIRE,      effect = "fire"},
+		{pattern = Configuration.CommandSMK,       effect = "smk"},
+		{pattern = Configuration.CommandLGHT,      effect = "lght"},
+		{pattern = Configuration.CommandPRTCL,     effect = "prtcl"},
+		{pattern = Configuration.CommandTRAIL,     effect = "trail"},
+		{pattern = Configuration.CommandDestacado, effect = "destacar"},
+	}
+
+	local hasCommands = GamepassManager.HasGamepass(player, Configuration.COMMANDS)
+
+	-- 1. Efectos (requieren COMMANDS gamepass)
+	if hasCommands then
+		for _, entry in ipairs(EFFECT_MAP) do
+			local match = message:match(entry.pattern)
+			if match then
+				applyEffectWithTarget(player, entry.effect, match)
+				return
+			end
+		end
+
+		local rmv = message:match(Configuration.CommandRMV)
+		if rmv then
+			clearPlayerEffect(player)
+			removeAura(player)
+			return
+		end
+	end
+
+	-- 2. VIP commands (korblox, headless)
+	local function checkVIP()
+		return Configuration.VIP == nil or GamepassManager.HasGamepass(player, Configuration.VIP)
+	end
+
+	local korblox = message:match(Configuration.CommandKorblox)
+	if korblox and checkVIP() then
+		handleAppearanceCommand(player, "korblox")
+		return
+	end
+
+	local headless = message:match(Configuration.CommandHeadless)
+	if headless and checkVIP() then
+		handleAppearanceCommand(player, "headless")
+		return
+	end
+
+	-- 3. Commands gamepass extras
+	if hasCommands then
+		local hatMatch = message:match(Configuration.CommandHat)
+		if hatMatch then
+			for id in string.gmatch(hatMatch, "%d+") do
+				equipAccessory(character, tonumber(id))
+			end
+			return
+		end
+
+		local particleMatch = message:match(Configuration.CommandParticle)
+		if particleMatch then
+			handleParticleCommand(player, character, particleMatch)
+			return
+		end
+
+		local sizeMatch = message:match(Configuration.CommandSize)
+		if sizeMatch then
+			local size = tonumber(sizeMatch)
+			if size and size >= 0.5 and size <= 2 then
+				modifyCharacter(character, {type = "scale", value = size})
+			end
+			return
+		end
+
+		local cloneMatch = message:match(Configuration.CommandClone)
+		if cloneMatch then
+			handleCloneCommand(player, cloneMatch)
+			return
+		end
+	end
+
+	-- 4. Comandos especiales (cada uno verifica su propio gamepass)
+	local SPECIAL_PATTERNS = {
+		{pattern = Configuration.CommandTOMBO, name = "TOMBO"},
+		{pattern = Configuration.CommandCHORO, name = "CHORO"},
+		{pattern = Configuration.CommandSERE,  name = "SERE"},
+	}
+
+	for _, entry in ipairs(SPECIAL_PATTERNS) do
+		if message:match(entry.pattern) then
+			handleSpecialCommand(player, entry.name)
+			return
+		end
+	end
+
+	-- 5. Auras
+	local auraMatch = message:match(Configuration.CommandAURA)
+	if auraMatch then
+		handleAuraCommand(player, auraMatch)
+		return
+	end
+
+	-- 6. Reset
+	local isReset = message:match(Configuration.CommandReset) or message:match(Configuration.CommandReset2)
+	if isReset then
+		if Configuration.COMMANDS == nil or hasCommands then
+			resetCharacter(player)
+		end
+	end
+end
+
+--=============================================================================
+-- PLAYER SETUP
+--=============================================================================
 
 Players.PlayerAdded:Connect(function(player)
-
+	-- Una sola conexión a CharacterAdded (no anidamos Chatted aquí)
 	player.CharacterAdded:Connect(function(character)
 		storeOriginalItems(player)
 		grantItemsBasedOnPasses(player)
 	end)
 
-	-- Prevenir tools duplicados
-	player.Backpack.ChildAdded:Connect(function(child)
-		if child:IsA("Tool") and child.Parent == player.Backpack then
-			task.wait(0.1)
-			local duplicates = 0
-			for _, tool in ipairs(player.Backpack:GetChildren()) do
-				if tool.Name == child.Name then
-					duplicates = duplicates + 1
-					if duplicates > 1 then
-						child:Destroy()
-						break
-					end
+	-- Chatted conectado UNA sola vez (fuera de CharacterAdded = sin memory leak)
+	player.Chatted:Connect(function(message)
+		processCommand(player, message)
+	end)
+
+	-- Prevenir tools duplicados en backpack
+	player:WaitForChild("Backpack").ChildAdded:Connect(function(child)
+		if not child:IsA("Tool") then return end
+		task.wait(0.1)
+		local count = 0
+		for _, tool in ipairs(player.Backpack:GetChildren()) do
+			if tool.Name == child.Name then
+				count += 1
+				if count > 1 then
+					child:Destroy()
+					return
 				end
 			end
 		end
 	end)
 
-	-- Command handling
-	player.CharacterAdded:Connect(function(character)
-
-		player.Chatted:Connect(function(message)
-			-- Extraer comandos
-			local korblox = message:match(Configuration.CommandKorblox)
-			local headless = message:match(Configuration.CommandHeadless)
-			local hatCommand = message:match(Configuration.CommandHat)
-			local particleCommand = message:match(Configuration.CommandParticle)
-			local sizeCommand = message:match(Configuration.CommandSize)
-			local cloneCommand = message:match(Configuration.CommandClone)
-			local resetCommand = message:match(Configuration.CommandReset)
-			local resetv2Command = message:match(Configuration.CommandReset2)
-			local fireColorTok = message:match(Configuration.CommandFIRE)
-			local smkColorTok = message:match(Configuration.CommandSMK)
-			local lghtColorTok = message:match(Configuration.CommandLGHT)
-			local prtclColorTok = message:match(Configuration.CommandPRTCL)
-			local trailColorTok = message:match(Configuration.CommandTRAIL)
-			local rmvMatch = message:match(Configuration.CommandRMV)
-			local destacado = message:match(Configuration.CommandDestacado)
-
-			-- NUEVOS COMANDOS
-			local tombo = message:match(Configuration.CommandTOMBO)
-			local choro = message:match(Configuration.CommandCHORO)
-			local sere = message:match(Configuration.CommandSERE)
-			local armybooms = message:match(Configuration.CommandARMYBOOMS)
-			local auraCommand = message:match(Configuration.CommandAURA)
-
-			-- Verificar si tiene gamepass de comandos
-			local hasCommands = GamepassManager.HasGamepass(player, Configuration.COMMANDS)
-
-			-- Función helper para parsear y aplicar efectos con soporte a target
-			local function applyEffectWithTarget(effectType, input, commandKey)
-				if not input then return end
-
-				local parts = {}
-				for part in string.gmatch(input, "%S+") do
-					table.insert(parts, part)
-				end
-
-				local colorToken = parts[1]
-				local targetName = parts[2]
-				local color = resolveColor(colorToken)
-
-				if targetName then
-					local targetLower = string.lower(targetName)
-					if targetLower == "all" or targetLower == "todos" then
-						-- Verificar permiso una sola vez antes del loop
-						local isAdmin = ColorEffects.hasPermission(player, Configuration.GroupID, Configuration.ALLOWED_RANKS_OWS)
-						for _, targetPlayer in ipairs(Players:GetPlayers()) do
-							if targetPlayer == player or isAdmin then
-								applyEffectToPlayer(targetPlayer, effectType, color, player)
-							end
-						end
-					else
-						local targetPlayer = Players:FindFirstChild(targetName)
-						if targetPlayer then
-							applyEffectToPlayer(targetPlayer, effectType, color, player)
-						end
-					end
-				else
-					applyEffectToPlayer(player, effectType, color, player)
-				end
-			end
-
-			-- COMANDOS DE EFECTOS (requieren COMMANDS gamepass)
-			if hasCommands then
-				if fireColorTok then
-					applyEffectWithTarget("fire", fireColorTok, "fire")
-				elseif smkColorTok then
-					applyEffectWithTarget("smk", smkColorTok, "smk")
-				elseif lghtColorTok then
-					applyEffectWithTarget("lght", lghtColorTok, "lght")
-				elseif prtclColorTok then
-					applyEffectWithTarget("prtcl", prtclColorTok, "prtcl")
-				elseif trailColorTok then
-					applyEffectWithTarget("trail", trailColorTok, "trail")
-				elseif rmvMatch then
-					clearPlayerEffect(player)
-					removeAura(player)
-				elseif destacado then
-					applyEffectWithTarget("destacar", destacado, "destacar")
-				end
-			end
-
-			-- VIP COMMANDS
-			local function checkVIP()
-				if Configuration.VIP == nil then return true end
-				return GamepassManager.HasGamepass(player, Configuration.VIP)
-			end
-
-			if korblox and checkVIP() then
-				handleAppearanceCommand(player, "korblox")
-
-			elseif headless and checkVIP() then
-				handleAppearanceCommand(player, "headless")
-
-				-- COMMANDS GAMEPASS
-			elseif hatCommand and hasCommands then
-				for id in string.gmatch(hatCommand, "%d+") do
-					equipAccessory(character, tonumber(id))
-				end
-
-			elseif particleCommand and hasCommands then
-				handleParticleCommand(player, character, particleCommand)
-
-			elseif sizeCommand and hasCommands then
-				local size = tonumber(sizeCommand)
-				if size and size >= 0.5 and size <= 2 then
-					modifyCharacter(character, {
-						type = "scale",
-						value = size
-					})
-				end
-
-			elseif cloneCommand and hasCommands then
-				handleCloneCommand(player, message:match(Configuration.CommandClone))
-
-				-- COMANDOS ESPECIALES (TOMBO, CHORO, SERE)
-			elseif tombo then
-				handleSpecialCommand(player, "TOMBO")
-
-			elseif choro then
-				handleSpecialCommand(player, "CHORO")
-
-			elseif sere then
-				handleSpecialCommand(player, "SERE")
-
-			elseif auraCommand then
-				handleAuraCommand(player, auraCommand)
-
-				-- RESET
-			elseif resetCommand or resetv2Command then
-				if Configuration.COMMANDS == nil or hasCommands then
-					resetCharacter(player)
-				end
-			end
-		end)
-	end)
-
 	-- Cleanup al salir
 	player.AncestryChanged:Connect(function()
 		if not player:IsDescendantOf(game) then
-			activeEffects[player] = nil
-			giftItemsEquipped[player.UserId] = nil
-			originalAccessories[player.UserId] = nil
-			originalTools[player.UserId] = nil
-			commandCooldowns[player.UserId] = nil
-			activeSpecialCommands[player.UserId] = nil
-			activeAuras[player.UserId] = nil
+			clearState(player)
 		end
 	end)
 end)

@@ -7,7 +7,9 @@
 	by ignxts
 ]]
 
-local TweenService = game:GetService("TweenService")
+local TweenService     = game:GetService("TweenService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ModernScrollbar   = require(ReplicatedStorage:WaitForChild("UIComponents"):WaitForChild("ModernScrollbar"))
 
 local TW_FAST = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local TW_NORM = TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
@@ -127,10 +129,26 @@ function SidebarNav.new(opts)
 	local ICON_SIZE = isMobile and 48 or 56
 	local ITEM_H    = ICON_SIZE + 30   -- círculo + label + padding
 	local ITEM_GAP  = 10
-	local startY    = headerHeight + 12
+	local ITEMS_PAD = 8
+
+	-- ScrollingFrame que ocupa el espacio bajo el header
+	local itemsScroll = Instance.new("ScrollingFrame")
+	itemsScroll.Name                     = "ItemsScroll"
+	itemsScroll.Size                     = UDim2.new(1, 0, 1, -(headerHeight + 4))
+	itemsScroll.Position                 = UDim2.new(0, 0, 0, headerHeight + 4)
+	itemsScroll.BackgroundTransparency   = 1
+	itemsScroll.BorderSizePixel          = 0
+	itemsScroll.ScrollBarThickness       = 0
+	itemsScroll.ScrollBarImageTransparency = 1
+	itemsScroll.ScrollingDirection       = Enum.ScrollingDirection.Y
+	itemsScroll.CanvasSize               = UDim2.new(0, 0, 0, 0)
+	itemsScroll.ZIndex                   = 201
+	itemsScroll.Parent                   = sidebar
+
+	ModernScrollbar.setup(itemsScroll, sidebar, THEME, {transparency = 0, offset = -6, zIndex = 210})
 
 	for i, item in ipairs(items) do
-		local posY = startY + (i - 1) * (ITEM_H + ITEM_GAP)
+		local posY = ITEMS_PAD + (i - 1) * (ITEM_H + ITEM_GAP)
 
 		-- Frame invisible de ítem (solo para layout/click)
 		local btn = Instance.new("Frame")
@@ -140,7 +158,7 @@ function SidebarNav.new(opts)
 		btn.BackgroundTransparency = 1
 		btn.BorderSizePixel       = 0
 		btn.ZIndex                = 202
-		btn.Parent                = sidebar
+		btn.Parent                = itemsScroll
 		self._buttons[item.id] = btn
 
 		-- Círculo de icono — idéntico a decoIcon de GamepassShop
@@ -163,9 +181,8 @@ function SidebarNav.new(opts)
 
 		local img = Instance.new("ImageLabel")
 		img.Name                   = "Icon"
-		img.Size                   = UDim2.new(0.7, 0, 0.7, 0)
-		img.AnchorPoint            = Vector2.new(0.5, 0.5)
-		img.Position               = UDim2.new(0.5, 0, 0.5, 0)
+		img.Size                   = UDim2.new(1, 0, 1, 0)
+		img.Position               = UDim2.new(0, 0, 0, 0)
 		img.BackgroundTransparency = 1
 		img.Image                  = "rbxassetid://" .. tostring(item.image or "79346090571461")
 		img.ScaleType              = Enum.ScaleType.Crop
@@ -205,6 +222,11 @@ function SidebarNav.new(opts)
 		clickBtn.Text                   = ""
 		clickBtn.ZIndex                 = 205
 		clickBtn.Parent                 = btn
+
+		-- Actualizar canvas al final del loop (lo hacemos fuera)
+		if i == #items then
+			itemsScroll.CanvasSize = UDim2.new(0, 0, 0, posY + ITEM_H + ITEMS_PAD)
+		end
 
 		local capturedId = item.id
 		clickBtn.MouseButton1Click:Connect(function()

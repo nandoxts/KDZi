@@ -1,5 +1,5 @@
 local RunService = game:GetService("RunService")
-local sound = game:GetService("Workspace"):FindFirstChild("QueueSound")
+local sound = game:GetService("Workspace"):WaitForChild("QueueSound", 30)
 
 -- Parámetros ajustables
 local baseThreshold = 100

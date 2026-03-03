@@ -534,6 +534,8 @@ local playSong, nextSong, playRandomSong   -- forward declarations
 
 local function cleanupSound()
 	pcall(soundObject.Stop, soundObject)
+	soundObject:SetAttribute("SongName",   nil)
+	soundObject:SetAttribute("SongArtist", nil)
 	soundObject.SoundId      = ""
 	soundObject.TimePosition = 0
 	currentPlayingId = nil
@@ -578,6 +580,8 @@ playSong = function(index)
 	local song = playQueue[currentSongIndex]
 	currentPlayingId = song.id
 	soundObject.Volume  = DEFAULT_VOLUME
+	soundObject:SetAttribute("SongName",   song.name   or "")
+	soundObject:SetAttribute("SongArtist", song.artist or "")
 	soundObject.SoundId = ASSET_PREFIX .. song.id
 
 	local loaded      = false
