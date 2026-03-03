@@ -35,25 +35,28 @@ function PendingCard:_build()
 	local canApprove = ClanSystemConfig:HasPermission(self.playerRole, "aprobar_solicitudes")
 	local canReject = ClanSystemConfig:HasPermission(self.playerRole, "rechazar_solicitudes")
 
-	-- Frame principal - diseño horizontal compacto
+	-- Frame principal: estilo DJ (card + frameAlpha + stroke)
 	self.frame = UI.frame({
-		size = UDim2.new(1, 0, 0, 56),
-		bg = THEME.card,
-		z = 108,
-		parent = self.parent,
-		corner = 10,
-		stroke = true,
-		strokeA = 0.6
+		size    = UDim2.new(1, 0, 0, 56),
+		bg      = THEME.card,
+		bgT     = THEME.frameAlpha,
+		z       = 108,
+		parent  = self.parent,
+		corner  = 10,
+		stroke  = true,
+		strokeA = 0.5,
+		strokeC = THEME.stroke,
 	})
+	UI.hover(self.frame, THEME.card, THEME.elevated)
 
 	-- Avatar
 	local avatarContainer = UI.frame({
-		size = UDim2.new(0, 44, 0, 44),
-		pos = UDim2.new(0, 6, 0.5, -22),
-		bg = THEME.surface,
-		z = 109,
+		size   = UDim2.new(0, 44, 0, 44),
+		pos    = UDim2.new(0, 6, 0.5, -22),
+		bg     = THEME.card,
+		z      = 109,
 		parent = self.frame,
-		corner = 22
+		corner = 22,
 	})
 
 	local avatar = Instance.new("ImageLabel")
@@ -124,17 +127,16 @@ function PendingCard:_build()
 	-- Botones de acción
 	if canApprove then
 		local acceptBtn = UI.button({
-			size = UDim2.new(0, 72, 0, 38),
-			pos = UDim2.new(1, -160, 0.5, -19),
-			bg = THEME.success,
-			text = "Aceptar",
+			size    = UDim2.new(0, 72, 0, 38),
+			pos     = UDim2.new(1, -160, 0.5, -19),
+			bg      = THEME.success,
+			text    = "Aceptar",
 			textSize = 12,
-			z = 109,
-			parent = self.frame,
-			corner = 8
+			z       = 109,
+			parent  = self.frame,
+			corner  = 8,
 		})
-
-		UI.hover(acceptBtn, THEME.success, THEME.successMuted)
+		UI.hover(acceptBtn, THEME.success, UI.brighten(THEME.success, 1.15))
 
 		local acceptConn = acceptBtn.MouseButton1Click:Connect(function()
 			acceptBtn.Text = "..."
@@ -160,17 +162,16 @@ function PendingCard:_build()
 
 	if canReject then
 		local rejectBtn = UI.button({
-			size = UDim2.new(0, 72, 0, 38),
-			pos = UDim2.new(1, -80, 0.5, -19),
-			bg = THEME.danger,
-			text = "Rechazar",
+			size    = UDim2.new(0, 72, 0, 38),
+			pos     = UDim2.new(1, -80, 0.5, -19),
+			bg      = THEME.btnDanger,
+			text    = "Rechazar",
 			textSize = 12,
-			z = 109,
-			parent = self.frame,
-			corner = 8
+			z       = 109,
+			parent  = self.frame,
+			corner  = 8,
 		})
-
-		UI.hover(rejectBtn, THEME.danger, THEME.btnDangerHover)
+		UI.hover(rejectBtn, THEME.btnDanger, UI.brighten(THEME.btnDanger, 1.15))
 
 		local rejectConn = rejectBtn.MouseButton1Click:Connect(function()
 			rejectBtn.Text = "..."

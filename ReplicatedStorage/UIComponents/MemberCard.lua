@@ -42,14 +42,19 @@ function MemberCard:_build()
 	local isCurrentPlayer = self.userId == player.UserId
 	local canManageThis = self:_canManage(memberRole)
 
-	-- Frame principal - diseño horizontal compacto
+	-- Frame principal: estilo DJ (card + frameAlpha + stroke)
 	self.frame = UI.frame({
-		size = UDim2.new(1, 0, 0, 56),
-		bg = THEME.card,
-		z = 106,
+		size   = UDim2.new(1, 0, 0, 56),
+		bg     = THEME.card,
+		bgT    = THEME.frameAlpha,
+		z      = 106,
 		parent = self.parent,
-		corner = 10
+		corner = 10,
+		stroke = true,
+		strokeA = 0.5,
+		strokeC = THEME.stroke,
 	})
+	UI.hover(self.frame, THEME.card, THEME.elevated)
 
 	-- Avatar
 	local avatarContainer = UI.frame({
@@ -121,17 +126,16 @@ function MemberCard:_build()
 	if canManageThis and not isCurrentPlayer then
 		-- Botón de cambiar rol
 		local roleBtn = UI.button({
-			size = UDim2.new(0, 44, 0, 38),
-			pos = UDim2.new(1, -100, 0.5, -19),
-			bg = THEME.accent,
-			text = "Rol",
+			size    = UDim2.new(0, 44, 0, 38),
+			pos     = UDim2.new(1, -100, 0.5, -19),
+			bg      = THEME.accent,
+			text    = "Rol",
 			textSize = 12,
-			z = 107,
-			parent = self.frame,
-			corner = 8
+			z       = 107,
+			parent  = self.frame,
+			corner  = 8,
 		})
-
-		UI.hover(roleBtn, THEME.accent, THEME.accent:Lerp(Color3.new(1,1,1), 0.2))
+		UI.hover(roleBtn, THEME.accent, THEME.accentHover)
 
 		table.insert(self.connections, roleBtn.MouseButton1Click:Connect(function()
 			self:_showRoleMenu()
@@ -139,17 +143,16 @@ function MemberCard:_build()
 
 		-- Botón de expulsar
 		local kickBtn = UI.button({
-			size = UDim2.new(0, 44, 0, 38),
-			pos = UDim2.new(1, -52, 0.5, -19),
-			bg = THEME.danger,
-			text = "Kick",
+			size    = UDim2.new(0, 44, 0, 38),
+			pos     = UDim2.new(1, -52, 0.5, -19),
+			bg      = THEME.btnDanger,
+			text    = "Kick",
 			textSize = 12,
-			z = 107,
-			parent = self.frame,
-			corner = 8
+			z       = 107,
+			parent  = self.frame,
+			corner  = 8,
 		})
-
-		UI.hover(kickBtn, THEME.danger, THEME.btnDangerHover)
+		UI.hover(kickBtn, THEME.btnDanger, UI.brighten(THEME.btnDanger, 1.15))
 
 		table.insert(self.connections, kickBtn.MouseButton1Click:Connect(function()
 			self:_confirmKick()

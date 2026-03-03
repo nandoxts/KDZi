@@ -6,13 +6,12 @@ local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local MemberCard = require(script.Parent.MemberCard)
-local PendingCard = require(script.Parent.PendingCard)
+local MemberCard      = require(script.Parent.MemberCard)
+local PendingCard     = require(script.Parent.PendingCard)
+local ModernScrollbar = require(script.Parent.ModernScrollbar)
 local ClanSystemConfig = require(ReplicatedStorage.Config.ClanSystemConfig)
-local UI = require(ReplicatedStorage.Core.UI)
+local UI    = require(ReplicatedStorage.Core.UI)
 local THEME = require(ReplicatedStorage.Config.ThemeConfig)
-local Notify = require(ReplicatedStorage.Systems.NotificationSystem.NotificationSystem)
-local ClanClient = require(ReplicatedStorage.Systems.ClanSystem.ClanClient)
 
 local player = Players.LocalPlayer
 local ROLES_CONFIG = ClanSystemConfig.ROLES.Visual
@@ -20,9 +19,10 @@ local ROLES_CONFIG = ClanSystemConfig.ROLES.Visual
 local MembersList = {}
 MembersList.__index = MembersList
 
-local CARD_HEIGHT = 56
-local CARD_PADDING = 8
+local CARD_HEIGHT    = 56
+local CARD_PADDING   = 6
 local VISIBLE_BUFFER = 3
+local HEADER_H       = 44
 
 --[[
 	Configuración:
@@ -107,23 +107,27 @@ function MembersList:_prepareItems()
 end
 
 function MembersList:_build()
-	self.mainFrame = UI.frame({
-		size = UDim2.new(1, 0, 1, 0),
-		bgT = 1,
-		z = 105,
-		parent = self.parent
-	})
+	-- Contenedor raíz transparente (el fondo lo pone el parent)
+	self.mainFrame = Instance.new("Frame")
+	self.mainFrame.Name                   = "MembersListRoot"
+	self.mainFrame.Size                   = UDim2.new(1, 0, 1, 0)
+	self.mainFrame.BackgroundTransparency = 1
+	self.mainFrame.BorderSizePixel        = 0
+	self.mainFrame.ZIndex                 = 105
+	self.mainFrame.ClipsDescendants       = true
+	self.mainFrame.Parent                 = self.parent
 
-	-- Buscador (usar componente SearchModern)
+	-- Buscador estilo DJ (bg=card, corner=8)
 	local SearchModern = require(ReplicatedStorage:WaitForChild("UIComponents"):WaitForChild("SearchModern"))
 	local searchContainer, searchInput = SearchModern.new(self.mainFrame, {
 		placeholder = self.searchPlaceholder,
-		size = UDim2.new(1, 0, 0, 36),
-		z = 106,
-		inputName = (self.mode == "members" and "SearchMembersInput") or "SearchPendingInput"
+		size        = UDim2.new(1, -16, 0, 30),
+		bg          = THEME.card,
+		corner      = 8,
+		z           = 107,
+		inputName   = (self.mode == "members") and "SearchMembersInput" or "SearchPendingInput",
 	})
-	-- Asegurar posición coherente
-	searchContainer.Position = UDim2.new(0, 0, 0, 0)
+	searchContainer.Position = UDim2.new(0, 8, 0, 7)
 	self.searchInput = searchInput
 
 	local searchDebounce = false
@@ -137,27 +141,40 @@ function MembersList:_build()
 		end)
 	end))
 
-	-- Scroll
+	-- ScrollingFrame: scrollbar nativo oculto → ModernScrollbar (DJ pattern)
 	local totalHeight = math.max(60, #self.filteredItems * (CARD_HEIGHT + CARD_PADDING))
 
 	self.scroll = Instance.new("ScrollingFrame")
-	self.scroll.Size = UDim2.new(1, 0, 1, -44)
-	self.scroll.Position = UDim2.new(0, 0, 0, 44)
-	self.scroll.BackgroundTransparency = 1
-	self.scroll.ScrollBarThickness = 3
-	self.scroll.ScrollBarImageColor3 = THEME.accent
-	self.scroll.CanvasSize = UDim2.new(0, 0, 0, totalHeight)
-	self.scroll.ZIndex = 106
-	self.scroll.ScrollingDirection = Enum.ScrollingDirection.Y
-	self.scroll.Parent = self.mainFrame
+	self.scroll.Name                       = "MembersScroll"
+	self.scroll.Size                       = UDim2.new(1, -8, 1, -(HEADER_H + 8))
+	self.scroll.Position                   = UDim2.new(0, 4, 0, HEADER_H + 4)
+	self.scroll.BackgroundTransparency     = 1
+	self.scroll.BorderSizePixel            = 0
+	self.scroll.ScrollBarThickness         = 0
+	self.scroll.ScrollBarImageTransparency = 1
+	self.scroll.CanvasSize                 = UDim2.new(0, 0, 0, totalHeight)
+	self.scroll.ClipsDescendants           = true
+	self.scroll.ZIndex                     = 106
+	self.scroll.Parent                     = self.mainFrame
 
-	self.container = UI.frame({
-		size = UDim2.new(1, -4, 0, totalHeight),
-		pos = UDim2.new(0, 2, 0, 0),
-		bgT = 1,
-		z = 106,
-		parent = self.scroll
-	})
+	-- Scrollbar moderno idéntico al DJ Dashboard
+	ModernScrollbar.setup(self.scroll, self.mainFrame, THEME, { transparency = 0 })
+
+	-- Container interno del scroll
+	self.container = Instance.new("Frame")
+	self.container.Name                   = "MembersContainer"
+	self.container.Size                   = UDim2.new(1, -4, 0, totalHeight)
+	self.container.BackgroundTransparency = 1
+	self.container.BorderSizePixel        = 0
+	self.container.ZIndex                 = 106
+	self.container.Parent                 = self.scroll
+
+	-- Padding igual que DJ columns
+	local pad = Instance.new("UIPadding")
+	pad.PaddingLeft  = UDim.new(0, 4)
+	pad.PaddingRight = UDim.new(0, 4)
+	pad.PaddingTop   = UDim.new(0, 2)
+	pad.Parent       = self.container
 
 	table.insert(self.connections, self.scroll:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
 		self:_updateVisibleCards()
@@ -172,7 +189,7 @@ function MembersList:_applyFilter()
 	else
 		self.filteredItems = {}
 		for _, item in ipairs(self.items) do
-			local nombre = (item.data.name or ""):lower()
+			local nombre = (item.data.name or item.data.nombre or ""):lower()
 			if nombre:find(self.searchText, 1, true) then
 				table.insert(self.filteredItems, item)
 			end
@@ -205,14 +222,15 @@ function MembersList:_refreshScroll()
 
 	if #self.filteredItems == 0 then
 		UI.label({
-			name = "NoResults",
-			size = UDim2.new(1, 0, 0, 60),
-			text = self.searchText ~= "" and "🔍 Sin resultados" or self.emptyText,
-			color = THEME.muted,
+			name     = "NoResults",
+			size     = UDim2.new(1, 0, 0, 60),
+			text     = self.searchText ~= "" and "🔍 Sin resultados" or self.emptyText,
+			color    = THEME.muted,
 			textSize = 13,
-			alignX = Enum.TextXAlignment.Center,
-			z = 107,
-			parent = self.container
+			font     = Enum.Font.GothamMedium,
+			alignX   = Enum.TextXAlignment.Center,
+			z        = 107,
+			parent   = self.container,
 		})
 	end
 end
@@ -253,50 +271,37 @@ function MembersList:_createCardAt(index)
 
 	local yPos = (index - 1) * (CARD_HEIGHT + CARD_PADDING)
 
-	local positioner = UI.frame({
-		size = UDim2.new(1, 0, 0, CARD_HEIGHT),
-		pos = UDim2.new(0, 0, 0, yPos),
-		bgT = 1,
-		z = 107,
-		parent = self.container
-	})
+	local positioner = Instance.new("Frame")
+	positioner.Name                   = "CardSlot_" .. index
+	positioner.Size                   = UDim2.new(1, 0, 0, CARD_HEIGHT)
+	positioner.Position               = UDim2.new(0, 0, 0, yPos)
+	positioner.BackgroundTransparency = 1
+	positioner.BorderSizePixel        = 0
+	positioner.ZIndex                 = 107
+	positioner.Parent                 = self.container
 
 	if self.mode == "members" then
-		-- Usar MemberCard para miembros
 		local card = MemberCard.new({
-			userId = item.odI,
+			userId     = item.odI,
 			memberData = item.data,
 			playerRole = self.playerRole,
-			clanData = self.clanData,
-			parent = positioner,
-			screenGui = self.screenGui,
-			onUpdate = function()
-				if self.onUpdate then self.onUpdate() end
-			end
+			clanData   = self.clanData,
+			parent     = positioner,
+			screenGui  = self.screenGui,
+			onUpdate   = function() if self.onUpdate then self.onUpdate() end end,
 		})
-
-		self.cards[index] = {
-			positioner = positioner,
-			instance = card
-		}
+		self.cards[index] = { positioner = positioner, instance = card }
 	else
-		-- Crear card de solicitud pendiente usando PendingCard reutilizable
 		local pending = PendingCard.new({
-			userId = item.odI,
+			userId      = item.odI,
 			requestData = item.data,
-			playerRole = self.playerRole,
-			clanData = self.clanData,
-			parent = positioner,
-			screenGui = self.screenGui,
-			onUpdate = function()
-				if self.onUpdate then self.onUpdate() end
-			end
+			playerRole  = self.playerRole,
+			clanData    = self.clanData,
+			parent      = positioner,
+			screenGui   = self.screenGui,
+			onUpdate    = function() if self.onUpdate then self.onUpdate() end end,
 		})
-
-		self.cards[index] = {
-			positioner = positioner,
-			instance = pending
-		}
+		self.cards[index] = { positioner = positioner, instance = pending }
 	end
 end
 

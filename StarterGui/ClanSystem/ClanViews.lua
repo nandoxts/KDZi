@@ -12,6 +12,7 @@ local UI = require(ReplicatedStorage:WaitForChild("Core"):WaitForChild("UI"))
 local THEME = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("ThemeConfig"))
 local ClanSystemConfig = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("ClanSystemConfig"))
 local MembersList = require(ReplicatedStorage:WaitForChild("UIComponents"):WaitForChild("MembersList"))
+local ModernScrollbar = require(ReplicatedStorage:WaitForChild("UIComponents"):WaitForChild("ModernScrollbar"))
 local ClanClient = require(ReplicatedStorage:WaitForChild("Systems"):WaitForChild("ClanSystem"):WaitForChild("ClanClient"))
 
 local ClanConstants = require(script.Parent.ClanConstants)
@@ -65,9 +66,11 @@ function ClanViews.createMainView(parent, clanData, playerRole, screenGui, loadP
 
 	local scrollFrame = Instance.new("ScrollingFrame")
 	scrollFrame.Size, scrollFrame.BackgroundTransparency = UDim2.new(1, 0, 1, 0), 1
-	scrollFrame.ScrollBarThickness, scrollFrame.ScrollBarImageColor3 = 3, THEME.accent
+	scrollFrame.ScrollBarThickness = 0
+	scrollFrame.ScrollBarImageTransparency = 1
 	scrollFrame.CanvasSize, scrollFrame.ZIndex = UDim2.new(0, 0, 0, 0), 103
 	scrollFrame.Parent = mainView
+	ModernScrollbar.setup(scrollFrame, mainView, THEME, {transparency = 0})
 
 	local contentLayout = Instance.new("UIListLayout")
 	contentLayout.Padding, contentLayout.SortOrder = UDim.new(0, 12), Enum.SortOrder.LayoutOrder
@@ -82,7 +85,7 @@ function ClanViews.createMainView(parent, clanData, playerRole, screenGui, loadP
 	local function nextOrder() layoutOrder = layoutOrder + 1 return layoutOrder end
 
 	-- INFO CARD
-	local infoCard = UI.frame({size = UDim2.new(1, -8, 0, 160), bg = THEME.card, z = 104, parent = scrollFrame, corner = 12, stroke = true, strokeA = 0.6, clips = true})
+	local infoCard = UI.frame({size = UDim2.new(1, -8, 0, 160), bg = THEME.card, bgT = THEME.frameAlpha, z = 104, parent = scrollFrame, corner = 12, stroke = true, strokeA = 0.5, strokeC = THEME.stroke, clips = true})
 	infoCard.LayoutOrder = nextOrder()
 
 	local bannerImage = Instance.new("ImageLabel")
@@ -223,7 +226,7 @@ function ClanViews.createMainView(parent, clanData, playerRole, screenGui, loadP
 	local actionBtnText = playerRole == "owner" and "DISOLVER CLAN" or "SALIR DEL CLAN"
 	local actionBtn = UI.button({size = UDim2.new(1, -8, 0, 44), bg = THEME.warn, text = actionBtnText, color = THEME.text, textSize = 13, font = Enum.Font.GothamBold, z = 104, parent = scrollFrame, corner = 8})
 	actionBtn.LayoutOrder = nextOrder()
-	UI.hover(actionBtn, THEME.warn, THEME.btnDanger)
+	UI.hover(actionBtn, THEME.warn, UI.brighten(THEME.warn, 1.15))
 
 	Memory:track(actionBtn.MouseButton1Click:Connect(function()
 		if playerRole == "owner" then

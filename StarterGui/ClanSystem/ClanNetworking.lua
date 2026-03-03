@@ -146,7 +146,7 @@ end
 
 -- Create clan entry
 function ClanNetworking.createClanEntry(clanData, pendingList, clansScroll, loadClansFromServerFn)
-	local entry = UI.frame({name = "ClanEntry_" .. (clanData.clanId or "unknown"), size = UDim2.new(1, 0, 0, 85), bg = THEME.card, z = 104, parent = clansScroll, corner = 10, stroke = true, strokeA = 0.6})
+	local entry = UI.frame({name = "ClanEntry_" .. (clanData.clanId or "unknown"), size = UDim2.new(1, 0, 0, 85), bg = THEME.card, bgT = THEME.frameAlpha, z = 104, parent = clansScroll, corner = 10, stroke = true, strokeA = 0.5, strokeC = THEME.stroke})
 
 	local logoContainer = UI.frame({size = UDim2.new(0, 60, 0, 60), pos = UDim2.new(0, 12, 0.5, -30), bgT = 1, z = 105, parent = entry, corner = 10})
 
@@ -264,7 +264,7 @@ function ClanNetworking.loadAdminClans(adminClansScroll, screenGui, State, CONFI
 					warn("[CreateClanGui] Clan sin clanId:", clanData)
 				end
 
-				local entry = UI.frame({size = UDim2.new(1, 0, 0, 65), bg = THEME.card, z = 104, parent = adminClansScroll, corner = 10, stroke = true, strokeA = 0.6})
+				local entry = UI.frame({size = UDim2.new(1, 0, 0, 65), bg = THEME.card, bgT = THEME.frameAlpha, z = 104, parent = adminClansScroll, corner = 10, stroke = true, strokeA = 0.5, strokeC = THEME.stroke})
 
 				UI.label({size = UDim2.new(1, -160, 0, 18), pos = UDim2.new(0, 15, 0, 12), text = (clanData.emoji or "") .. " " .. (clanData.name or "Sin nombre"), color = THEME.accent, textSize = 13, font = Enum.Font.GothamBold, z = 105, parent = entry})
 				UI.label({size = UDim2.new(1, -160, 0, 14), pos = UDim2.new(0, 15, 0, 34), text = "ID: " .. (clanData.clanId or "?") .. " • " .. (clanData.memberCount or 0) .. " miembros", color = THEME.muted, textSize = 10, z = 105, parent = entry})

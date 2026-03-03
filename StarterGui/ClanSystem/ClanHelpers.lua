@@ -5,6 +5,7 @@
 ]] local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UI = require(ReplicatedStorage:WaitForChild("Core"):WaitForChild("UI"))
 local THEME = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("ThemeConfig"))
+local ModernScrollbar = require(ReplicatedStorage:WaitForChild("UIComponents"):WaitForChild("ModernScrollbar"))
 local ClanConstants = require(script.Parent.ClanConstants)
 local Memory = ClanConstants.Memory
 
@@ -57,11 +58,12 @@ function ClanHelpers.setupScroll(parent, options)
 	scroll.Size = options.size or UDim2.new(1, -20, 1, -60)
 	scroll.Position = options.pos or UDim2.new(0, 10, 0, 58)
 	scroll.BackgroundTransparency = 1
-	scroll.ScrollBarThickness = 4
-	scroll.ScrollBarImageColor3 = THEME.accent
+	scroll.ScrollBarThickness = 0
+	scroll.ScrollBarImageTransparency = 1
 	scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
 	scroll.ZIndex = options.z or 103
 	scroll.Parent = parent
+	ModernScrollbar.setup(scroll, parent, THEME, {transparency = 0})
 
 	local layout = Instance.new("UIListLayout")
 	layout.Padding = UDim.new(0, options.padding or 8)
@@ -142,8 +144,8 @@ end
 function ClanHelpers.createNavCard(config)
 	local card = UI.frame({
 		size = config.size or UDim2.new(1, 0, 0, 60),
-		pos = config.pos, bg = THEME.card, z = 104,
-		parent = config.parent, corner = 10, stroke = true, strokeA = 0.6
+		pos = config.pos, bg = THEME.card, bgT = THEME.frameAlpha, z = 104,
+		parent = config.parent, corner = 10, stroke = true, strokeA = 0.5, strokeC = THEME.stroke
 	})
 
 	UI.label({size = UDim2.new(0, 40, 0, 40), pos = UDim2.new(0, 12, 0.5, -20), text = config.icon or "👥", textSize = 22, alignX = Enum.TextXAlignment.Center, z = 105, parent = card})
