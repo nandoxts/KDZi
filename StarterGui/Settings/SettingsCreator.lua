@@ -460,6 +460,7 @@ function SettingsCreator.CreateSettingsModal(panel, THEME)
 		table.insert(sidebarItems, {
 			id    = tab.id,
 			label = tab.title,
+			image = TAB_IMAGES[tab.id],
 		})
 	end
 

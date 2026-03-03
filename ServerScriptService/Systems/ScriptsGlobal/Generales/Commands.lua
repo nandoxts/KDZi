@@ -389,41 +389,39 @@ local function handleAuraCommand(player, auraName)
 	-- Clonar efectos del maniquí al personaje
 	for _, auraPartContainer in ipairs(auraFolder:GetChildren()) do
 		local partName = auraPartContainer.Name
-		if MANNEQUIN_SKIP[partName] then continue end
+		if not MANNEQUIN_SKIP[partName] then
+			local targetNames = R6_TO_R15[partName] or {partName}
 
-		local targetNames = R6_TO_R15[partName] or {partName}
+			for _, targetName in ipairs(targetNames) do
+				local targetPart = character:FindFirstChild(targetName)
+				if targetPart then
+					for _, effect in ipairs(auraPartContainer:GetChildren()) do
+						if not (effect:IsA("Decal") and string.lower(effect.Name) == "face") then
+							local clone = effect:Clone()
+							clone:SetAttribute("PlayerAura", true)
+							for _, desc in ipairs(clone:GetDescendants()) do
+								desc:SetAttribute("PlayerAura", true)
+							end
 
-		for _, targetName in ipairs(targetNames) do
-			local targetPart = character:FindFirstChild(targetName)
-			if not targetPart then continue end
+							-- Fade in según tipo
+							if clone:IsA("ParticleEmitter") then
+								local originalRate = effect.Rate or 10
+								clone.Rate = 0
+								clone.Enabled = true
+								clone.Parent = targetPart
+								TweenService:Create(clone, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Rate = originalRate}):Play()
 
-			for _, effect in ipairs(auraPartContainer:GetChildren()) do
-				if effect:IsA("Decal") and string.lower(effect.Name) == "face" then
-					continue
-				end
+							elseif clone:IsA("PointLight") then
+								local originalBrightness = effect.Brightness or 5
+								clone.Brightness = 0
+								clone.Parent = targetPart
+								TweenService:Create(clone, TweenInfo.new(0.6, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {Brightness = originalBrightness}):Play()
 
-				local clone = effect:Clone()
-				clone:SetAttribute("PlayerAura", true)
-				for _, desc in ipairs(clone:GetDescendants()) do
-					desc:SetAttribute("PlayerAura", true)
-				end
-
-				-- Fade in según tipo
-				if clone:IsA("ParticleEmitter") then
-					local originalRate = effect.Rate or 10
-					clone.Rate = 0
-					clone.Enabled = true
-					clone.Parent = targetPart
-					TweenService:Create(clone, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Rate = originalRate}):Play()
-
-				elseif clone:IsA("PointLight") then
-					local originalBrightness = effect.Brightness or 5
-					clone.Brightness = 0
-					clone.Parent = targetPart
-					TweenService:Create(clone, TweenInfo.new(0.6, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {Brightness = originalBrightness}):Play()
-
-				else
-					clone.Parent = targetPart
+							else
+								clone.Parent = targetPart
+							end
+						end
+					end
 				end
 			end
 		end
@@ -782,7 +780,7 @@ local function handleAppearanceCommand(player, commandType)
 
 	local attempt = 0
 	local function tryModify()
-		attempt += 1
+		attempt = attempt + 1
 		if attempt > 3 then return end
 		if not modifyCharacter(character, modification) and attempt < 3 then
 			task.delay(0.5 * attempt, tryModify)
@@ -969,7 +967,7 @@ Players.PlayerAdded:Connect(function(player)
 		local count = 0
 		for _, tool in ipairs(player.Backpack:GetChildren()) do
 			if tool.Name == child.Name then
-				count += 1
+				count = count + 1
 				if count > 1 then
 					child:Destroy()
 					return
