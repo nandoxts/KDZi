@@ -189,7 +189,7 @@ local ALL_PRODUCTS = {
 	{ name = "LIGHTSTICK", price = 80,   gamepassId = Configuration.LIGHTSTICK, icon = "86122436659328",  fondo = "86122436659328",  cmd = "",            accent = C.accentPases },
 	{
 		name       = "AURA PACK",
-		price      = 1000,
+		price      = 2500,
 		gamepassId = Configuration.AURA_PACK,
 		icon       = "129517460766852",
 		fondo      = "79346090571461",
