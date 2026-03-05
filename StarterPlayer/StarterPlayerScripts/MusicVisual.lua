@@ -5,6 +5,13 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
+-- Cache math functions (evita lookups repetidos en hot loops)
+local mfloor = math.floor
+local mclamp = math.clamp
+local mmin   = math.min
+local mrandom = math.random
+local sformat = string.format
+
 -- ═══════════════════════════════════════════════════════
 -- THEME
 -- ═══════════════════════════════════════════════════════
@@ -73,12 +80,38 @@ local loudnessValue = 0
 local loudnessAlpha = 0.18
 local loudnessSensitivity = 1.6
 
+-- FIX 1: Tabla para guardar conexiones activas y poder desconectarlas
+local activeConnections = {}
+
+-- FIX 2: Control para evitar llamadas concurrentes a GetProductInfo
+local metadataInFlight = {} -- assetId -> true mientras se está fetching
+
+-- Pre-calcular datos de barras
+local barCount = #UI.EqualizerBars
+local barHues = {}
+local barCurrentHeights = {}
+local barTargetHeights = {}
+local barJitter = {}
+local barXScale = {}
+
+for i = 1, barCount do
+	barHues[i] = (i - 1) / math.max(barCount, 1)
+	barCurrentHeights[i] = 0.08
+	barTargetHeights[i] = 0.08
+	barJitter[i] = (i % 3) * 0.03
+	if UI.EqualizerBars[i] then
+		barXScale[i] = UI.EqualizerBars[i].Size.X.Scale
+	else
+		barXScale[i] = 0
+	end
+end
+
 -- ═══════════════════════════════════════════════════════
 -- HELPERS
 -- ═══════════════════════════════════════════════════════
 local function formatTime(s)
 	if not s or s ~= s or s < 0 then return "0:00" end
-	return string.format("%d:%02d", math.floor(s / 60), math.floor(s % 60))
+	return sformat("%d:%02d", mfloor(s / 60), mfloor(s % 60))
 end
 
 local function getAssetId(soundId)
@@ -98,33 +131,63 @@ local function showNoMusic()
 	if UI.ProgressFill then UI.ProgressFill.Size = UDim2.fromScale(0, 1) end
 end
 
-local function getMetadata(sound, assetId)
+-- FIX 2: getMetadata ahora es no-bloqueante para la UI
+-- Muestra un placeholder inmediato y actualiza async cuando llega la info
+local function getMetadataCached(sound, assetId)
+	-- Prioridad 1: Atributos del Sound (instantáneo)
 	if sound then
 		local attrName = sound:GetAttribute("SongName")
 		local attrArtist = sound:GetAttribute("SongArtist")
 		if attrName and attrName ~= "" then
-			return attrName, attrArtist or "Desconocido"
+			return attrName, attrArtist or "Desconocido", true -- true = final
 		end
 	end
 
+	-- Prioridad 2: Cache local (instantáneo)
 	if assetId and metadataCache[assetId] then
 		local cached = metadataCache[assetId]
-		return cached.name, cached.artist
+		return cached.name, cached.artist, true
 	end
 
-	if assetId then
+	-- Prioridad 3: No hay data aún, retornar placeholder
+	return assetId and ("Audio " .. assetId) or "Sin música", "Cargando...", false
+end
+
+local function fetchMetadataAsync(assetId, callback)
+	if not assetId then return end
+	if metadataCache[assetId] then
+		callback(metadataCache[assetId].name, metadataCache[assetId].artist)
+		return
+	end
+
+	-- FIX: Evitar múltiples llamadas simultáneas al mismo assetId
+	if metadataInFlight[assetId] then return end
+	metadataInFlight[assetId] = true
+
+	task.spawn(function()
 		local success, info = pcall(function()
 			return MarketplaceService:GetProductInfo(tonumber(assetId), Enum.InfoType.Asset)
 		end)
+
+		metadataInFlight[assetId] = nil
+
 		if success and info then
 			local name = info.Name or ("Audio " .. assetId)
 			local artist = (info.Creator and info.Creator.Name) or "Desconocido"
 			metadataCache[assetId] = { name = name, artist = artist }
-			return name, artist
+			callback(name, artist)
+		end
+	end)
+end
+
+-- FIX 1: Limpiar conexiones anteriores antes de crear nuevas
+local function disconnectAll()
+	for _, conn in ipairs(activeConnections) do
+		if conn and conn.Connected then
+			conn:Disconnect()
 		end
 	end
-
-	return assetId and ("Audio " .. assetId) or "Sin música", "Desconocido"
+	activeConnections = {}
 end
 
 local function updateSongInfo()
@@ -140,12 +203,27 @@ local function updateSongInfo()
 	if UI.ProgressFill then UI.ProgressFill.Size = UDim2.fromScale(0, 1) end
 	if UI.TimeDisplay then UI.TimeDisplay.Text = "0:00 / 0:00" end
 
-	local name, artist = getMetadata(SongHolder, assetId)
+	-- Mostrar info inmediata (cache o placeholder)
+	local name, artist, isFinal = getMetadataCached(SongHolder, assetId)
 	showText(name, artist)
 	displayedSongId = assetId
+
+	-- Si no es final, buscar async y actualizar cuando llegue
+	if not isFinal then
+		local capturedAssetId = assetId
+		fetchMetadataAsync(assetId, function(fetchedName, fetchedArtist)
+			-- Solo actualizar si seguimos mostrando la misma canción
+			if displayedSongId == capturedAssetId then
+				showText(fetchedName, fetchedArtist)
+			end
+		end)
+	end
 end
 
 local function connectToSound(sound)
+	-- FIX 1: Limpiar conexiones del sound anterior
+	disconnectAll()
+
 	SongHolder = sound
 	displayedSongId = nil
 
@@ -154,190 +232,171 @@ local function connectToSound(sound)
 		return
 	end
 
-	sound:GetPropertyChangedSignal("SoundId"):Connect(function()
+	-- Guardar conexiones para poder limpiarlas después
+	local conn1 = sound:GetPropertyChangedSignal("SoundId"):Connect(function()
 		task.delay(0.05, updateSongInfo)
 	end)
-	sound:GetAttributeChangedSignal("SongName"):Connect(updateSongInfo)
+	table.insert(activeConnections, conn1)
+
+	local conn2 = sound:GetAttributeChangedSignal("SongName"):Connect(function()
+		updateSongInfo()
+	end)
+	table.insert(activeConnections, conn2)
+
+	-- FIX 4: Detectar si el sound se destruye mientras lo usamos
+	local conn3 = sound.Destroying:Connect(function()
+		if SongHolder == sound then
+			disconnectAll()
+			SongHolder = nil
+			showNoMusic()
+		end
+	end)
+	table.insert(activeConnections, conn3)
+
 	updateSongInfo()
 end
 
 -- ═══════════════════════════════════════════════════════
--- RUNSERVICE MANAGER (v1 style)
+-- BUSCAR SOUND CON EVENTOS
 -- ═══════════════════════════════════════════════════════
-local RunServiceManager = {}
-RunServiceManager.__index = RunServiceManager
-
-function RunServiceManager.new()
-	local self = setmetatable({}, RunServiceManager)
-	self._activeTasks = {}
-	self._activeTasksHeartbeat = {}
-	self:_listenRenderStepped()
-	self:_listenHeartbeat()
-	return self
-end
-
-local function remove(list, id)
-	for i, v in ipairs(list) do
-		if v.Id == id then
-			table.remove(list, i)
-			return true
+local function onQueueSoundAdded(child)
+	if child.Name == "QueueSound" and child:IsA("Sound") then
+		if SongHolder ~= child then
+			connectToSound(child)
 		end
 	end
-	return false
 end
 
-local function add(list, id, func)
-	for _, v in pairs(list) do
-		if v.Id == id then error("Function with id "..tostring(id).." already exists") end
+local function onQueueSoundRemoved(child)
+	if child == SongHolder then
+		connectToSound(nil)
 	end
-	assert(id, "Need an id to bind function")
-	assert(func, "Need a function to bind")
-	table.insert(list, {Id=id, Func=func})
 end
 
-function RunServiceManager:AddRenderStepped(id, func)
-	add(self._activeTasks, id, func)
-end
-function RunServiceManager:RemoveRenderStepped(id)
-	return remove(self._activeTasks, id)
-end
+Workspace.ChildAdded:Connect(onQueueSoundAdded)
+Workspace.ChildRemoved:Connect(onQueueSoundRemoved)
 
-function RunServiceManager:AddHeartbeat(id, func)
-	add(self._activeTasksHeartbeat, id, func)
-end
-function RunServiceManager:RemoveHeartbeat(id)
-	return remove(self._activeTasksHeartbeat, id)
-end
-
-function RunServiceManager:_listenRenderStepped()
-	RunService.RenderStepped:Connect(function(dt)
-		for _, v in ipairs(self._activeTasks) do
-			v.Func(dt)
+-- FIX 4: Check inicial más robusto con retry
+local existingSound = Workspace:FindFirstChild("QueueSound")
+if existingSound and existingSound:IsA("Sound") then
+	connectToSound(existingSound)
+else
+	-- Si no existe aún, esperar un momento y reintentar UNA vez
+	-- (cubre el caso donde el sound se crea durante el load del script)
+	task.delay(1, function()
+		if not SongHolder then
+			local retrySound = Workspace:FindFirstChild("QueueSound")
+			if retrySound and retrySound:IsA("Sound") then
+				connectToSound(retrySound)
+			end
 		end
 	end)
 end
 
-function RunServiceManager:_listenHeartbeat()
-	local lastTick = tick()
-	RunService.Heartbeat:Connect(function(dt)
-		if tick() - lastTick <= 0.1 then return end
-		lastTick = tick()
-		for _, v in ipairs(self._activeTasksHeartbeat) do
-			v.Func(dt)
-		end
-	end)
-end
-
-local RSM = RunServiceManager.new()
-
 -- ═══════════════════════════════════════════════════════
--- LOOP DE PROGRESO Y TIEMPO (Heartbeat)
+-- LOOP PRINCIPAL UNIFICADO
 -- ═══════════════════════════════════════════════════════
-RSM:AddHeartbeat("MusicProgress", function()
-	if not SongHolder then return end
-	local dur, pos = 0, 0
-	pcall(function() dur = SongHolder.TimeLength pos = SongHolder.TimePosition end)
 
-	if dur > 0 then
-		if UI.TimeDisplay then UI.TimeDisplay.Text = formatTime(pos).." / "..formatTime(dur) end
-		if UI.ProgressFill then UI.ProgressFill.Size = UDim2.fromScale(math.clamp(pos/dur,0,1),1) end
-	end
-end)
+local progressAccum = 0
+local PROGRESS_INTERVAL = 0.15
 
--- ═══════════════════════════════════════════════════════
--- EQUALIZER (Heartbeat)
--- ═══════════════════════════════════════════════════════
-local barHues = {}
-local barCurrentHeights = {}
-local barTargetHeights = {}
-for i = 1, #UI.EqualizerBars do
-	barHues[i] = (i-1) / math.max(#UI.EqualizerBars, 1)
-	barCurrentHeights[i] = 0.08
-	barTargetHeights[i] = 0.08
-end
+-- Glow state
+local glowTweenExpand, glowTweenShrink
+local glowLastTick = 0
+local glowExpanding = false
 
-RSM:AddRenderStepped("Equalizer", function(dt)
-	if #UI.EqualizerBars == 0 then return end
-	local playing = false
-	if SongHolder then pcall(function() playing = SongHolder.Playing end) end
-
-	for i=1,#UI.EqualizerBars do
-		barHues[i] = (barHues[i] + dt * 0.6) % 1
-		pcall(function() UI.EqualizerBars[i].BackgroundColor3 = Color3.fromHSV(barHues[i],1,1) end)
-	end
-
-	if playing then
-		local ok, val = pcall(function() return SongHolder.PlaybackLoudness end)
-		if ok and type(val) == "number" then
-			local scaled = math.clamp(val*loudnessSensitivity/100,0,1)
-			loudnessValue = loudnessValue*(1-loudnessAlpha) + scaled*loudnessAlpha
-		end
-		local base = 0.12
-		local intensity = base + (loudnessValue*0.88)
-		for i = 1, #UI.EqualizerBars do
-			local jitter = (i%3)*0.03
-			local randomFactor = 0.6 + math.random()*0.4
-			barTargetHeights[i] = math.clamp(base + randomFactor*intensity + jitter, 0.08, 1)
-		end
-	else
-		loudnessValue = loudnessValue*0.9
-		for i = 1, #UI.EqualizerBars do
-			barTargetHeights[i] = 0.08
-		end
-	end
-	-- Lerp basado en dt (framerate-independiente)
-	local speed = playing and 18 or 9
-	local alpha = math.min(1, dt * speed)
-	for i, bar in ipairs(UI.EqualizerBars) do
-		barCurrentHeights[i] = barCurrentHeights[i] + (barTargetHeights[i] - barCurrentHeights[i]) * alpha
-		bar.Size = UDim2.fromScale(bar.Size.X.Scale, barCurrentHeights[i])
-	end
-end)
-
--- ═══════════════════════════════════════════════════════
--- GLOW (Heartbeat)
--- ═══════════════════════════════════════════════════════
 if UI.Glow then
-	local glowTweenExpand = TweenService:Create(UI.Glow, TweenInfo.new(0.6, Enum.EasingStyle.Sine), {ImageTransparency=0.1, Size=UDim2.fromOffset(60,60)})
-	local glowTweenShrink = TweenService:Create(UI.Glow, TweenInfo.new(0.6, Enum.EasingStyle.Sine), {ImageTransparency=0.4, Size=UDim2.fromOffset(40,40)})
-	local glowLastTick = 0
-	local glowExpanding = false
-	RSM:AddHeartbeat("GlowEffect", function()
-		local playing = false
-		if SongHolder then pcall(function() playing = SongHolder.Playing end) end
-		if not playing then return end
+	glowTweenExpand = TweenService:Create(UI.Glow, TweenInfo.new(0.6, Enum.EasingStyle.Sine), {ImageTransparency = 0.1, Size = UDim2.fromOffset(60, 60)})
+	glowTweenShrink = TweenService:Create(UI.Glow, TweenInfo.new(0.6, Enum.EasingStyle.Sine), {ImageTransparency = 0.4, Size = UDim2.fromOffset(40, 40)})
+end
+
+-- Separator gradient state
+local separatorGradient = nil
+local separatorOffset = 0
+if UI.SeparatorLine then
+	separatorGradient = UI.SeparatorLine:FindFirstChild("UIGradient")
+end
+
+RunService.RenderStepped:Connect(function(dt)
+	local playing = false
+	local dur, pos = 0, 0
+
+	if SongHolder then
+		local ok, _playing, _dur, _pos, _loudness = pcall(function()
+			return SongHolder.Playing, SongHolder.TimeLength, SongHolder.TimePosition, SongHolder.PlaybackLoudness
+		end)
+		if ok then
+			playing = _playing
+			dur = _dur
+			pos = _pos
+			if playing and type(_loudness) == "number" then
+				local scaled = mclamp(_loudness * loudnessSensitivity / 100, 0, 1)
+				loudnessValue = loudnessValue * (1 - loudnessAlpha) + scaled * loudnessAlpha
+			end
+		end
+	end
+
+	-- ── PROGRESO Y TIEMPO (throttled) ──
+	progressAccum = progressAccum + dt
+	if progressAccum >= PROGRESS_INTERVAL then
+		progressAccum = 0
+		if dur > 0 then
+			if UI.TimeDisplay then UI.TimeDisplay.Text = formatTime(pos) .. " / " .. formatTime(dur) end
+			if UI.ProgressFill then UI.ProgressFill.Size = UDim2.fromScale(mclamp(pos / dur, 0, 1), 1) end
+		end
+	end
+
+	-- ── EQUALIZER ──
+	if barCount > 0 then
+		local hueStep = dt * 0.6
+		for i = 1, barCount do
+			barHues[i] = (barHues[i] + hueStep) % 1
+			UI.EqualizerBars[i].BackgroundColor3 = Color3.fromHSV(barHues[i], 1, 1)
+		end
+
+		if playing then
+			local base = 0.12
+			local intensity = base + (loudnessValue * 0.88)
+			for i = 1, barCount do
+				local randomFactor = 0.6 + mrandom() * 0.4
+				barTargetHeights[i] = mclamp(base + randomFactor * intensity + barJitter[i], 0.08, 1)
+			end
+		else
+			-- FIX 3: Decay independiente del framerate usando dt
+			local decayFactor = math.exp(-5 * dt) -- equivale a ~0.9 a 60fps pero se adapta
+			loudnessValue = loudnessValue * decayFactor
+			for i = 1, barCount do
+				barTargetHeights[i] = 0.08
+			end
+		end
+
+		local speed = playing and 18 or 9
+		local alpha = mmin(1, dt * speed)
+		for i = 1, barCount do
+			local curr = barCurrentHeights[i]
+			local target = barTargetHeights[i]
+			if math.abs(target - curr) > 0.001 then
+				curr = curr + (target - curr) * alpha
+				barCurrentHeights[i] = curr
+				UI.EqualizerBars[i].Size = UDim2.fromScale(barXScale[i], curr)
+			end
+		end
+	end
+
+	-- ── SEPARATOR RAINBOW ──
+	if separatorGradient then
+		separatorOffset = (separatorOffset + dt * 0.6) % 1
+		separatorGradient.Offset = Vector2.new(separatorOffset, 0)
+	end
+
+	-- ── GLOW ──
+	if UI.Glow and playing then
 		local now = tick()
 		if now - glowLastTick >= 0.6 then
 			glowLastTick = now
 			glowExpanding = not glowExpanding
 			if glowExpanding then glowTweenExpand:Play() else glowTweenShrink:Play() end
 		end
-	end)
-end
-
--- ═══════════════════════════════════════════════════════
--- SEPARATOR LINE (Heartbeat)
--- ═══════════════════════════════════════════════════════
-if UI.SeparatorLine then
-	local gradient = UI.SeparatorLine:FindFirstChild("UIGradient")
-	if gradient then
-		local offset = 0
-		RSM:AddRenderStepped("SeparatorRainbow", function(dt)
-			offset = (offset + dt * 0.6) % 1
-			gradient.Offset = Vector2.new(offset, 0)
-		end)
-	end
-end
-
--- ═══════════════════════════════════════════════════════
--- BUSCAR SOUND CONTINUAMENTE (Heartbeat)
--- ═══════════════════════════════════════════════════════
-RSM:AddHeartbeat("SoundFinder", function()
-	local sound = Workspace:FindFirstChild("QueueSound")
-	if sound and sound:IsA("Sound") then
-		if SongHolder ~= sound then connectToSound(sound) end
-	else
-		if SongHolder ~= nil then connectToSound(nil) end
 	end
 end)
 
