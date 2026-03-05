@@ -28,6 +28,11 @@ local PLAY_CHECK_DELAY  = 0.5
 local TRANSITION_DELAY  = 0.3
 local MAX_RANDOM_RETRIES = 5
 
+-- FIX 1: Tiempo de vida del caché de validación (segundos)
+-- Las canciones validadas no necesitan re-validarse constantemente
+local VALIDATION_CACHE_TTL = 300  -- 5 minutos
+local VALIDATION_FAIL_TTL  = 60   -- 1 minuto para fallos (reintentar antes)
+
 local RC = {
 	SUCCESS      = "SUCCESS",
 	INVALID_ID   = "ERROR_INVALID_ID",
@@ -47,7 +52,7 @@ local RC = {
 -- ════════════════════════════════════════════════════════════════
 local musicDatabase   = {}
 local djOrder         = {
-	"Top Hits", "Reggaeton", "Mix Brazil", "Kpop Army",
+	"Top Hits", "Trap Latino", "Mix Brazil", "Kpop Army",
 	"DJ Angelisai", "DJ AngeloGarcia", "Hora Loca", "Rock",
 	"Reparto", "Phonk", "Vallenatos", "Mix Argentina",
 	"Electronica", "Romanticas", "Mixes Djs", "Mix chile",
@@ -62,6 +67,10 @@ local currentPlayingId = nil
 local metadataCache   = {}
 local playerCooldowns = {}
 local pitchLookup     = {}
+
+-- FIX 1: Caché de validación de audio + deduplicación de requests en vuelo
+local validationCache = {}   -- audioId -> { canPlay = bool, timestamp = number }
+local validationInFlight = {} -- audioId -> { thread1, thread2, ... } (esperando resultado)
 
 -- ════════════════════════════════════════════════════════════════
 -- REMOTES
@@ -180,7 +189,7 @@ local function updateAllClients()
 end
 
 -- ════════════════════════════════════════════════════════════════
--- PERMISSION LAYER  (single entry point for all access checks)
+-- PERMISSION LAYER
 -- ════════════════════════════════════════════════════════════════
 local function hasPermission(player, action)
 	return MusicConfig:HasPermission(player.UserId, action)
@@ -195,7 +204,6 @@ local function isEventBlocked(action, player)
 	return false
 end
 
--- Returns nil on success, or a response table on failure
 local function checkAccess(player, action)
 	if isEventBlocked(action, player) then
 		return response(RC.EVENT_LOCKED, "Modo evento activo")
@@ -223,7 +231,6 @@ local function loadDJs()
 			songIds   = ids,
 			songCount = #ids,
 		}
-		-- Si no está en djOrder, añadirlo al final
 		local found = false
 		for _, n in ipairs(djOrder) do if n == name then found = true break end end
 		if not found then table.insert(djOrder, name) end
@@ -260,8 +267,6 @@ end
 -- ════════════════════════════════════════════════════════════════
 -- METADATA LAYER
 -- ════════════════════════════════════════════════════════════════
-
--- Returns name, artist, success — validates via GetProductInfo once per id
 local function getOrLoadMetadata(audioId)
 	local cached = metadataCache[audioId]
 	if cached and cached.loaded and not cached.error then
@@ -278,7 +283,6 @@ local function getOrLoadMetadata(audioId)
 		return name, artist, true
 	end
 
-	-- GetProductInfo failed: graceful fallback only if song is in library
 	if djName then
 		return "Audio " .. audioId, djName, true
 	end
@@ -292,8 +296,8 @@ local function loadMetadataBatch(ids, callback, perBatchCallback)
 		return
 	end
 
-	local BATCH_SIZE  = 10   -- aumentado de 3 → 10 (reduce tiempo total ~3x)
-	local BATCH_DELAY = 0.1  -- reducido de 0.5 → 0.1s
+	local BATCH_SIZE  = 10
+	local BATCH_DELAY = 0.1
 	local results = {}
 	local pending = #ids
 
@@ -309,7 +313,6 @@ local function loadMetadataBatch(ids, callback, perBatchCallback)
 					or  { name = "Audio " .. id, artist = "Unknown", loaded = true, error = true }
 				pending = pending - 1
 				batchPending = batchPending - 1
-				-- Notificar al finalizar cada batch (update progresivo)
 				if batchPending == 0 and perBatchCallback then perBatchCallback(results) end
 				if pending == 0 and callback then callback(results) end
 			end)
@@ -319,9 +322,11 @@ local function loadMetadataBatch(ids, callback, perBatchCallback)
 end
 
 -- ════════════════════════════════════════════════════════════════
--- AUDIO PERMISSION VALIDATOR
+-- AUDIO PERMISSION VALIDATOR (con caché + deduplicación)
 -- ════════════════════════════════════════════════════════════════
-local function validateAudioPermission(audioId)
+
+-- FIX 1: Validación real (solo se ejecuta cuando no hay caché válido)
+local function _validateAudioPermissionRaw(audioId)
 	local testSound = Instance.new("Sound")
 	testSound.SoundId = ASSET_PREFIX .. audioId
 	testSound.Volume  = 0
@@ -349,8 +354,61 @@ local function validateAudioPermission(audioId)
 	return canPlay
 end
 
+-- FIX 1: Wrapper con caché y deduplicación de requests concurrentes
+local function validateAudioPermission(audioId)
+	-- 1. Revisar caché
+	local cached = validationCache[audioId]
+	if cached then
+		local age = tick() - cached.timestamp
+		local ttl = cached.canPlay and VALIDATION_CACHE_TTL or VALIDATION_FAIL_TTL
+		if age < ttl then
+			return cached.canPlay
+		end
+		-- Caché expirado, limpiar
+		validationCache[audioId] = nil
+	end
+
+	-- 2. Si ya hay un request en vuelo para este ID, esperar su resultado
+	--    en vez de crear OTRO Sound instance
+	if validationInFlight[audioId] then
+		local thread = coroutine.running()
+		table.insert(validationInFlight[audioId], thread)
+		-- Suspender este thread hasta que el request original termine
+		local result = coroutine.yield()
+		return result
+	end
+
+	-- 3. Somos el primer request para este ID, ejecutar validación real
+	validationInFlight[audioId] = {}
+
+	local canPlay = _validateAudioPermissionRaw(audioId)
+
+	-- Guardar en caché
+	validationCache[audioId] = {
+		canPlay   = canPlay,
+		timestamp = tick(),
+	}
+
+	-- Despertar todos los threads que estaban esperando este resultado
+	local waitingThreads = validationInFlight[audioId]
+	validationInFlight[audioId] = nil
+
+	for _, thread in ipairs(waitingThreads) do
+		task.spawn(function()
+			coroutine.resume(thread, canPlay)
+		end)
+	end
+
+	return canPlay
+end
+
+-- FIX 1b: Invalidar caché de un ID específico (útil si un audio falla al reproducir)
+local function invalidateValidationCache(audioId)
+	validationCache[audioId] = nil
+end
+
 -- ════════════════════════════════════════════════════════════════
--- QUEUE VALIDATION  (single pipeline — called once per AddToQueue)
+-- QUEUE VALIDATION
 -- ════════════════════════════════════════════════════════════════
 local function getUserQueueLimit(player)
 	if MusicConfig:IsAdmin(player) then
@@ -397,16 +455,22 @@ local function validateQueueAdd(player, audioId)
 		return nil, response(RC.QUEUE_FULL, "Límite alcanzado (" .. userCount .. "/" .. limit .. " como " .. role .. ")")
 	end
 
-	-- 6. Metadata (single call)
+	-- 6. Duplicates (checar ANTES de metadata/validación para evitar trabajo innecesario)
+	local dup, existing = isInQueue(id)
+	if dup then
+		return nil, response(RC.DUPLICATE, "Ya está en la cola", { songName = existing.name })
+	end
+
+	-- 7. Metadata (single call, usa caché interno)
 	local name, artist, metaOk = getOrLoadMetadata(id)
 	if not metaOk then return nil, response(RC.NOT_FOUND, "Audio no encontrado") end
 
-	-- 7. Audio permission (single call)
+	-- 8. Audio permission (ahora usa caché + deduplicación)
 	if not validateAudioPermission(id) then
 		return nil, response(RC.NOT_AUTHORIZED, "Audio bloqueado o sin permisos")
 	end
 
-	-- All clear — stamp cooldown and return resolved data
+	-- All clear
 	playerCooldowns[player.UserId] = now
 	return { id = id, name = name, artist = artist }, nil
 end
@@ -414,7 +478,7 @@ end
 -- ════════════════════════════════════════════════════════════════
 -- PLAYBACK ENGINE
 -- ════════════════════════════════════════════════════════════════
-local playSong, nextSong, playRandomSong   -- forward declarations
+local playSong, nextSong, playRandomSong
 
 local function cleanupSound()
 	pcall(soundObject.Stop, soundObject)
@@ -433,6 +497,11 @@ end
 
 local function removeCurrentAndContinue()
 	if currentSongIndex <= #playQueue then
+		-- FIX 1b: Si falló al reproducir, invalidar su caché de validación
+		local failedSong = playQueue[currentSongIndex]
+		if failedSong then
+			invalidateValidationCache(failedSong.id)
+		end
 		table.remove(playQueue, currentSongIndex)
 	end
 	adjustIndex()
@@ -472,7 +541,7 @@ playSong = function(index)
 			return
 		end
 		loaded = true
-		loadConn:Disconnect()
+		if loadConn then loadConn:Disconnect() end
 
 		task.wait(0.15)
 
@@ -487,7 +556,6 @@ playSong = function(index)
 		isPaused  = false
 		updateAllClients()
 
-		-- Single deferred check: ensure audio actually advances
 		task.delay(PLAY_CHECK_DELAY, function()
 			if currentPlayingId ~= thisPlayId or not isPlaying or isPaused then return end
 			if soundObject.TimePosition >= 0.1 then return end
@@ -509,14 +577,12 @@ playSong = function(index)
 
 	loadConn = soundObject.Loaded:Connect(startPlaying)
 
-	-- Handle already-cached audio
 	task.defer(function()
 		if not loaded and currentPlayingId == thisPlayId and soundObject.IsLoaded then
 			startPlaying()
 		end
 	end)
 
-	-- Load timeout
 	task.delay(LOAD_TIMEOUT, function()
 		if not loaded and currentPlayingId == thisPlayId then
 			loaded = true
@@ -526,6 +592,8 @@ playSong = function(index)
 	end)
 end
 
+-- FIX 2: playRandomSong optimizado — usa caché de validación,
+-- no re-valida canciones que ya sabemos que funcionan
 playRandomSong = function()
 	if #playQueue > 0 then
 		currentSongIndex = 1
@@ -535,12 +603,54 @@ playRandomSong = function()
 
 	if isTransitioning then return end
 
-	for attempt = 1, MAX_RANDOM_RETRIES do
-		local randomSong = getRandomSongFromLibrary()
-		if not randomSong then
-			warn("[playRandomSong] Biblioteca vacía")
-			return
+	-- Construir lista de todas las canciones de la biblioteca
+	local allSongs = {}
+	for djName, djData in pairs(musicDatabase) do
+		for _, id in ipairs(djData.songIds or {}) do
+			table.insert(allSongs, { id = id, dj = djName, djCover = djData.cover })
 		end
+	end
+
+	if #allSongs == 0 then
+		warn("[playRandomSong] Biblioteca vacía")
+		return
+	end
+
+	-- FIX 2: Primero intentar canciones que YA están validadas en caché
+	-- Esto es instantáneo (0ms) en vez de 5s
+	local shuffled = {}
+	for i = #allSongs, 2, -1 do
+		local j = math.random(i)
+		allSongs[i], allSongs[j] = allSongs[j], allSongs[i]
+	end
+
+	-- Paso 1: Buscar entre las ya cacheadas como válidas (instantáneo)
+	for _, song in ipairs(allSongs) do
+		local cached = validationCache[song.id]
+		if cached and cached.canPlay and (tick() - cached.timestamp) < VALIDATION_CACHE_TTL then
+			local name, artist, metaOk = getOrLoadMetadata(song.id)
+			if metaOk then
+				table.insert(playQueue, {
+					id          = song.id,
+					name        = name,
+					artist      = artist,
+					userId      = DEV_USER_ID,
+					requestedBy = DEV_DISPLAY_NAME,
+					addedAt     = os.time(),
+					dj          = song.dj,
+					djCover     = song.djCover,
+					isAutoPlay  = true,
+				})
+				currentSongIndex = 1
+				task.delay(TRANSITION_DELAY, function() playSong(1) end)
+				return
+			end
+		end
+	end
+
+	-- Paso 2: Si no hay cacheadas, validar como antes (con el caché nuevo para futuras)
+	for attempt = 1, MAX_RANDOM_RETRIES do
+		local randomSong = allSongs[math.random(#allSongs)]
 
 		local name, artist, metaOk = getOrLoadMetadata(randomSong.id)
 		local canPlay = metaOk and validateAudioPermission(randomSong.id)
@@ -623,7 +733,6 @@ end
 local function clearQueue()
 	if #playQueue == 0 then return false, 0 end
 
-	-- Keep the currently-playing song if it's index 1; wipe everything else
 	if isPlaying and currentSongIndex == 1 then
 		local count = #playQueue - 1
 		playQueue = { playQueue[1] }
@@ -640,11 +749,19 @@ local function clearQueue()
 end
 
 -- ════════════════════════════════════════════════════════════════
--- SONG ENDED DETECTION  (polling as primary, Ended as backup)
+-- SONG ENDED DETECTION
+-- FIX 4: Polling como backup con intervalo más largo,
+-- Ended como primario
 -- ════════════════════════════════════════════════════════════════
+soundObject.Ended:Connect(function()
+	if isPlaying and not isTransitioning then nextSong() end
+end)
+
+-- Backup polling: solo para casos donde Ended no dispara
+-- (audio corrupto, edge cases de Roblox)
 task.spawn(function()
 	while true do
-		task.wait(0.4)
+		task.wait(1) -- FIX 4: Subido de 0.4s a 1s (Ended cubre el caso normal)
 		if isPlaying and not isPaused and not isTransitioning then
 			local len = soundObject.TimeLength
 			local pos = soundObject.TimePosition
@@ -656,10 +773,6 @@ task.spawn(function()
 			end
 		end
 	end
-end)
-
-soundObject.Ended:Connect(function()
-	if isPlaying and not isTransitioning then nextSong() end
 end)
 
 -- ════════════════════════════════════════════════════════════════
@@ -703,7 +816,6 @@ local function searchSongs(djName, query, maxResults)
 	local qLower  = string.lower(query or "")
 	local qNum    = tonumber(query)
 
-	-- ID-based matches first
 	if qNum then
 		for i, id in ipairs(ids) do
 			if tostring(id):find(tostring(qNum), 1, true) then
@@ -715,7 +827,6 @@ local function searchSongs(djName, query, maxResults)
 		end
 	end
 
-	-- Name/artist matches (skip already-found ids)
 	if #results < maxResults and qLower ~= "" then
 		local seen = {}
 		for _, r in ipairs(results) do seen[r.id] = true end
@@ -739,7 +850,7 @@ local function searchSongs(djName, query, maxResults)
 end
 
 -- ════════════════════════════════════════════════════════════════
--- REMOTE HANDLERS  (thin — delegate to engine/queue functions)
+-- REMOTE HANDLERS
 -- ════════════════════════════════════════════════════════════════
 
 R.Play.OnServerEvent:Connect(function(player)
@@ -776,8 +887,6 @@ end
 
 if R.PurchaseSkip then
 	R.PurchaseSkip.OnServerEvent:Connect(function(player)
-		-- PurchaseSkip: disponible para todos (la verificación de gamepass/pago se hace en el cliente)
-		-- Solo bloquear si hay modo evento activo
 		if isEventBlocked("NextSong", player) then return end
 		print("Skip pagado", player.DisplayName .. "(@" .. player.Name .. ")")
 		nextSong()
@@ -791,10 +900,12 @@ R.AddToQueue.OnServerEvent:Connect(function(player, audioId)
 	local songData, err = validateQueueAdd(player, audioId)
 	if err then return fireClient(R.AddResponse, player, err) end
 
-	-- Double-check duplicates justo antes de insertar (prevenir race condition)
+	-- FIX 3: El chequeo de duplicados ya se movió DENTRO de validateQueueAdd
+	-- (antes del metadata/validación costosa), pero hacemos double-check
+	-- justo antes de insertar por race conditions
 	local dup, existing = isInQueue(songData.id)
-	if dup then 
-		return fireClient(R.AddResponse, player, response(RC.DUPLICATE, "Ya está en la cola", { songName = existing.name })) 
+	if dup then
+		return fireClient(R.AddResponse, player, response(RC.DUPLICATE, "Ya está en la cola", { songName = existing.name }))
 	end
 
 	local djName, djCover = findDJForSong(songData.id)
@@ -857,7 +968,6 @@ R.GetSongRange.OnServerEvent:Connect(function(player, djName, startIdx, endIdx)
 	fireClient(R.GetSongRange, player, result)
 
 	if result.idsToLoad and #result.idsToLoad > 0 then
-		-- perBatchCallback: envía update progresivo por cada batch completado
 		loadMetadataBatch(result.idsToLoad, nil, function()
 			local updated = getSongRange(djName, startIdx, endIdx)
 			updated.djName   = djName
@@ -880,7 +990,6 @@ R.SearchSongs.OnServerEvent:Connect(function(player, djName, query)
 	end
 
 	if #idsToLoad > 0 then
-		-- perBatchCallback: update progresivo también en búsqueda
 		loadMetadataBatch(idsToLoad, nil, function()
 			local updated = searchSongs(djName, query)
 			updated.djName   = djName
@@ -942,6 +1051,31 @@ end)
 -- INIT
 -- ════════════════════════════════════════════════════════════════
 loadDJs()
+
+-- FIX 2b: Pre-validar las primeras canciones de la biblioteca en background
+-- para que playRandomSong sea instantáneo desde el inicio
+task.spawn(function()
+	task.wait(3) -- Esperar a que el servidor se estabilice
+	local allSongs = {}
+	for djName, djData in pairs(musicDatabase) do
+		for _, id in ipairs(djData.songIds or {}) do
+			table.insert(allSongs, id)
+		end
+	end
+	-- Shuffle y pre-validar las primeras 20 (suficiente para autoplay inmediato)
+	for i = #allSongs, 2, -1 do
+		local j = math.random(i)
+		allSongs[i], allSongs[j] = allSongs[j], allSongs[i]
+	end
+	local prevalidateCount = math.min(20, #allSongs)
+	for i = 1, prevalidateCount do
+		task.spawn(function()
+			validateAudioPermission(allSongs[i])
+		end)
+		-- Espaciar para no saturar (5 concurrentes máximo)
+		if i % 5 == 0 then task.wait(1) end
+	end
+end)
 
 task.delay(1, function()
 	updateAllClients()

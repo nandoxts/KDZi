@@ -6222,6 +6222,9 @@ PitchModule.ids = {
 	{id = "82107477883846", pitch = 0.37}, -- DEMBOWSS 1
 	{id = "89810670814532", pitch = 0.37}, -- DEMBOWSS 2
 	{id = "118376709882037", pitch = 0.37}, -- DEMBOWSS 3
+	{id = "134174859874864", pitch = 0.37},
+	{id = "94088385927435", pitch = 0.37},
+	{id = "139690188078826", pitch = 0.37},
 	-- El pitch no maneja volumen, en algunos tuve que quitarlo (TEN CUIDADO POR QUE EN ALGUNOS SI JALA, SOLO QUE SUENA COMO ARDILLA POR QUE EL SERVER AÚN NO SE ACTUALIZA ;) )
 }
 

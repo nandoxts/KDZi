@@ -753,10 +753,10 @@ end
 -- ════════════════════════════════════════════════════════════════
 local function setAddButtonState(state, customMessage)
 	if not quickAddBtn or not quickInput or not qiStroke then return end
-	
+
 	-- Cancelar thread anterior
 	if loadingDotsThread then task.cancel(loadingDotsThread); loadingDotsThread = nil end
-	
+
 	-- Cancelar tween anterior (IMPORTANTE: esto evita que siga corriendo en background)
 	if loadingTween then loadingTween:Cancel(); loadingTween = nil end
 
