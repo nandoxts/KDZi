@@ -1,6 +1,13 @@
 -- ════════════════════════════════════════════════════════════════
--- USER PANEL SERVER - HÍBRIDO (API + MANUAL)
+-- USER PANEL SERVER - v4.0 (Background-Optimized)
 -- ════════════════════════════════════════════════════════════════
+--[[
+	Cambios vs v3:
+	• GetUserData acepta 2do param "skipGroupIcon" (bool)
+	  → El client lo usa para no re-fetchear el group icon en refreshes
+	• Caché de groupIcon separado (permanente por sesión)
+	• Stats cache sigue siendo 30s
+]]
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -11,43 +18,38 @@ local DataStoreService = game:GetService("DataStoreService")
 local UNIVERSE_ID = game.GameId
 local PLACE_ID = game.PlaceId
 
--- Acceso directo al DataStore de likes
 local LikesDataStore = DataStoreService:GetDataStore("LikesData")
 
--- Importar GamePassManager para validar pases (comprados + regalados)
 local GamePassManager = require(game.ServerScriptService.Systems["Gamepass Gifting"]["GamepassManager"])
 
--- Config de gamepasses desde Systems/Configuration
 local SysConfig = require(game.ServerScriptService.Systems.Configuration)
 local Config = {
 	Gamepasses = {
-		{SysConfig.VIP,       SysConfig.DEV_VIP},
-		{SysConfig.COMMANDS,  SysConfig.DEV_COMMANDS},
-		{SysConfig.TOMBO,     SysConfig.DEV_TOMBO},
-		{SysConfig.CHORO,     SysConfig.DEV_CHORO},
-		{SysConfig.SERE,      SysConfig.DEV_SERE},
-		{SysConfig.COLORS,    SysConfig.DEV_COLORS},
-		{SysConfig.ARMYBOOMS, SysConfig.DEV_ARMYBOOMS},
+		{SysConfig.VIP,        SysConfig.DEV_VIP},
+		{SysConfig.COMMANDS,   SysConfig.DEV_COMMANDS},
+		{SysConfig.TOMBO,      SysConfig.DEV_TOMBO},
+		{SysConfig.CHORO,      SysConfig.DEV_CHORO},
+		{SysConfig.SERE,       SysConfig.DEV_SERE},
+		{SysConfig.COLORS,     SysConfig.DEV_COLORS},
+		{SysConfig.ARMYBOOMS,  SysConfig.DEV_ARMYBOOMS},
 		{SysConfig.LIGHTSTICK, SysConfig.DEV_LIGHTSTICK},
 		{SysConfig.AURA_PACK,  SysConfig.DEV_AURA_PACK}
 	}
 }
+
 -- ═══════════════════════════════════════════════════════════════
 -- CONFIGURACIÓN
 -- ═══════════════════════════════════════════════════════════════
 
 local CONFIG = {
-	STATS_CACHE_TIME = 30,
+	STATS_CACHE_TIME = 60,
 	DONATIONS_CACHE_TIME = 120,
 	GAMEPASSES_CACHE_TIME = 120,
 	MAX_GAMES_TO_SEARCH = 5,
 	HTTP_DELAY = 0.1,
+	MAX_ITEMS_TO_SHOW = 15,
+	MAX_ITEMS_TO_VALIDATE = 10,
 
-	-- Límites de performance
-	MAX_ITEMS_TO_SHOW = 15,  -- Máximo de items a mostrar (evita lag)
-	MAX_ITEMS_TO_VALIDATE = 10,  -- Validar solo los primeros N inmediatamente
-
-	-- APIs (rotunnel funciona para donaciones)
 	FRIENDS_API = "https://friends.roproxy.com/v1/users/",
 	GAMES_API = "https://games.roproxy.com/v2/users/",
 	PASSES_API = "https://apis.rotunnel.com/game-passes/v1/universes/",
@@ -55,7 +57,7 @@ local CONFIG = {
 }
 
 -- ═══════════════════════════════════════════════════════════════
--- OBTENER REMOTES (ya creados en Studio)
+-- REMOTES
 -- ═══════════════════════════════════════════════════════════════
 
 local remotesGlobal   = ReplicatedStorage:WaitForChild("RemotesGlobal")
@@ -67,7 +69,6 @@ local GetUserDonations = userPanelFolder:WaitForChild("GetUserDonations")
 local GetGamePasses    = userPanelFolder:WaitForChild("GetGamePasses")
 local CheckGamePass    = userPanelFolder:WaitForChild("CheckGamePass")
 
--- LikesEvents está en RemotesGlobal directamente
 local LikesEvents = remotesGlobal:WaitForChild("LikesEvents")
 
 -- ═══════════════════════════════════════════════════════════════
@@ -75,17 +76,17 @@ local LikesEvents = remotesGlobal:WaitForChild("LikesEvents")
 -- ═══════════════════════════════════════════════════════════════
 
 local Cache = {
-	stats = {},
+	stats = {},         -- Stats temporales (30s TTL)
+	groupIcons = {},    -- Group icons PERMANENTES (1 vez por sesión)
 	donations = {},
 	gamePasses = nil,
-	gamePassesTime = 0
+	gamePassesTime = 0,
+	inflight = {},      -- Anti-duplicados: userId = { waiting = {threads...} }
 }
 
--- Función para validar si un jugador tiene un pase (comprado o regalado)
 local function checkPlayerGamePass(player, passId)
 	if not player or not passId then return false end
 
-	-- Verificar en la carpeta de Gamepasses (regalados)
 	local folder = player:FindFirstChild("Gamepasses")
 	if folder then
 		local success, info = pcall(function()
@@ -101,7 +102,6 @@ local function checkPlayerGamePass(player, passId)
 		end
 	end
 
-	-- Verificar con MarketplaceService (comprados)
 	local owns = false
 	pcall(function()
 		owns = MarketplaceService:UserOwnsGamePassAsync(player.UserId, passId)
@@ -134,17 +134,15 @@ local function httpGet(url)
 end
 
 -- ═══════════════════════════════════════════════════════════════
--- ESTADÍSTICAS
+-- LIKES
 -- ═══════════════════════════════════════════════════════════════
 
 local function getTotalLikes(userId)
-	-- Primero intenta obtener del jugador en memoria
 	local player = Players:FindFirstChild(tostring(userId))
 	if player then
 		return player:GetAttribute("TotalLikes") or 0
 	end
 
-	-- Si no está en memoria, obtener del DataStore
 	local success, data = pcall(function()
 		return LikesDataStore:GetAsync("Player_" .. userId)
 	end)
@@ -157,65 +155,138 @@ local function getTotalLikes(userId)
 end
 
 -- ═══════════════════════════════════════════════════════════════
--- VIP / GRUPO THUMBNAIL
+-- GROUP ICON (1 SOLA VEZ POR SESIÓN)
 -- ═══════════════════════════════════════════════════════════════
 
-local function getUserFirstGroup(userId)
-	-- Endpoint del grupo PRIMARIO (el que el usuario eligió como principal)
-	local data = httpGet(CONFIG.GROUPS_API .. userId .. "/groups/primary/role")
-	if data and data.group and data.group.id then
-		return "rbxthumb://type=GroupIcon&id=" .. tostring(data.group.id) .. "&w=420&h=420"
+local function getUserGroupIcon(userId)
+	-- Si ya lo tenemos cacheado (incluso si es nil), retornar
+	if Cache.groupIcons[userId] ~= nil then
+		-- Usamos un wrapper: { icon = string|nil, loaded = true }
+		return Cache.groupIcons[userId].icon
 	end
-	return nil
+
+	-- Fetch 1 sola vez
+	local data = httpGet(CONFIG.GROUPS_API .. userId .. "/groups/primary/role")
+	local icon = nil
+
+	if data and data.group and data.group.id then
+		icon = "rbxthumb://type=GroupIcon&id=" .. tostring(data.group.id) .. "&w=420&h=420"
+	end
+
+	-- Guardar permanentemente (incluso si es nil, para no re-intentar)
+	Cache.groupIcons[userId] = { icon = icon, loaded = true }
+
+	return icon
 end
 
-local function getUserStats(userId)
-	local cached = Cache.stats[userId]
-	if isCacheValid(cached, CONFIG.STATS_CACHE_TIME) then
-		return cached.data
-	end
+-- ═══════════════════════════════════════════════════════════════
+-- ESTADÍSTICAS
+-- ═══════════════════════════════════════════════════════════════
 
-	local stats = { followers = 0, following = 0, friends = 0, likes = 0, isVip = false, groupIcon = nil }
+-- Fetch interno (sin guard, solo lo llama getUserStats)
+local function _fetchUserStats(userId, skipGroupIcon)
+	local stats = {
+		followers = 0,
+		friends = 0,
+		likes = 0,
+		isVip = false,
+		groupIcon = nil,
+	}
 
-	local followersData = httpGet(CONFIG.FRIENDS_API .. userId .. "/followers/count")
-	if followersData and followersData.count then
-		stats.followers = followersData.count
-	end
+	-- ═══ PARALELO: solo lo necesario ═══
+	-- followers + friends = 2 HTTP calls
+	-- VIP = MarketplaceService (no cuenta como HTTP)
+	-- likes = atributo local (0 calls)
+	local completed = 0
+	local total = 3
 
-	local followingData = httpGet(CONFIG.FRIENDS_API .. userId .. "/followings/count")
-	if followingData and followingData.count then
-		stats.following = followingData.count
-	end
+	task.spawn(function()
+		local data = httpGet(CONFIG.FRIENDS_API .. userId .. "/followers/count")
+		if data and data.count then stats.followers = data.count end
+		completed += 1
+	end)
 
-	local friendsData = httpGet(CONFIG.FRIENDS_API .. userId .. "/friends/count")
-	if friendsData and friendsData.count then
-		stats.friends = friendsData.count
-	end
+	task.spawn(function()
+		local data = httpGet(CONFIG.FRIENDS_API .. userId .. "/friends/count")
+		if data and data.count then stats.friends = data.count end
+		completed += 1
+	end)
 
-	-- Obtener TotalLikes del DataStore o del atributo del jugador
+	task.spawn(function()
+		local targetPlayer = Players:GetPlayerByUserId(userId)
+		if targetPlayer then
+			stats.isVip = checkPlayerGamePass(targetPlayer, SysConfig.VIP)
+		else
+			pcall(function()
+				stats.isVip = MarketplaceService:UserOwnsGamePassAsync(userId, SysConfig.VIP)
+			end)
+		end
+		completed += 1
+	end)
+
 	stats.likes = getTotalLikes(userId)
 
-	-- Verificar VIP (comprado o regalado)
-	local targetPlayer = Players:GetPlayerByUserId(userId)
-	if targetPlayer then
-		stats.isVip = checkPlayerGamePass(targetPlayer, SysConfig.VIP)
-	else
-		pcall(function()
-			stats.isVip = MarketplaceService:UserOwnsGamePassAsync(userId, SysConfig.VIP)
-		end)
+	-- Esperar (máx 4s timeout)
+	local startTime = tick()
+	while completed < total and (tick() - startTime) < 4 do
+		task.wait(0.05)
 	end
 
-	-- Icono de grupo primario (solo si es VIP)
-	if stats.isVip then
-		stats.groupIcon = getUserFirstGroup(userId)
+	-- Group icon: 1 sola vez por sesión (cacheado permanente)
+	if stats.isVip and not skipGroupIcon then
+		stats.groupIcon = getUserGroupIcon(userId)
 	end
 
 	Cache.stats[userId] = { data = stats, timestamp = os.time() }
 	return stats
 end
 
+-- Guard: si ya hay un fetch en curso para este userId, esperar ese resultado
+-- Evita que 30 clients lancen 30 × 4 HTTP calls para el mismo jugador
+local function getUserStats(userId, skipGroupIcon)
+	-- 1. Caché válido → retornar inmediato
+	local cached = Cache.stats[userId]
+	if isCacheValid(cached, CONFIG.STATS_CACHE_TIME) then
+		local data = cached.data
+		if not skipGroupIcon and data.isVip then
+			data.groupIcon = getUserGroupIcon(userId)
+		end
+		return data
+	end
+
+	-- 2. Ya hay un fetch en curso → esperar que termine
+	if Cache.inflight[userId] then
+		local startWait = tick()
+		while Cache.inflight[userId] and (tick() - startWait) < 5 do
+			task.wait(0.05)
+		end
+		-- Ya terminó, leer del caché fresco
+		local fresh = Cache.stats[userId]
+		if fresh then
+			local data = fresh.data
+			if not skipGroupIcon and data.isVip then
+				data.groupIcon = getUserGroupIcon(userId)
+			end
+			return data
+		end
+		-- Si por alguna razón no hay caché, seguir y fetchear
+	end
+
+	-- 3. Marcar como inflight y fetchear
+	Cache.inflight[userId] = true
+	local ok, result = pcall(_fetchUserStats, userId, skipGroupIcon)
+	Cache.inflight[userId] = nil
+
+	if ok then
+		return result
+	else
+		warn("[UserPanel] Error fetching stats:", result)
+		return { followers = 0, friends = 0, likes = 0, isVip = false, groupIcon = nil }
+	end
+end
+
 -- ═══════════════════════════════════════════════════════════════
--- OBTENER INFO DE GAME PASS (MarketplaceService)
+-- GAME PASS INFO
 -- ═══════════════════════════════════════════════════════════════
 
 local function getGamePassInfo(passId, productId)
@@ -225,17 +296,14 @@ local function getGamePassInfo(passId, productId)
 
 	if success and info then
 		local price = info.PriceInRobux or 0
-
-		-- Solo retornar si tiene precio > 0
 		if price > 0 then
-			local result = {
+			return {
 				passId = passId,
 				productId = productId,
 				name = info.Name or "Game Pass",
 				price = price,
 				icon = info.IconImageAssetId and ("rbxassetid://" .. info.IconImageAssetId) or ""
 			}
-			return result
 		end
 	end
 
@@ -243,7 +311,7 @@ local function getGamePassInfo(passId, productId)
 end
 
 -- ═══════════════════════════════════════════════════════════════
--- GAME PASSES VIA API (para donaciones de otros usuarios)
+-- GAME PASSES VIA API (donaciones)
 -- ═══════════════════════════════════════════════════════════════
 
 local function getGamePassesFromAPI(universeId)
@@ -257,17 +325,14 @@ local function getGamePassesFromAPI(universeId)
 		end
 
 		local data = httpGet(url)
-
-		if not data or not data.gamePasses then
-			break
-		end
+		if not data or not data.gamePasses then break end
 
 		for _, pass in ipairs(data.gamePasses) do
 			if pass.price and pass.price > 0 and pass.id then
 				local iconId = pass.displayIconImageAssetId or 0
 				table.insert(passes, {
 					passId = pass.id,
-					productId = pass.id,  -- El productId es igual al passId para donaciones
+					productId = pass.id,
 					name = pass.displayName or pass.name or "Pass",
 					price = pass.price,
 					icon = iconId > 0 and ("rbxassetid://" .. tostring(iconId)) or ""
@@ -282,30 +347,25 @@ local function getGamePassesFromAPI(universeId)
 end
 
 -- ═══════════════════════════════════════════════════════════════
--- OBTENER GAME PASSES DEL JUEGO ACTUAL
+-- GAME PASSES DEL JUEGO ACTUAL
 -- ═══════════════════════════════════════════════════════════════
 
 local function getGamePasses()
 	local passes = {}
 	if Config.Gamepasses then
 		for _, gamepass in ipairs(Config.Gamepasses) do
-			local gamepassId = gamepass[1]
-			local productId = gamepass[2]
-
-			local passInfo = getGamePassInfo(gamepassId, productId)
+			local passInfo = getGamePassInfo(gamepass[1], gamepass[2])
 			if passInfo then
 				table.insert(passes, passInfo)
 			end
 		end
 	end
-	-- Ordenar por precio
 	table.sort(passes, function(a, b) return a.price < b.price end)
-
 	return passes
 end
 
 -- ═══════════════════════════════════════════════════════════════
--- DONACIONES DE USUARIOS
+-- DONACIONES
 -- ═══════════════════════════════════════════════════════════════
 
 local function getUserGames(userId)
@@ -339,7 +399,6 @@ local function getUserDonations(userId)
 
 	local allPasses = {}
 	local games = getUserGames(userId)
-
 	local gamesToSearch = math.min(#games, CONFIG.MAX_GAMES_TO_SEARCH)
 
 	for i = 1, gamesToSearch do
@@ -356,7 +415,6 @@ local function getUserDonations(userId)
 	end
 
 	table.sort(allPasses, function(a, b) return a.price < b.price end)
-
 	Cache.donations[userId] = { data = allPasses, timestamp = os.time() }
 
 	return allPasses
@@ -366,13 +424,21 @@ end
 -- HANDLERS
 -- ═══════════════════════════════════════════════════════════════
 
-GetUserData.OnServerInvoke = function(_, targetUserId)
-	return getUserStats(targetUserId)
+-- Acepta skipGroupIcon como 2do argumento
+GetUserData.OnServerInvoke = function(_, targetUserId, skipGroupIcon)
+	return getUserStats(targetUserId, skipGroupIcon)
 end
 
 RefreshUserData.OnServerEvent:Connect(function(requestingPlayer, targetUserId)
+	-- Al refrescar, skip groupIcon (ya lo tiene el client)
 	Cache.stats[targetUserId] = nil
-	local freshData = getUserStats(targetUserId)
+	local freshData = getUserStats(targetUserId, true)
+
+	-- Pero incluir groupIcon del caché permanente si es VIP
+	if freshData.isVip then
+		freshData.groupIcon = getUserGroupIcon(targetUserId)
+	end
+
 	RefreshUserData:FireClient(requestingPlayer, freshData)
 end)
 
@@ -384,7 +450,6 @@ GetUserDonations.OnServerInvoke = function(player, targetUserId)
 		return {}
 	end
 
-	-- Limitar cantidad de items (performance)
 	if #donations > CONFIG.MAX_ITEMS_TO_SHOW then
 		local limited = {}
 		for i = 1, CONFIG.MAX_ITEMS_TO_SHOW do
@@ -393,7 +458,6 @@ GetUserDonations.OnServerInvoke = function(player, targetUserId)
 		donations = limited
 	end
 
-	-- Validar si YO (player) ya compré esos gamepasses
 	if player and donations and #donations > 0 then
 		local toValidate = math.min(#donations, CONFIG.MAX_ITEMS_TO_VALIDATE)
 		local completed = 0
@@ -401,18 +465,15 @@ GetUserDonations.OnServerInvoke = function(player, targetUserId)
 		for i = 1, toValidate do
 			local donation = donations[i]
 			task.spawn(function()
-				-- Verificar si YO ya tengo este pase
 				donation.hasPass = checkPlayerGamePass(player, donation.passId)
 				completed = completed + 1
 			end)
 		end
 
-		-- Marcar el resto como "no validado"
 		for i = toValidate + 1, #donations do
 			donations[i].hasPass = nil
 		end
 
-		-- Esperar validaciones
 		local startTime = tick()
 		while completed < toValidate and (tick() - startTime) < 3 do
 			task.wait(0.05)
@@ -424,15 +485,9 @@ end
 
 GetGamePasses.OnServerInvoke = function(player, targetUserId)
 	local passes = getGamePasses()
-
-	-- Obtener el Player object del jugador objetivo
 	local targetPlayer = targetUserId and Players:GetPlayerByUserId(targetUserId)
-	if not targetPlayer then
-		-- Si no está en el servidor, no podemos validar
-		return passes
-	end
+	if not targetPlayer then return passes end
 
-	-- Limitar cantidad de items (performance)
 	if #passes > CONFIG.MAX_ITEMS_TO_SHOW then
 		local limited = {}
 		for i = 1, CONFIG.MAX_ITEMS_TO_SHOW do
@@ -441,7 +496,6 @@ GetGamePasses.OnServerInvoke = function(player, targetUserId)
 		passes = limited
 	end
 
-	-- Validar solo primeros N items en PARALELO
 	if targetPlayer and passes and #passes > 0 then
 		local toValidate = math.min(#passes, CONFIG.MAX_ITEMS_TO_VALIDATE)
 		local completed = 0
@@ -449,18 +503,15 @@ GetGamePasses.OnServerInvoke = function(player, targetUserId)
 		for i = 1, toValidate do
 			local pass = passes[i]
 			task.spawn(function()
-				-- Verificar si el JUGADOR OBJETIVO ya tiene el pase
 				pass.hasPass = checkPlayerGamePass(targetPlayer, pass.passId)
 				completed = completed + 1
 			end)
 		end
 
-		-- Marcar el resto como "no validado"
 		for i = toValidate + 1, #passes do
 			passes[i].hasPass = nil
 		end
 
-		-- Esperar validaciones
 		local startTime = tick()
 		while completed < toValidate and (tick() - startTime) < 3 do
 			task.wait(0.05)
@@ -473,8 +524,6 @@ end
 CheckGamePass.OnServerInvoke = function(player, passId, targetUserId)
 	if not passId then return false end
 
-	-- Para "Donar": validar si YO tengo el pase (player)
-	-- Para "Regalar": validar si EL OBJETIVO tiene el pase (targetUserId)
 	local playerToCheck = player
 	if targetUserId then
 		playerToCheck = Players:GetPlayerByUserId(targetUserId)
@@ -486,13 +535,13 @@ CheckGamePass.OnServerInvoke = function(player, passId, targetUserId)
 end
 
 -- ═══════════════════════════════════════════════════════════════
--- INVALIDAR CACHÉ CUANDO SE ACTUALIZAN LIKES
+-- INVALIDAR CACHÉ DE LIKES
 -- ═══════════════════════════════════════════════════════════════
+
 local function invalidateStatsCache(userId)
 	Cache.stats[userId] = nil
 end
 
--- Escuchar eventos de likes para invalidar caché
 if LikesEvents then
 	local GiveLikeEvent = LikesEvents:FindFirstChild("GiveLikeEvent")
 	local GiveSuperLikeEvent = LikesEvents:FindFirstChild("GiveSuperLikeEvent")
@@ -500,7 +549,6 @@ if LikesEvents then
 	if GiveLikeEvent then
 		GiveLikeEvent.OnServerEvent:Connect(function(player, action, targetUserId)
 			if action == "GiveLike" and targetUserId then
-				-- Invalidar caché del jugador que recibió el like
 				task.delay(0.5, function()
 					invalidateStatsCache(targetUserId)
 				end)
@@ -515,12 +563,62 @@ if LikesEvents then
 					invalidateStatsCache(targetUserId)
 				end)
 			end
-			if action == "SetSuperLikeTarget" and targetUserId then
-				-- No invalidar aquí, solo cuando se complete la compra
-			end
 		end)
 	end
 end
+
+-- Limpiar caché permanente cuando el jugador sale
+Players.PlayerRemoving:Connect(function(leavingPlayer)
+	local uid = leavingPlayer.UserId
+	Cache.stats[uid] = nil
+	Cache.groupIcons[uid] = nil
+	Cache.donations[uid] = nil
+end)
+
+-- ═══════════════════════════════════════════════════════════════
+-- BACKGROUND PRE-CACHE (el server mantiene la data fresca)
+-- ═══════════════════════════════════════════════════════════════
+
+local BG_REFRESH_INTERVAL = 60   -- Debe coincidir con STATS_CACHE_TIME
+local BG_LOOP_DELAY = 15         -- Espera entre ciclos completos
+
+-- Pre-cargar data de un jugador (si el caché expiró)
+local function preloadPlayer(targetPlayer)
+	local userId = targetPlayer.UserId
+	local cached = Cache.stats[userId]
+	if isCacheValid(cached, BG_REFRESH_INTERVAL) then return end
+
+	-- getUserStats ya tiene inflight guard, no hay duplicados
+	pcall(getUserStats, userId, false)
+end
+
+-- Cuando entra un jugador, pre-cargar su data rápido
+Players.PlayerAdded:Connect(function(newPlayer)
+	task.delay(1, function()
+		pcall(preloadPlayer, newPlayer)
+	end)
+end)
+
+-- Loop de background que mantiene el caché fresco
+task.spawn(function()
+	task.wait(2) -- Esperar a que el server arranque
+
+	-- Primer ciclo: cargar todos rápido (0.2s entre cada uno)
+	for _, p in ipairs(Players:GetPlayers()) do
+		task.spawn(preloadPlayer, p)
+		task.wait(0.2)
+	end
+
+	-- Ciclos siguientes: relajados (1s entre jugadores)
+	while true do
+		task.wait(BG_LOOP_DELAY)
+
+		for _, p in ipairs(Players:GetPlayers()) do
+			task.spawn(preloadPlayer, p)
+			task.wait(1)
+		end
+	end
+end)
 
 -- ═══════════════════════════════════════════════════════════════
 -- INICIO
