@@ -387,9 +387,9 @@ SettingsConfig.SETTINGS = {
 
 -- Lista separada de contribuidores (mejor práctica: datos estructurados separados de la UI)
 SettingsConfig.CONTRIBUTORS = {
-	{ name = "ignxts", role = "Developer" },
-	{ name = "xlm_brem", role = "Developer" },
-	{ name = "AngeloGarciia", role = "Owner" },
+	{ name = "ignxts", role = "DEV EXPERT" },
+	{ name = "xlm_brem", role = "DEVELOPER" },
+	{ name = "AngeloGarciia", role = "CREADOR" },
 }
 
 
