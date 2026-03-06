@@ -3,10 +3,11 @@
 -- ════════════════════════════════════════════════════════════════
 --[[
 	Cambios vs v3:
-	• GetUserData acepta 2do param "skipGroupIcon" (bool)
-	  → El client lo usa para no re-fetchear el group icon en refreshes
-	• Caché de groupIcon separado (permanente por sesión)
-	• Stats cache sigue siendo 30s
+	• Group icon se fetchea 1 SOLA VEZ al entrar (PlayerAdded)
+	• Caché de groupIcon permanente por sesión
+	• Stats se refrescan en background cada 60s
+	• HTTP calls en paralelo (~200ms vs ~1s)
+	• Inflight guard evita fetches duplicados
 ]]
 
 local Players = game:GetService("Players")
@@ -184,7 +185,7 @@ end
 -- ═══════════════════════════════════════════════════════════════
 
 -- Fetch interno (sin guard, solo lo llama getUserStats)
-local function _fetchUserStats(userId, skipGroupIcon)
+local function _fetchUserStats(userId)
 	local stats = {
 		followers = 0,
 		friends = 0,
@@ -232,57 +233,50 @@ local function _fetchUserStats(userId, skipGroupIcon)
 		task.wait(0.05)
 	end
 
-	-- Group icon: 1 sola vez por sesión (cacheado permanente)
-	if stats.isVip and not skipGroupIcon then
-		stats.groupIcon = getUserGroupIcon(userId)
-	end
-
 	Cache.stats[userId] = { data = stats, timestamp = os.time() }
 	return stats
 end
 
 -- Guard: si ya hay un fetch en curso para este userId, esperar ese resultado
--- Evita que 30 clients lancen 30 × 4 HTTP calls para el mismo jugador
-local function getUserStats(userId, skipGroupIcon)
+local function getUserStats(userId)
+	local data
+
 	-- 1. Caché válido → retornar inmediato
 	local cached = Cache.stats[userId]
 	if isCacheValid(cached, CONFIG.STATS_CACHE_TIME) then
-		local data = cached.data
-		if not skipGroupIcon and data.isVip then
-			data.groupIcon = getUserGroupIcon(userId)
-		end
-		return data
+		data = cached.data
 	end
 
 	-- 2. Ya hay un fetch en curso → esperar que termine
-	if Cache.inflight[userId] then
+	if not data and Cache.inflight[userId] then
 		local startWait = tick()
 		while Cache.inflight[userId] and (tick() - startWait) < 5 do
 			task.wait(0.05)
 		end
-		-- Ya terminó, leer del caché fresco
 		local fresh = Cache.stats[userId]
-		if fresh then
-			local data = fresh.data
-			if not skipGroupIcon and data.isVip then
-				data.groupIcon = getUserGroupIcon(userId)
-			end
-			return data
+		if fresh then data = fresh.data end
+	end
+
+	-- 3. Nada en caché → fetchear
+	if not data then
+		Cache.inflight[userId] = true
+		local ok, result = pcall(_fetchUserStats, userId)
+		Cache.inflight[userId] = nil
+
+		if ok then
+			data = result
+		else
+			warn("[UserPanel] Error fetching stats:", result)
+			data = { followers = 0, friends = 0, likes = 0, isVip = false, groupIcon = nil }
 		end
-		-- Si por alguna razón no hay caché, seguir y fetchear
 	end
 
-	-- 3. Marcar como inflight y fetchear
-	Cache.inflight[userId] = true
-	local ok, result = pcall(_fetchUserStats, userId, skipGroupIcon)
-	Cache.inflight[userId] = nil
-
-	if ok then
-		return result
-	else
-		warn("[UserPanel] Error fetching stats:", result)
-		return { followers = 0, friends = 0, likes = 0, isVip = false, groupIcon = nil }
+	-- SIEMPRE adjuntar groupIcon del caché permanente (puede haberse cargado después)
+	if data.isVip and Cache.groupIcons[userId] then
+		data.groupIcon = Cache.groupIcons[userId].icon
 	end
+
+	return data
 end
 
 -- ═══════════════════════════════════════════════════════════════
@@ -424,21 +418,13 @@ end
 -- HANDLERS
 -- ═══════════════════════════════════════════════════════════════
 
--- Acepta skipGroupIcon como 2do argumento
-GetUserData.OnServerInvoke = function(_, targetUserId, skipGroupIcon)
-	return getUserStats(targetUserId, skipGroupIcon)
+GetUserData.OnServerInvoke = function(_, targetUserId)
+	return getUserStats(targetUserId)
 end
 
 RefreshUserData.OnServerEvent:Connect(function(requestingPlayer, targetUserId)
-	-- Al refrescar, skip groupIcon (ya lo tiene el client)
 	Cache.stats[targetUserId] = nil
-	local freshData = getUserStats(targetUserId, true)
-
-	-- Pero incluir groupIcon del caché permanente si es VIP
-	if freshData.isVip then
-		freshData.groupIcon = getUserGroupIcon(targetUserId)
-	end
-
+	local freshData = getUserStats(targetUserId)
 	RefreshUserData:FireClient(requestingPlayer, freshData)
 end)
 
@@ -588,14 +574,22 @@ local function preloadPlayer(targetPlayer)
 	local cached = Cache.stats[userId]
 	if isCacheValid(cached, BG_REFRESH_INTERVAL) then return end
 
-	-- getUserStats ya tiene inflight guard, no hay duplicados
-	pcall(getUserStats, userId, false)
+	pcall(getUserStats, userId)
 end
 
--- Cuando entra un jugador, pre-cargar su data rápido
+-- Cuando entra un jugador: pre-cargar stats + groupIcon (1 SOLA VEZ)
 Players.PlayerAdded:Connect(function(newPlayer)
 	task.delay(1, function()
+		-- Stats
 		pcall(preloadPlayer, newPlayer)
+
+		-- GroupIcon: 1 sola vez, se guarda permanente en Cache.groupIcons
+		-- getUserGroupIcon internamente cachea y no repite
+		local userId = newPlayer.UserId
+		local stats = Cache.stats[userId] and Cache.stats[userId].data
+		if stats and stats.isVip then
+			pcall(getUserGroupIcon, userId)
+		end
 	end)
 end)
 
@@ -603,13 +597,21 @@ end)
 task.spawn(function()
 	task.wait(2) -- Esperar a que el server arranque
 
-	-- Primer ciclo: cargar todos rápido (0.2s entre cada uno)
+	-- Primer ciclo: cargar stats + groupIcon (1 sola vez) para todos
 	for _, p in ipairs(Players:GetPlayers()) do
-		task.spawn(preloadPlayer, p)
+		task.spawn(function()
+			pcall(preloadPlayer, p)
+			-- GroupIcon 1 vez para VIPs ya presentes
+			local userId = p.UserId
+			local stats = Cache.stats[userId] and Cache.stats[userId].data
+			if stats and stats.isVip and not Cache.groupIcons[userId] then
+				pcall(getUserGroupIcon, userId)
+			end
+		end)
 		task.wait(0.2)
 	end
 
-	-- Ciclos siguientes: relajados (1s entre jugadores)
+	-- Ciclos siguientes: solo stats (groupIcon ya está)
 	while true do
 		task.wait(BG_LOOP_DELAY)
 

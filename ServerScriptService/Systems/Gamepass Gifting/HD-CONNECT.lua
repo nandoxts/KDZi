@@ -4,7 +4,6 @@ local DataStoreService = game:GetService("DataStoreService")
 local GiftedGamepassesData = DataStoreService:GetDataStore("Gifting.1")
 local DataStoreQueueManager = require(game.ReplicatedStorage:WaitForChild("Systems"):WaitForChild("DataStore"):WaitForChild("DataStoreQueueManager"))
 local Configuration = require(game.ReplicatedStorage.Config.Configuration)
-local MarketplaceHelper = require(game.ServerScriptService.Systems.Modules.MarketplaceHelper)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Inicializar queue con delay de 0.12s
@@ -132,9 +131,11 @@ local function CheckAllGamepasses(player)
 	local gamepassesFolder = EnsureGamepassesFolder(player)
 
 	for gamepassId, _ in pairs(GAMEPASS_RANKS) do
-		local productInfo = MarketplaceHelper:GetGamepassInfo(gamepassId)
+		local success, productInfo = pcall(function()
+			return MarketplaceService:GetProductInfo(gamepassId, Enum.InfoType.GamePass)
+		end)
 
-		if productInfo then
+		if success and productInfo then
 			local ownsGamepass = false
 
 			-- 1. Verificar compra directa (con protección)

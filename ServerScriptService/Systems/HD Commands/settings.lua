@@ -19,7 +19,6 @@
 ]]
 
 local Configuration = require(game.ReplicatedStorage.Config.Configuration)
-
 --------------| SETUP RANKS |--------------																															 ]] 
 return{
 
@@ -215,6 +214,7 @@ return{
 		["saveMap"] = "Owner";
 		["loadMap"] = "Owner";
 		["follow"] = "Owner";
+		["chatTag"] = "Owner";
 		["chatTagColor"] = "Owner";
 		["chatNameColor"] = "Owner";
 		["chatName"] = "Owner";
@@ -351,6 +351,8 @@ return{
 		["fiesta"] = "Owner";
 		["pulse"] = "Owner";
 		["quake"] = "Owner";
+		["pyscho"] = "Owner";
+		["acid"] = "Owner";
 		["invisible"] = "Help Creator";
 		-- FREE
 		["hideGuis"] = "NonAdmin";

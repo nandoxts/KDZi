@@ -12,7 +12,7 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local DataStoreService = game:GetService("DataStoreService")
 local Workspace = game:GetService("Workspace")
 
-local Configuration = require(game.ReplicatedStorage.Config.Configuration)
+local Configuration  = require(game.ReplicatedStorage.Config.Configuration)
 local ColorEffects = require(game:GetService("ServerScriptService").Systems.Effects.ColorEffectsModule)
 
 --==================================================

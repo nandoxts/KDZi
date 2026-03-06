@@ -60,8 +60,9 @@ return function()
 	-- Configuration
 	local Configuration = {}
 	pcall(function()
-		local configModule = remoteGlobal:FindFirstChild("Configuration") or remoteGlobal:WaitForChild("Configuration", 5)
-		if configModule then Configuration = require(configModule) end
+		local configModule = ReplicatedStorage:FindFirstChild("Config") or ReplicatedStorage:WaitForChild("Config", 2)
+		local configFile = configModule:FindFirstChild("Configuration") or configModule:WaitForChild("Configuration", 5)
+		if configFile then Configuration = require(configFile) end
 	end)
 
 	return {
