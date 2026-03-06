@@ -36,7 +36,7 @@ end
 local Systems = ServerScriptService:WaitForChild("Systems")
 local Configuration = require(game.ReplicatedStorage.Config.Configuration)
 local GamepassManager = require(Systems:WaitForChild("Gamepass Gifting"):WaitForChild("GamepassManager"))
-local Colors = require(Systems.Effects.ColorEffectsModule)
+local Colors = require(game.ReplicatedStorage.Config.ColorConfig)
 local ModulesFolder = Systems:WaitForChild("Modules")
 local GroupRolesModule = require(ModulesFolder:WaitForChild("GroupRolesModule"))
 local DataStoreQueue = require(ReplicatedStorage:WaitForChild("Systems"):WaitForChild("DataStore"):WaitForChild("DataStoreQueueManager"))

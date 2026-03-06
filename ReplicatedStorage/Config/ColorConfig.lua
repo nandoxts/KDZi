@@ -1,5 +1,18 @@
--- ColorEffectsModule.lua
+--[[
+█████╗ ██╗   ██╗████████╗ ██████╗ ██████╗ 
+██╔══██╗██║   ██║╚══██╔══╝██╔═══██╗██╔══██╗
+███████║██║   ██║   ██║   ██║   ██║██████╔╝
+██╔══██║██║   ██║   ██║   ██║   ██║██╔══██╗
+██║  ██║╚██████╔╝   ██║   ╚██████╔╝██║  ██║
+╚═╝  ╚═╝ ╚═════╝    ╚═╝    ╚═════╝ ╚═╝  ╚═╝
+
+UNIFIED COLOR CONFIGURATION - Single Source of Truth
+Combinación de ColorEffectsModule.lua y COLORS.lua
+]]
+
 local module = {}
+
+module.defaultSelectedColor = Color3.new(1, 1, 1)
 
 module.colors = {
 	-- PERSONALIZADOS
@@ -174,7 +187,7 @@ module.colors = {
 	amanecer = Color3.new(1, 0.6, 0.5),
 
 	-- Especiales
-	arcoiris = Color3.new(1, 0, 0), -- Cambiar dinámicamente
+	arcoiris = Color3.new(1, 0, 0),
 	lava = Color3.new(0.81, 0.06, 0.13),
 	fuego = Color3.new(1, 0.35, 0.15),
 	electrico = Color3.new(0.49, 0.98, 1),
@@ -225,7 +238,6 @@ module.colors = {
 }
 
 function module.hasPermission(player, GROUP_ID, ALLOWED_RANKS)
-	-- 1. Verificar rango en el grupo
 	local success, rank = pcall(function()
 		return player:GetRankInGroup(GROUP_ID)
 	end)
@@ -233,14 +245,13 @@ function module.hasPermission(player, GROUP_ID, ALLOWED_RANKS)
 	if success and rank then
 		for _, allowedRank in ipairs(ALLOWED_RANKS) do
 			if rank == allowedRank then
-				return true -- ✅ Tiene rol permitido en el grupo
+				return true
 			end
 		end
 	end
 
-	-- 2. Verificar si es dueño del servidor privado
 	if game.PrivateServerOwnerId ~= 0 and player.UserId == game.PrivateServerOwnerId then
-		return true -- ✅ Es dueño del server privado
+		return true
 	end
 
 	return false

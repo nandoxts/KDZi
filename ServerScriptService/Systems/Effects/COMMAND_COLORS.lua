@@ -5,7 +5,7 @@ local DataStoreService = game:GetService("DataStoreService")
 -- Modules
 local Configuration = require(game.ReplicatedStorage.Config.Configuration)
 local GamepassManager = require(ServerScriptService["Gamepass Gifting"].GamepassManager)
-local ColorEffects = require(ServerScriptService.Effects.ColorEffectsModule)
+local ColorEffects = require(game.ReplicatedStorage.Config.ColorConfig)
 
 -- Gamepass ID VIP
 local PROFILECOLORS = Configuration.COLORS 

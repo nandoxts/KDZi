@@ -53,7 +53,7 @@ local SyncRemote = RemotesSync:FindFirstChild("Sync")
 -- Las funciones setActiveByName y clearActive se definen DESPUÉS de ScrollFrame
 
 local THEME_CONFIG = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("ThemeConfig"))
-local ConfigModule = require(Replicado:WaitForChild("Configuration"))
+local ConfigModule = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("Configuration"))
 local Modulo = require(RemotesSync:WaitForChild("Emotes_Modules"):WaitForChild("Animaciones"))
 local NotificationSystem = require(ReplicatedStorage:WaitForChild("Systems"):WaitForChild("NotificationSystem"):WaitForChild("NotificationSystem"))
 local Icon = require(ReplicatedStorage:WaitForChild("Icon"))

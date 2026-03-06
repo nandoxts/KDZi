@@ -55,7 +55,7 @@ return function()
 
 	-- ColorEffects
 	local Highlight = SelectedPlayerModule and SelectedPlayerModule:FindFirstChild("Highlight")
-	local ColorEffects = Highlight and require(SelectedPlayerModule:FindFirstChild("COLORS")) or nil
+	local ColorEffects = ReplicatedStorage:FindFirstChild("Config") and require(ReplicatedStorage.Config.ColorConfig) or nil
 
 	-- Configuration
 	local Configuration = {}

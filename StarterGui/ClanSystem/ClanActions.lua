@@ -9,7 +9,7 @@ local ClanClient = require(ReplicatedStorage:WaitForChild("Systems"):WaitForChil
 local Notify = require(ReplicatedStorage:WaitForChild("Systems"):WaitForChild("NotificationSystem"):WaitForChild("NotificationSystem"))
 local ConfirmationModal = require(ReplicatedStorage:WaitForChild("Modal"):WaitForChild("ConfirmationModal"))
 local THEME = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("ThemeConfig"))
-local COLORS = require(ReplicatedStorage:WaitForChild("RemotesGlobal"):WaitForChild("SelectedPlayer"):WaitForChild("COLORS"))
+local COLORS = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("ColorConfig"))
 local ClanConstants = require(script.Parent.ClanConstants)
 local ClanHelpers = require(script.Parent.ClanHelpers)
 

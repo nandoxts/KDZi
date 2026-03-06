@@ -17,7 +17,7 @@ local Debris             = game:GetService("Debris")
 --> Modules
 local Configuration  = require(game.ReplicatedStorage.Config.Configuration)
 local GamepassManager = require(ServerScriptService["Gamepass Gifting"].GamepassManager)
-local ColorEffects   = require(ServerScriptService.Effects.ColorEffectsModule)
+local ColorEffects   = require(game.ReplicatedStorage.Config.ColorConfig)
 
 --> ClanData (carga segura)
 local ClanData = nil
