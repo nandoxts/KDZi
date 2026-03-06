@@ -8,7 +8,7 @@ local COOLDOWN_TIMEOUT = 10  -- Timeout de seguridad en segundos
 -- Servicios y configuración (VIP)
 local ServerScriptService = game:GetService("ServerScriptService")
 local Systems = ServerScriptService:WaitForChild("Systems")
-local Configuration = require(Systems:WaitForChild("Configuration"))
+local Configuration = require(game.ReplicatedStorage.Config.Configuration)
 local GamepassManager = require(Systems:WaitForChild("Gamepass Gifting"):WaitForChild("GamepassManager"))
 
 local VIP_ID = Configuration.VIP

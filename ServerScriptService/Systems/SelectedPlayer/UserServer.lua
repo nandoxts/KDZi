@@ -22,7 +22,7 @@ local LikesDataStore = DataStoreService:GetDataStore("LikesData")
 
 local GamePassManager = require(game.ServerScriptService.Systems["Gamepass Gifting"]["GamepassManager"])
 
-local SysConfig = require(game.ServerScriptService.Systems.Configuration)
+local SysConfig = require(game.ReplicatedStorage.Config.Configuration)
 local Config = {
 	Gamepasses = {
 		{SysConfig.VIP,        SysConfig.DEV_VIP},

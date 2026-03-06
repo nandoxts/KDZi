@@ -7,7 +7,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage"):WaitForChild("RemotesGlobal")
 local Emotes_Sync = ReplicatedStorage:WaitForChild("Emotes_Sync")
-local Configuration = require(script.Parent.Parent.Parent.Configuration)
+local Configuration = require(game.ReplicatedStorage.Config.Configuration)
 
 -- Configuración
 local FOLLOWER_DANCE_THRESHOLD = Configuration.FOLLOWER_DANCE or 2

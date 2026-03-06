@@ -7,7 +7,7 @@ local ServerScriptService = game:GetService("ServerScriptService"):WaitForChild(
 
 -- Módulos
 local CentralPurchaseHandler = require(ServerScriptService["Gamepass Gifting"].GiftGamepass.ManagerProcess)
-local Configuration = require(ServerScriptService.Configuration)
+local Configuration = require(game.ReplicatedStorage.Config.Configuration)
 local DataStoreQueueManager = require(game.ReplicatedStorage:WaitForChild("Systems"):WaitForChild("DataStore"):WaitForChild("DataStoreQueueManager"))
 
 -- Datastore

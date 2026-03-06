@@ -20,7 +20,7 @@ end
 
 local Ownership = _GGRemotes.Ownership
 local Config = require(_RG:WaitForChild("Gamepass Gifting"):WaitForChild("Modules"):WaitForChild("Config"))
-local Configuration = require(game.ServerScriptService.Systems.Configuration)
+local Configuration = require(game.ReplicatedStorage.Config.Configuration)
 local AdminConfig = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("AdminConfig"))
 
 local BADGES_Gift = Configuration.BADGES_Gift

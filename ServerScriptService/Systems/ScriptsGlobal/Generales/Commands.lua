@@ -15,7 +15,7 @@ local TweenService       = game:GetService("TweenService")
 local Debris             = game:GetService("Debris")
 
 --> Modules
-local Configuration  = require(game:GetService("ServerScriptService"):WaitForChild("Systems"):WaitForChild("Configuration"))
+local Configuration  = require(game.ReplicatedStorage.Config.Configuration)
 local GamepassManager = require(ServerScriptService["Gamepass Gifting"].GamepassManager)
 local ColorEffects   = require(ServerScriptService.Effects.ColorEffectsModule)
 

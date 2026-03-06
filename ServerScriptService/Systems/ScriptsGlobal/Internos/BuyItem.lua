@@ -4,7 +4,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 
 -- Cargar configuración
 local Systems = ServerScriptService:WaitForChild("Systems")
-local Configuration = require(Systems:WaitForChild("Configuration"))
+local Configuration = require(game.ReplicatedStorage.Config.Configuration)
 local GamepassManager = require(Systems:WaitForChild("Gamepass Gifting"):WaitForChild("GamepassManager"))
 
 local ITEM_CONFIG_ARMYBOOMS = {

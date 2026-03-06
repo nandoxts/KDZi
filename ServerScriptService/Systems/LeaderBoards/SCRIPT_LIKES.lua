@@ -4,7 +4,7 @@ local BadgeService = game:GetService("BadgeService")
 local Players = game:GetService('Players')
 
 -- Módulo central
-local Configuration = require(game.ServerScriptService.Systems.Configuration)
+local Configuration = require(game.ReplicatedStorage.Config.Configuration)
 
 local ID_BADGE = Configuration.BADGES_TopLikes
 

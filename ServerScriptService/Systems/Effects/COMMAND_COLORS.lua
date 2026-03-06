@@ -3,7 +3,7 @@ local ServerScriptService = game:GetService("ServerScriptService"):WaitForChild(
 local DataStoreService = game:GetService("DataStoreService")
 
 -- Modules
-local Configuration = require(ServerScriptService.Configuration)
+local Configuration = require(game.ReplicatedStorage.Config.Configuration)
 local GamepassManager = require(ServerScriptService["Gamepass Gifting"].GamepassManager)
 local ColorEffects = require(ServerScriptService.Effects.ColorEffectsModule)
 

@@ -11,7 +11,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 
 local MusicConfig    = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("MusicSystemConfig"))
 local Systems        = ServerScriptService:WaitForChild("Systems")
-local Configuration  = require(Systems:WaitForChild("Configuration"))
+local Configuration  = require(game.ReplicatedStorage.Config.Configuration)
 local GamepassManager = require(Systems:WaitForChild("Gamepass Gifting"):WaitForChild("GamepassManager"))
 
 -- ════════════════════════════════════════════════════════════════

@@ -8,7 +8,7 @@ local ServerScriptService = game:GetService("ServerScriptService"):WaitForChild(
 local MarketplaceService = game:GetService("MarketplaceService")
 local DataStoreService = game:GetService("DataStoreService")
 
-local configuration = require(ServerScriptService.Configuration)
+local configuration = require(game.ReplicatedStorage.Config.Configuration)
 local GroupRolesModule = require(ServerScriptService.Modules.GroupRolesModule)
 
 -- DataStore y cache para gamepasses

@@ -2,7 +2,7 @@
 -- SERVICES --
 
 local InsertService = game:GetService('InsertService')
-local Configuration = require(game.ServerScriptService.Systems.Configuration)
+local Configuration = require(game.ReplicatedStorage.Config.Configuration)
 
 -- VARIABLES --
 local DONATIONS_EMOTE = Configuration.DONATIONS_EMOTE
