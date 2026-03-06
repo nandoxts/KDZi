@@ -1,4 +1,4 @@
-local Configuration = require(game.ReplicatedStorage.RemotesGlobal.Configuration)
+local Configuration = require(game.ReplicatedStorage.Config.Configuration)
 
 local gamepasses = {
 	{Configuration.VIP, Configuration.DEV_VIP},

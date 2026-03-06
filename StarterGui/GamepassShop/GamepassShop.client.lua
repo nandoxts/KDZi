@@ -29,7 +29,7 @@ local UI                    = require(ReplicatedStorage:WaitForChild("Core"):Wai
 local THEME                 = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("ThemeConfig"))
 local SidebarNav            = require(ReplicatedStorage:WaitForChild("UIComponents"):WaitForChild("SidebarNav"))
 local ModernScrollbar       = require(ReplicatedStorage:WaitForChild("UIComponents"):WaitForChild("ModernScrollbar"))
-local Configuration         = require(ReplicatedStorage:WaitForChild("RemotesGlobal"):WaitForChild("Configuration"))
+local Configuration         = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("Configuration"))
 local TitleConfig           = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("TitleConfig"))
 local CheckGamepassOwnership = ReplicatedStorage
 	:WaitForChild("RemotesGlobal")
