@@ -616,7 +616,6 @@ function PanelView.createPanel(data)
 	if State.closing or not data or not data.userId then return nil end
 
 	local L = getLayout()
-	local isDev = Dev.isDeveloper(data.userId)
 
 	local screenGui = Utils.createScreenGui(playerGui)
 
@@ -627,9 +626,8 @@ function PanelView.createPanel(data)
 		if p.UserId == data.userId then target = p; break end
 	end
 	local playerColor = Utils.getPlayerColor(target, ColorEffects)
+	State.playerColor = playerColor
 	State.target = target
-
-	local badgeInfo = Dev.getBadgeInfo(data.userId, playerColor)
 
 	-- Drag Handle
 	local dragHandle = Utils.createFrame({ Size = UDim2.new(1, 0, 0, L.dragHandleH), Parent = State.container })
@@ -665,21 +663,18 @@ function PanelView.createPanel(data)
 
 	-- Panel container
 	local pY = L.dragHandleH + 4
-	local pBgT = isDev and 0.45 or 0.25
+	local pBgT = 0.25
 	local panelContainer = Utils.createFrame({ Size = UDim2.new(1, 0, 0, L.panelHeight), Position = UDim2.new(0, 0, 0, pY), BackgroundColor3 = Color3.fromRGB(14, 14, 20), BackgroundTransparency = pBgT, ClipsDescendants = true, Parent = State.container })
 	Utils.addCorner(panelContainer, L.cornerRadius)
 
-	applyGlass(panelContainer, playerColor, L, isDev)
+	applyGlass(panelContainer, playerColor, L, false)
 
 	local panelStroke = Utils.addStroke(panelContainer, playerColor, 1.5, 0.3)
+	State.panelStroke = panelStroke
 
-	local panelImage = Utils.create("ImageLabel", { Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = Color3.fromRGB(0, 0, 0), BackgroundTransparency = 1, Image = "", ImageTransparency = 0.6, ScaleType = Enum.ScaleType.Crop, ZIndex = 1, ClipsDescendants = true, Parent = panelContainer })
+	local panelImage = Utils.create("ImageLabel", { Size = UDim2.new(1, 0, 0, 210), BackgroundColor3 = Color3.fromRGB(0, 0, 0), BackgroundTransparency = 1, Image = "", ImageTransparency = 0.6, ScaleType = Enum.ScaleType.Crop, ZIndex = 1, ClipsDescendants = true, Parent = panelContainer })
 	Utils.addCorner(panelImage, L.cornerRadius)
-
-	if isDev and badgeInfo then
-		Dev.applyPanelBackground(panelImage, panelContainer, badgeInfo)
-		Dev.applyBorderGradient(panelStroke, 1.5, playerColor)
-	end
+	State.panelBgImage = panelImage
 
 	-- Shadow (defer - no crítico para primer frame)
 	task.defer(function()
@@ -740,6 +735,39 @@ function PanelView.createPanel(data)
 
 	Utils.startAutoRefresh(State, Remotes)
 	return screenGui
+end
+
+-- ═══════════════════════════════════════════════════════════════
+-- VIP BACKGROUND (aplicado async tras verificar VIP en servidor)
+-- ═══════════════════════════════════════════════════════════════
+function PanelView.applyVipBackground(groupIcon, playerColor)
+	local img = State.panelBgImage
+	if not img or not img.Parent then return end
+	if not groupIcon or groupIcon == "" then return end
+
+	img.Image = groupIcon
+	img.ScaleType = Enum.ScaleType.Crop
+	img.ImageTransparency = 0.65
+	img.BackgroundTransparency = 1
+
+	-- Limpiar gradiente anterior si existe
+	for _, child in ipairs(img:GetChildren()) do
+		if child:IsA("UIGradient") then child:Destroy() end
+	end
+
+	local g = Instance.new("UIGradient")
+	g.Rotation = 90
+	g.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.05),
+		NumberSequenceKeypoint.new(0.7, 0.2),
+		NumberSequenceKeypoint.new(1, 0.65),
+	})
+	g.Parent = img
+
+	-- Borde animado con color del jugador
+	if State.panelStroke then
+		Dev.applyBorderGradient(State.panelStroke, 1.5, playerColor or THEME.accent)
+	end
 end
 
 -- ═══════════════════════════════════════════════════════════════

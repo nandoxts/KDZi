@@ -85,6 +85,8 @@ local function closePanel()
 		State.closing = false
 		State.isPanelOpening = false
 		State.playerColor = nil
+		State.panelBgImage = nil
+		State.panelStroke = nil
 	end)
 end
 
@@ -151,6 +153,10 @@ local function openPanel(target)
 					lastUpdate = tick(),
 				}
 				Utils.updateStats(data, true, State)
+				-- Aplicar fondo de comunidad si el jugador es VIP
+				if data.isVip and data.groupIcon then
+					PanelView.applyVipBackground(data.groupIcon, State.playerColor)
+				end
 			end
 		end)
 

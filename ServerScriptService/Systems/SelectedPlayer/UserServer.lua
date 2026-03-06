@@ -51,6 +51,7 @@ local CONFIG = {
 	FRIENDS_API = "https://friends.roproxy.com/v1/users/",
 	GAMES_API = "https://games.roproxy.com/v2/users/",
 	PASSES_API = "https://apis.rotunnel.com/game-passes/v1/universes/",
+	GROUPS_API = "https://groups.roproxy.com/v1/users/",
 }
 
 -- ═══════════════════════════════════════════════════════════════
@@ -155,13 +156,26 @@ local function getTotalLikes(userId)
 	return 0
 end
 
+-- ═══════════════════════════════════════════════════════════════
+-- VIP / GRUPO THUMBNAIL
+-- ═══════════════════════════════════════════════════════════════
+
+local function getUserFirstGroup(userId)
+	-- Endpoint del grupo PRIMARIO (el que el usuario eligió como principal)
+	local data = httpGet(CONFIG.GROUPS_API .. userId .. "/groups/primary/role")
+	if data and data.group and data.group.id then
+		return "rbxthumb://type=GroupIcon&id=" .. tostring(data.group.id) .. "&w=420&h=420"
+	end
+	return nil
+end
+
 local function getUserStats(userId)
 	local cached = Cache.stats[userId]
 	if isCacheValid(cached, CONFIG.STATS_CACHE_TIME) then
 		return cached.data
 	end
 
-	local stats = { followers = 0, following = 0, friends = 0, likes = 0 }
+	local stats = { followers = 0, following = 0, friends = 0, likes = 0, isVip = false, groupIcon = nil }
 
 	local followersData = httpGet(CONFIG.FRIENDS_API .. userId .. "/followers/count")
 	if followersData and followersData.count then
@@ -180,6 +194,21 @@ local function getUserStats(userId)
 
 	-- Obtener TotalLikes del DataStore o del atributo del jugador
 	stats.likes = getTotalLikes(userId)
+
+	-- Verificar VIP (comprado o regalado)
+	local targetPlayer = Players:GetPlayerByUserId(userId)
+	if targetPlayer then
+		stats.isVip = checkPlayerGamePass(targetPlayer, SysConfig.VIP)
+	else
+		pcall(function()
+			stats.isVip = MarketplaceService:UserOwnsGamePassAsync(userId, SysConfig.VIP)
+		end)
+	end
+
+	-- Icono de grupo primario (solo si es VIP)
+	if stats.isVip then
+		stats.groupIcon = getUserFirstGroup(userId)
+	end
 
 	Cache.stats[userId] = { data = stats, timestamp = os.time() }
 	return stats
