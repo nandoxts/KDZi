@@ -37,7 +37,7 @@ local CONFIG = {
 -- ASSETS
 -- ══════════════════════════════════════════════════════════════════
 local ASSETS = {
-	STAR_IMAGE = "rbxassetid://129709815461039",
+	STAR_IMAGE = "rbxassetid://127132480856895",
 	STAR_GLOW = "rbxassetid://5864017498",
 	SPARKLE_TEXTURE = "rbxassetid://2273224484",
 }

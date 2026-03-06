@@ -10,9 +10,9 @@ local v1 = TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
 local v2 = {
     Inside = {
         AudioEqualizer = {
-            LowGain = 0, 
-            HighGain = 0, 
-            MidGain = 0
+            LowGain = 10, 
+            HighGain = 10, 
+            MidGain = -10
         }, 
         ReverbSoundEffect = {
             WetLevel = -20
