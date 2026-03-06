@@ -230,12 +230,21 @@ local ICONS = {
 	VOL_UP   = "rbxassetid://114456072508401",
 }
 
+local VISUALIZER = {
+	BAR_COUNT = 40,
+	BAR_WIDTH = 8,
+	BAR_GAP = 2,
+	BAR_MIN_H = 2,
+	BAR_MAX_H = mob and 50 or 50,
+	COLOR_LOW = Color3.fromRGB(100, 80, 180),
+}
+
 -- ════════════════════════════════════════════════════════════════
 -- STATE
 -- ════════════════════════════════════════════════════════════════
 local playQueue, currentSong = {}, nil
 local allDJs, selectedDJ, selectedDJInfo = {}, nil, nil
-local currentSoundObject, progressConnection = nil, nil
+local currentSoundObject, progressConnection, visualizerConnection = nil, nil, nil
 local isAddingToQueue = false
 local loadingDotsThread = nil
 local loadingTween = nil
@@ -361,7 +370,7 @@ local mob = isMobileDevice
 local PANEL_W = mob and THEME.panelWidth or math.max(THEME.panelWidth, 1100)
 local PANEL_H = mob and THEME.panelHeight or math.max(THEME.panelHeight, 620)
 local DJ_W, SONGS_W, QUEUE_W = 0.22, 0.48, 0.30
-local BOTTOM_BAR_H = mob and 90 or 100
+local BOTTOM_BAR_H = mob and 80 or 100
 local COL_HEADER_H = 36
 
 -- ════════════════════════════════════════════════════════════════
@@ -374,6 +383,7 @@ local modal = ModalManager.new({
 	isMobile = mob,
 	onClose = function()
 		if progressConnection then progressConnection:Disconnect(); progressConnection = nil end
+		if visualizerConnection then visualizerConnection:Disconnect(); visualizerConnection = nil end
 	end,
 })
 
@@ -546,10 +556,11 @@ local queueScroll, queueList = makeScrollColumn(queueColumn, COL_HEADER_H + 4, {
 }, THEME)
 
 -- ════════════════════════════════════════════════════════════════
+-- ════════════════════════════════════════════════════════════════
 -- BOTTOM BAR CONTENT
 -- ════════════════════════════════════════════════════════════════
 local bottomContent = makeFrame({
-	dim = UDim2.new(1, -24, 1, -12), pos = UDim2.new(0, 12, 0, 6),
+	dim = UDim2.new(1, -24, 1, 0), pos = UDim2.new(0, 12, 0, 0),
 	z = 111, parent = bottomBar,
 })
 
@@ -591,54 +602,99 @@ headerSongID = makeLabel({
 	z = 113, name = "SongID", parent = nowPlaying,
 })
 
--- ═══ SECCIÓN CENTRAL: Progress + Input ═══
+-- ═══ SECCIÓN CENTRAL: Progress + Visualizer + Input ═══
 local centerSection = makeFrame({
 	dim = UDim2.new(0.40, -20, 1, 0), pos = UDim2.new(0.30, 10, 0, 0),
-	z = 112, name = "CenterSection", parent = bottomContent,
+	z = 112, clip = true, name = "CenterSection", parent = bottomContent,
 })
 
+-- ── Visualizer Container (detrás de todo, debajo del input) ──
+local visualizerContainer = makeFrame({
+	dim = UDim2.new(1, 0, 0, mob and 52 or 82),
+	pos = UDim2.new(0, 0, 1, -(mob and 52 or 82)),
+	z = 111, clip = true, name = "VisualizerContainer", parent = centerSection,
+})
+
+local visualizerBars = {}
+local totalVisualizerWidth = VISUALIZER.BAR_COUNT * (VISUALIZER.BAR_WIDTH + VISUALIZER.BAR_GAP)
+
+for i = 1, VISUALIZER.BAR_COUNT do
+	local barX = (i - 1) * (VISUALIZER.BAR_WIDTH + VISUALIZER.BAR_GAP)
+	local offsetX = math.floor((1 - 0) * 0.5)  -- se centra después
+
+	local bar = makeFrame({
+		dim = UDim2.new(0, VISUALIZER.BAR_WIDTH, 0, VISUALIZER.BAR_MIN_H),
+		pos = UDim2.new(0.5, barX - math.floor(totalVisualizerWidth / 2), 1, -VISUALIZER.BAR_MIN_H),
+		bg = VISUALIZER.COLOR_LOW, bgT = 0.5,
+		z = 112, name = "Bar" .. i, parent = visualizerContainer,
+	})
+	UI.rounded(bar, 1)
+
+	visualizerBars[i] = {
+		frame = bar,
+		currentH = VISUALIZER.BAR_MIN_H,
+		targetH = VISUALIZER.BAR_MIN_H,
+		phase = math.random() * math.pi * 2,  -- fase random para idle orgánico
+		freqWeight = math.abs((i - VISUALIZER.BAR_COUNT / 2) / (VISUALIZER.BAR_COUNT / 2)),
+	}
+end
+
+-- ── Progress Container (encima del visualizer) ──
 local progressContainer = makeFrame({
-	dim = UDim2.new(1, 0, 0, 24), pos = UDim2.new(0, 0, 0, mob and 6 or 10),
+	dim = UDim2.new(1, 0, 0, 28),
+	pos = UDim2.new(0, 0, 0, mob and 4 or 8),
 	z = 113, parent = centerSection,
 })
 
 currentTimeLabel = makeLabel({
-	dim = UDim2.new(0, 40, 1, 0), text = "0:00",
-	color = THEME.muted, font = Enum.Font.GothamMedium, size = mob and 11 or 13,
+	dim = UDim2.new(0, 44, 1, 0), text = "0:00",
+	color = THEME.muted, font = Enum.Font.GothamBold, size = mob and 13 or 15,
 	alignX = Enum.TextXAlignment.Right, z = 114, parent = progressContainer,
 })
 
+-- Barra de progreso más gruesa (10px)
 local progressBar = makeFrame({
-	dim = UDim2.new(1, -100, 0, mob and 4 or 6),
-	pos = UDim2.new(0, 48, 0.5, mob and -2 or -3),
-	bg = Color3.fromRGB(60, 60, 68), bgT = 0, z = 113, parent = progressContainer,
+	dim = UDim2.new(1, -108, 0, mob and 6 or 10),
+	pos = UDim2.new(0, 52, 0.5, mob and -3 or -5),
+	bg = Color3.fromRGB(40, 40, 48), bgT = 0, z = 113, parent = progressContainer,
 })
-UI.rounded(progressBar, 3)
+UI.rounded(progressBar, 5)
 
 progressFill = makeFrame({
 	dim = UDim2.new(0, 0, 1, 0), bg = THEME.accent, bgT = 0, z = 114, parent = progressBar,
 })
-UI.rounded(progressFill, 3)
+UI.rounded(progressFill, 5)
+
+-- Dot/knob en la posición actual
+local progressDot = makeFrame({
+	dim = UDim2.new(0, mob and 12 or 16, 0, mob and 12 or 16),
+	pos = UDim2.new(0, -8, 0.5, mob and -6 or -8),
+	bg = Color3.new(1, 1, 1), bgT = 0, z = 115, name = "ProgressDot", parent = progressFill,
+})
+UI.rounded(progressDot, 8)
 
 totalTimeLabel = makeLabel({
-	dim = UDim2.new(0, 40, 1, 0), pos = UDim2.new(1, -40, 0, 0),
-	text = "0:00", color = THEME.muted, font = Enum.Font.GothamMedium,
-	size = mob and 11 or 13, alignX = Enum.TextXAlignment.Left, z = 114,
+	dim = UDim2.new(0, 44, 1, 0), pos = UDim2.new(1, -44, 0, 0),
+	text = "0:00", color = THEME.muted, font = Enum.Font.GothamBold,
+	size = mob and 13 or 15, alignX = Enum.TextXAlignment.Left, z = 114,
 	parent = progressContainer,
 })
 
+-- ── Quick Add Input (semi-transparente como las cards) ──
 local quickAddFrame = makeFrame({
-	dim = UDim2.new(1, 0, 0, 40), pos = UDim2.new(0, 0, 0, mob and 34 or 40),
-	bg = THEME.card, bgT = 0, z = 113, parent = centerSection,
+	dim = UDim2.new(1, 0, 0, 40),
+	pos = UDim2.new(0, 0, 0, mob and 36 or 44),
+	bg = THEME.card, bgT = THEME.frameAlpha or 0.3,
+	z = 113, parent = centerSection,
 })
 UI.rounded(quickAddFrame, 8)
-qiStroke = UI.stroked(quickAddFrame, 0.3)
+qiStroke = UI.stroked(quickAddFrame, 0.4)
 
 quickInput = make("TextBox", {
 	Size = UDim2.new(1, -50, 0, 34), Position = UDim2.new(0, 10, 0.5, -17),
 	BackgroundTransparency = 1, Text = "", PlaceholderText = "Input ID",
 	TextColor3 = THEME.text, PlaceholderColor3 = THEME.muted,
-	Font = Enum.Font.Gotham, TextSize = 13,
+	Font = Enum.Font.GothamMedium, TextSize = 13,
 	TextXAlignment = Enum.TextXAlignment.Left,
 	ClearTextOnFocus = false, ZIndex = 114, Parent = quickAddFrame,
 })
@@ -663,7 +719,7 @@ quickAddBtnLoading = makeImage({
 })
 
 songIdDisplay = makeLabel({
-	dim = UDim2.new(1, 0, 0, 16), pos = UDim2.new(0, 0, 0, mob and 68 or 76),
+	dim = UDim2.new(1, 0, 0, 16), pos = UDim2.new(0, 0, 1, -18),
 	color = THEME.muted, font = Enum.Font.GothamMedium, size = 12,
 	z = 113, visible = false, name = "SongIdDisplay", parent = centerSection,
 })
@@ -1294,7 +1350,7 @@ local function createSongCard()
 
 	-- Cover: full height a la izquierda, imagen al 100% sin padding
 	local coverBg = makeFrame({dim = UDim2.new(0, CARD_HEIGHT, 1, 0), bg = Color3.fromRGB(30, 30, 35), bgT = 0, z = 103, name = "CoverBg", parent = card})
-	make("ImageLabel", {
+	local djCoverImg = make("ImageLabel", {
 		Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1,
 		ScaleType = Enum.ScaleType.Crop, BorderSizePixel = 0,
 		ZIndex = 104, Name = "DJCover", Parent = coverBg,
@@ -1630,7 +1686,7 @@ local function drawDJs()
 		})
 
 		if dj.cover and dj.cover ~= "" then
-			make("ImageLabel", {
+			local coverImg = make("ImageLabel", {
 				Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1,
 				Image = dj.cover, ScaleType = Enum.ScaleType.Crop,
 				BorderSizePixel = 0, ZIndex = 105, Name = "CoverImage", Parent = coverBg,
@@ -1667,18 +1723,74 @@ local function updateProgressBar()
 	if not currentSoundObject then currentSoundObject = workspace:FindFirstChild("QueueSound") end
 	if not currentSoundObject or not currentSoundObject:IsA("Sound") or not currentSoundObject.Parent then
 		progressFill.Size = UDim2.new(0, 0, 1, 0)
+		progressDot.Position = UDim2.new(1, -(mob and 6 or 8), 0.5, -(mob and 6 or 8))
 		currentTimeLabel.Text = "0:00"; totalTimeLabel.Text = "0:00"
 		if not currentSong then songTitle.Text = "No song playing" end
 		return
 	end
 	local cur, total = currentSoundObject.TimePosition, currentSoundObject.TimeLength
 	if total > 0 then
-		progressFill.Size = UDim2.new(math.clamp(cur / total, 0, 1), 0, 1, 0)
+		local frac = math.clamp(cur / total, 0, 1)
+		progressFill.Size = UDim2.new(frac, 0, 1, 0)
+		-- Dot siempre pegado al borde derecho del fill
+		local dotSize = mob and 12 or 16
+		progressDot.Position = UDim2.new(1, -dotSize/2, 0.5, -dotSize/2)
 		currentTimeLabel.Text = formatTime(cur); totalTimeLabel.Text = formatTime(total)
 	else
 		progressFill.Size = UDim2.new(0, 0, 1, 0)
 		currentTimeLabel.Text = "0:00"; totalTimeLabel.Text = "0:00"
 	end
+end
+
+-- ════════════════════════════════════════════════════════════════
+-- VISUALIZER UPDATE LOOP
+-- ════════════════════════════════════════════════════════════════
+
+local function startVisualizer()
+	if visualizerConnection then visualizerConnection:Disconnect() end
+
+	visualizerConnection = RunService.Heartbeat:Connect(function(dt)
+		local loudness = 0
+		local hasAudio = false
+
+		if currentSoundObject and currentSoundObject:IsA("Sound") and currentSoundObject.IsPlaying then
+			loudness = math.clamp(currentSoundObject.PlaybackLoudness / 200, 0, 1)
+			hasAudio = loudness > 0.005
+		end
+
+		local time = tick()
+
+		for i, barData in ipairs(visualizerBars) do
+			local bar = barData.frame
+			if bar and bar.Parent then
+				local targetH
+				local maxH = VISUALIZER.BAR_MAX_H
+				if hasAudio then
+					-- Cada barra tiene su propio modificador de sensibilidad para que no vayan todas iguales
+					local freqMod = 0.3 + 0.7 * math.abs(math.sin(barData.phase + i * 0.4))
+					local beatSnap = math.clamp(loudness * 1.4 - 0.05, 0, 1)  -- exagera los picos
+					targetH = math.clamp(beatSnap * maxH * freqMod, 2, maxH)
+				else
+					local wave = math.sin(time * 1.8 + barData.phase) * 0.5 + 0.5
+					local wave2 = math.sin(time * 1.26 + barData.phase * 1.3) * 0.3 + 0.7
+					targetH = 2 + (math.floor(maxH * 0.30) - 2) * wave * wave2
+				end
+
+				barData.targetH = targetH
+				-- Sube rápido (snap al beat), baja lento (sustain musical)
+				local speed = (targetH > barData.currentH) and 25 or 6
+				barData.currentH = barData.currentH + (targetH - barData.currentH) * speed * dt
+				local h = math.floor(math.clamp(barData.currentH, 2, maxH))
+
+				bar.Size = UDim2.new(0, VISUALIZER.BAR_WIDTH, 0, h)
+				bar.Position = UDim2.new(bar.Position.X.Scale, bar.Position.X.Offset, 1, -h)
+
+				local t = math.clamp((h - 2) / (maxH - 2), 0, 1)
+				bar.BackgroundColor3 = Color3.fromRGB(100, 80, 180):Lerp(Color3.fromRGB(160, 120, 255), t)
+				bar.BackgroundTransparency = hasAudio and (0.05 + (1 - t) * 0.15) or 0.35
+			end
+		end
+	end)
 end
 
 -- ════════════════════════════════════════════════════════════════
@@ -1691,10 +1803,12 @@ local function openUI()
 	modal:open()
 	if progressConnection then progressConnection:Disconnect() end
 	progressConnection = RunService.Heartbeat:Connect(updateProgressBar)
+	startVisualizer()
 end
 
 local function closeUI()
 	if modal:isModalOpen() then modal:close() end
+	if visualizerConnection then visualizerConnection:Disconnect(); visualizerConnection = nil end
 end
 
 -- ════════════════════════════════════════════════════════════════

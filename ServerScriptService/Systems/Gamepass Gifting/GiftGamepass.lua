@@ -59,7 +59,7 @@ end
 
 -- Función para enviar webhook a Discord
 local function SendDiscordWebhook(recipientsplayername, recipientsuserid, donorsplayername, donorsuserid, gamepassid)
-	local url = "https://discord.com/api/webhooks/1356410314589081630/nh5XchxHjo0_icTnYUSiDPGkHcN0HS_QgcEeJhJKo8PY93wVxkQ-yOaKzKDnnHI4Gt7f"
+	local url = "https://discord.com/api/webhooks/1479279603896815618/ptCDNX6y0LLLqIpSx6SzFLLoJvXCYNJ4StdZfAHBa78C_IxK3ihrCzToE29hlJKZQ_x8"
 	local RecipientsThumbnail = FetchPlayerThumbnail(recipientsuserid)
 
 	local data = {
@@ -131,13 +131,7 @@ local function giftGamepassFree(admin, gamepass, recipientUserId, recipientUsern
 	end
 
 	-- Guardar en DataStore SIN COBRAR
-	local saveSuccess = false
-	local saveDone = false
-
-	DataStoreQueue:SetAsync(recipientUserId .. "-" .. gamepass[1], true, function(dsSuccess, dsResult)
-		saveSuccess = dsSuccess
-		saveDone = true
-	end)
+	DataStoreQueue:SetAsync(recipientUserId .. "-" .. gamepass[1], true)
 
 	-- Obtener info del gamepass para el broadcast
 	local gpSuccess, Asset = pcall(function()
@@ -373,14 +367,8 @@ local function handleGiftPurchase(receiptInfo)
 
 			PlayersGifted[receiptInfo.PlayerId] = nil
 
-			-- ✅ Guardar en DataStore usando DataStoreQueue para respetar throttling
-			local saveSuccess = false
-			local saveDone = false
-
-			DataStoreQueue:SetAsync(Recipient .. "-" .. gamepass[1], true, function(dsSuccess, dsResult)
-				saveSuccess = dsSuccess
-				saveDone = true
-			end)
+			-- Guardar en DataStore usando DataStoreQueue para respetar throttling
+			DataStoreQueue:SetAsync(Recipient .. "-" .. gamepass[1], true)
 
 			-- Enviar notificación a Discord (sin esperar)
 			pcall(function()
@@ -453,34 +441,6 @@ end
 
 -- Registrar el manejador
 CentralPurchaseHandler.registerGiftHandler(handleGiftPurchase)
-
--- Verificar propiedad de gamepass
-local function DoesUserOwnGamePass(player, gamepassId)
-	if not gamepassId or type(gamepassId) ~= "number" then
-		return false
-	end
-
-	local success, Info = pcall(function()
-		return MarketplaceService:GetProductInfo(gamepassId, Enum.InfoType.GamePass)
-	end)
-
-	if not success or not Info then 
-		return false 
-	end
-
-	local Folder = player:FindFirstChild("Gamepasses")
-	if Folder then
-		for _, child in pairs(Folder:GetChildren()) do
-			if child:IsA("BoolValue") and child.Name == Info.Name and child.Value then
-				return true
-			end
-		end
-	end
-
-	local owns = false
-	pcall(function() owns = MarketplaceService:UserOwnsGamePassAsync(player.UserId, gamepassId) end)
-	return owns
-end
 
 Ownership.OnServerInvoke = function(player, gamepassId)
 	return GamepassManager.HasGamepass(player, gamepassId)
