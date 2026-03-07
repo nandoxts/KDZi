@@ -257,4 +257,13 @@ function module.hasPermission(player, GROUP_ID, ALLOWED_RANKS)
 	return false
 end
 
+-- Convierte "#RRGGBB" o "RRGGBB" a Color3
+function module.fromHex(hex)
+	hex = tostring(hex):gsub("^#", "")
+	local r = tonumber(hex:sub(1,2), 16) or 255
+	local g = tonumber(hex:sub(3,4), 16) or 255
+	local b = tonumber(hex:sub(5,6), 16) or 255
+	return Color3.fromRGB(r, g, b)
+end
+
 return module

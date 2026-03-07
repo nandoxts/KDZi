@@ -557,9 +557,9 @@ function OverheadManager:setupRole(roleFrame, player)
 		local titleColor = player:GetAttribute("EquippedTitleColor") or "#FFFFFF"
 
 		if titleLabel ~= "" then
-			roleText.RichText  = true
-			roleText.Text      = string.format("<font color='%s'><b>%s</b></font>", titleColor, titleLabel)
-			roleText.TextColor3 = Color3.fromRGB(255, 255, 255) -- RichText lo pinta
+			roleText.RichText   = false
+			roleText.Text       = titleLabel
+			roleText.TextColor3 = Colors.fromHex(titleColor)
 			return
 		end
 
