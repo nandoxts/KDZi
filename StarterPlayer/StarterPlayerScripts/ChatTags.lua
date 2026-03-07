@@ -3,7 +3,7 @@
 -- ========================================
 local textChatService = game:GetService("TextChatService")
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage"):WaitForChild("RemotesGlobal")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local player = game.Players.LocalPlayer
 
@@ -11,7 +11,7 @@ local player = game.Players.LocalPlayer
 local clientTagCache = {}
 
 -- Eventos del servidor
-local tagDataEvent = ReplicatedStorage.Chat:WaitForChild("PlayerTagData")
+local tagDataEvent = ReplicatedStorage.RemotesGlobal.Chat:WaitForChild("PlayerTagData")
 
 -- Recibir datos de tags del servidor
 tagDataEvent.OnClientEvent:Connect(function(userId, tagInfo)
