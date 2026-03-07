@@ -22,7 +22,7 @@ local player, playerGui
 -- Cache de layout por sesión de panel (evita recalcular)
 local cachedLayout = nil
 local activeTweens = {}
-local devRotationConns = {}
+local adminRotationConns = {}
 
 function PanelView.init(config, state, utils, groupRoles, remotes)
 	Config = config
@@ -121,27 +121,28 @@ end
 PanelView.safeTween = safeTween
 
 -- ═══════════════════════════════════════════════════════════════
--- DEVELOPER SYSTEM
+-- ADMIN SYSTEM (desde AdminConfig)
 -- ═══════════════════════════════════════════════════════════════
-local Dev = {}
+local Admin = {}
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local AdminConfig = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("AdminConfig"))
 
-function Dev.isDeveloper(userId)
-	for _, id in ipairs(GroupRoles.Group.DeveloperUserIds) do
-		if id == userId then return true end
-	end
-	return false
+function Admin.isAdmin(userName)
+	-- Acepta nombre de usuario (string)
+	if not userName then return false end
+	return AdminConfig:IsAdmin(userName)
 end
 
-function Dev.getBadgeInfo(userId, baseColor)
-	if not Dev.isDeveloper(userId) then return nil end
+function Admin.getBadgeInfo(userName, baseColor)
+	if not Admin.isAdmin(userName) then return nil end
 	baseColor = baseColor or THEME.accent
 	return {
-		text = "OWNER", color = baseColor,
-		glowColor = baseColor, icon = "rbxassetid://79346090571461",
+		text = "ADMIN", color = baseColor,
+		glowColor = baseColor,
 	}
 end
 
-function Dev.applyBorderGradient(stroke, speed, baseColor)
+function Admin.applyBorderGradient(stroke, speed, baseColor)
 	speed = speed or 1.5
 	baseColor = baseColor or Color3.new(1, 1, 1)
 	local gradient = Instance.new("UIGradient")
@@ -158,12 +159,12 @@ function Dev.applyBorderGradient(stroke, speed, baseColor)
 		elapsed = elapsed + (dt * speed * 60)
 		gradient.Rotation = elapsed % 360
 	end)
-	table.insert(devRotationConns, conn)
+	table.insert(adminRotationConns, conn)
 	Utils.addConnection(conn)
 	return gradient
 end
 
-function Dev.applyTextShimmer(label, baseColor)
+function Admin.applyTextShimmer(label, baseColor)
 	baseColor = baseColor or THEME.accent
 	local dark = Color3.new(baseColor.R * 0.5, baseColor.G * 0.5, baseColor.B * 0.5)
 	local gradient = Instance.new("UIGradient")
@@ -179,7 +180,7 @@ function Dev.applyTextShimmer(label, baseColor)
 	return gradient
 end
 
-function Dev.createBadge(parent, badgeInfo, L)
+function Admin.createBadge(parent, badgeInfo, L)
 	local badge = Utils.createFrame({ Size = UDim2.new(0, 48, 0, 18), BackgroundColor3 = badgeInfo.color, BackgroundTransparency = 0.45, Parent = parent })
 	Utils.addCorner(badge, 9)
 	Utils.addStroke(badge, badgeInfo.glowColor, 1, 0.4)
@@ -187,7 +188,7 @@ function Dev.createBadge(parent, badgeInfo, L)
 	return badge
 end
 
-function Dev.applyPanelBackground(panelImage, _, badgeInfo)
+function Admin.applyPanelBackground(panelImage, _, badgeInfo)
 	panelImage.Image = badgeInfo.icon
 	panelImage.ScaleType = Enum.ScaleType.Crop
 	panelImage.ImageTransparency = 0.35
@@ -202,14 +203,14 @@ function Dev.applyPanelBackground(panelImage, _, badgeInfo)
 	})
 end
 
-PanelView.Dev = Dev
+PanelView.Admin = Admin
 
 -- ═══════════════════════════════════════════════════════════════
 -- GLASSMORPHISM
 -- ═══════════════════════════════════════════════════════════════
-local function applyGlass(container, playerColor, L, isDev)
-	local baseT = isDev and 0.65 or 0.35
-	local colorT = isDev and 0.95 or 0.88
+local function applyGlass(container, playerColor, L, isAdmin)
+	local baseT = isAdmin and 0.65 or 0.35
+	local colorT = isAdmin and 0.95 or 0.88
 
 	local base = Utils.createFrame({ Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = Color3.fromRGB(12, 12, 18), BackgroundTransparency = baseT, ZIndex = 0, Parent = container })
 	Utils.addCorner(base, L.cornerRadius)
@@ -524,8 +525,8 @@ end
 -- ═══════════════════════════════════════════════════════════════
 local function createAvatarSection(panel, data, playerColor)
 	local L = getLayout()
-	local isDev = Dev.isDeveloper(data.userId)
-	local badgeInfo = Dev.getBadgeInfo(data.userId, playerColor)
+	local isAdmin = Admin.isAdmin(data.username)
+	local badgeInfo = Admin.getBadgeInfo(data.username, playerColor)
 	local LikesSystem = require(script.Parent.LikesSystem)
 
 	local avatarSection = Utils.createFrame({ Size = UDim2.new(1, 0, 0, L.avatarHeight), BackgroundTransparency = 1, ClipsDescendants = true, ZIndex = 3, Parent = panel })
@@ -563,7 +564,7 @@ local function createAvatarSection(panel, data, playerColor)
 	end
 
 	-- Nombres
-	local nameY = isDev and -50 or -46
+	local nameY = isAdmin and -50 or -46
 	local nameMain = Utils.createFrame({ Size = UDim2.new(1, -L.statsWidth - 16, 0, 36), Position = UDim2.new(0, 10, 1, nameY), BackgroundTransparency = 1, ZIndex = 25, Parent = avatarSection })
 	Utils.create("UIListLayout", { FillDirection = Enum.FillDirection.Vertical, HorizontalAlignment = Enum.HorizontalAlignment.Left, VerticalAlignment = Enum.VerticalAlignment.Top, Padding = UDim.new(0, 0), Parent = nameMain })
 
@@ -572,15 +573,15 @@ local function createAvatarSection(panel, data, playerColor)
 
 	local dnLabel = Utils.createLabel({ Size = UDim2.new(0, 0, 1, 0), AutomaticSize = Enum.AutomaticSize.X, Text = data.displayName, TextColor3 = playerColor, TextSize = L.fontSize.title, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, LayoutOrder = 1, Parent = nameCont })
 
-	if isDev then
-		Dev.applyTextShimmer(dnLabel, playerColor)
-		Utils.createLabel({ Size = UDim2.new(0, 0, 1, 0), AutomaticSize = Enum.AutomaticSize.X, Text = "", TextColor3 = playerColor, TextSize = L.fontSize.title, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Left, LayoutOrder = 2, Parent = nameCont })
+	if isAdmin then
+		Admin.applyTextShimmer(dnLabel, playerColor)
+		Utils.createLabel({ Size = UDim2.new(0, 0, 1, 0), AutomaticSize = Enum.AutomaticSize.X, Text = "", TextColor3 = playerColor, TextSize = L.fontSize.title, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Left, LayoutOrder = 2, Parent = nameCont })
 	end
 
 	Utils.createLabel({ Size = UDim2.new(1, 0, 0, 16), Text = "@" .. data.username, TextColor3 = THEME.muted, TextSize = L.fontSize.subtitle + 1, Font = Enum.Font.GothamMedium, TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, LayoutOrder = 2, Parent = nameMain })
 
-	if isDev and badgeInfo then
-		local badge = Dev.createBadge(avatarSection, badgeInfo, L)
+	if isAdmin and badgeInfo then
+		local badge = Admin.createBadge(avatarSection, badgeInfo, L)
 		badge.Position = UDim2.new(0, 10, 1, nameY - 20); badge.ZIndex = 26
 	end
 
@@ -667,7 +668,8 @@ function PanelView.createPanel(data)
 	local panelContainer = Utils.createFrame({ Size = UDim2.new(1, 0, 0, L.panelHeight), Position = UDim2.new(0, 0, 0, pY), BackgroundColor3 = Color3.fromRGB(14, 14, 20), BackgroundTransparency = pBgT, ClipsDescendants = true, Parent = State.container })
 	Utils.addCorner(panelContainer, L.cornerRadius)
 
-	applyGlass(panelContainer, playerColor, L, false)
+	local isUserAdmin = Admin.isAdmin(data.username)
+	applyGlass(panelContainer, playerColor, L, isUserAdmin)
 
 	local panelStroke = Utils.addStroke(panelContainer, playerColor, 1.5, 0.3)
 	State.panelStroke = panelStroke
@@ -766,7 +768,7 @@ function PanelView.applyVipBackground(groupIcon, playerColor)
 
 	-- Borde animado con color del jugador
 	if State.panelStroke then
-		Dev.applyBorderGradient(State.panelStroke, 1.5, playerColor or THEME.accent)
+		Admin.applyBorderGradient(State.panelStroke, 1.5, playerColor or THEME.accent)
 	end
 end
 
@@ -778,10 +780,10 @@ function PanelView.cleanupTweens()
 		pcall(function() tw:Cancel() end)
 		activeTweens[k] = nil
 	end
-	for _, conn in ipairs(devRotationConns) do
+	for _, conn in ipairs(adminRotationConns) do
 		pcall(function() conn:Disconnect() end)
 	end
-	table.clear(devRotationConns)
+	table.clear(adminRotationConns)
 end
 
 function PanelView.invalidateLayoutCache()
