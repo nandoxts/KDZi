@@ -52,11 +52,7 @@ local RC = {
 -- ════════════════════════════════════════════════════════════════
 local musicDatabase   = {}
 local djOrder         = {
-	"Top Hits", "Trap Latino", "Mix Brazil", "Kpop Army",
-	"DJ Angelisai", "DJ AngeloGarcia", "Hora Loca", "Rock",
-	"Reparto", "Phonk", "Vallenatos", "Mix Argentina",
-	"Electronica", "Romanticas", "Mixes Djs", "Mix chile",
-	"DJ Alex", "DJ SPARTAN", "DJ POOLEX", "Cumbia", "Salsa",
+"Dj Dev"
 }
 local playQueue       = {}
 local currentSongIndex = 1
@@ -192,7 +188,7 @@ end
 -- PERMISSION LAYER
 -- ════════════════════════════════════════════════════════════════
 local function hasPermission(player, action)
-	return MusicConfig:HasPermission(player.UserId, action)
+	return MusicConfig:IsAdmin(player)
 end
 
 local function isEventBlocked(action, player)
@@ -436,9 +432,10 @@ local function validateQueueAdd(player, audioId)
 		return nil, response(RC.INVALID_ID, "ID inválido")
 	end
 
-	-- 3. Blacklist
-	local valid, err = MusicConfig:ValidateAudioId(id)
-	if not valid then return nil, response(RC.BLACKLISTED, err) end
+	-- 3. Audio permission (verify audio can be loaded)
+	if not validateAudioPermission(id) then
+		return nil, response(RC.INVALID_ID, "Audio no disponible o sin permisos")
+	end
 
 	-- 4. Global queue cap
 	if #playQueue >= MusicConfig.LIMITS.MaxQueueSize then
@@ -911,8 +908,10 @@ if R.PurchaseSkip then
 end
 
 R.AddToQueue.OnServerEvent:Connect(function(player, audioId)
-	local deny = checkAccess(player, "AddToQueue")
-	if deny then return fireClient(R.AddResponse, player, deny) end
+	-- Solo verificar event mode, no permisos de admin
+	if isEventBlocked("AddToQueue", player) then
+		return fireClient(R.AddResponse, player, response(RC.EVENT_LOCKED, "Modo evento activo"))
+	end
 
 	local songData, err = validateQueueAdd(player, audioId)
 	if err then return fireClient(R.AddResponse, player, err) end
