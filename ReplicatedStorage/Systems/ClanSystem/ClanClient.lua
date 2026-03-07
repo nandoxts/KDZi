@@ -530,19 +530,13 @@ task.spawn(function()
 	local updateEvent = clanEvents and clanEvents:WaitForChild("ClansUpdated", 5)
 	if updateEvent then
 		updateEvent.OnClientEvent:Connect(function(changedClanId)
-			-- El servidor notifica sobre un clan que cambió
-			-- Invalidar TODA la caché para forzar refrescamiento inmediato
+			-- Invalidar caché para forzar refrescamiento
 			clansListCache = nil
 			clansListCacheTime = 0
 			pendingRequestsCache = nil
 			pendingRequestsCacheTime = 0
 
-			-- Si es mi clan, también refrescarlo
-			if changedClanId and changedClanId == ClanClient.currentClanId then
-				ClanClient:GetPlayerClan()
-			end
-
-			-- Notificar UI que algo cambió
+			-- Notificar UI que algo cambió (la UI se encarga de fetch)
 			ClanClient:_fireUpdateCallbacks(changedClanId)
 		end)
 	else

@@ -14,7 +14,7 @@ ClanConstants.CONFIG = {
 	panel = { corner = 12 },  -- width/height removidos - ModalManager maneja responsive automáticamente
 	blur = { enabled = true, size = 14 },
 	cooldown = 1.5,
-	listenerCooldown = 3,
+	listenerCooldown = 0.5,
 
 }
 

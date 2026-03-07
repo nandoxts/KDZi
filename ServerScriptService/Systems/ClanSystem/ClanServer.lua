@@ -113,26 +113,9 @@ local RequestJoinResult = folder:WaitForChild("RequestJoinResult") -- Notificaci
 -- NOTIFICACIÓN OPTIMIZADA (solo miembros afectados + lista global)
 -- ============================================
 local function notifyChanged(changedClanId)
-	if changedClanId then
-		local clan = ClanData:GetClan(changedClanId)
-		if clan and clan.members then
-			-- Notificar a miembros del clan
-			for userIdStr in pairs(clan.members) do
-				local userId = tonumber(userIdStr)
-				local player = Players:GetPlayerByUserId(userId)
-				if player then
-					ClansUpdated:FireClient(player, changedClanId)
-				end
-			end
-		end
-	end
-
-	-- TAMBIÉN notificar a TODOS los players para refrescar lista global
-	-- (usuarios viendo lista de clanes para unirse)
-	for _, player in ipairs(Players:GetPlayers()) do
-		ClansUpdated:FireAllClients(changedClanId)
-		break  -- Una sola vez a todos
-	end
+	-- Notificar a TODOS los jugadores una sola vez
+	-- Los miembros del clan actualizan su vista, los demás actualizan la lista global
+	ClansUpdated:FireAllClients(changedClanId)
 end
 
 -- ============================================
@@ -149,6 +132,7 @@ CreateClan.OnServerInvoke = function(player, name, tag, logo, desc, emoji, color
 
 	if success then
 		updatePlayerAttributes(player.UserId)
+		notifyChanged(clanId)
 		return true, clanId, "Clan creado"
 	end
 
@@ -191,6 +175,8 @@ ChangeClanName.OnServerEvent:Connect(function(player, clanId, newName)
 	if not member or not Config:HasPermission(member.role, "cambiar_nombre") then return end
 
 	ClanData:UpdateClan(clanId, {name = newName})
+	updateAllMembers(ClanData:GetClan(clanId))
+	notifyChanged(clanId)
 end)
 
 ChangeClanTag.OnServerEvent:Connect(function(player, clanId, newTag)
@@ -204,12 +190,8 @@ ChangeClanTag.OnServerEvent:Connect(function(player, clanId, newTag)
 	if not member or member.role ~= Config.ROLE_NAMES.OWNER then return end
 
 	ClanData:UpdateClan(clanId, {tag = newTag})
-	
-	-- Actualizar atributos de todos los miembros para reflejar el cambio al instante
-	local updatedClan = ClanData:GetClan(clanId)
-	if updatedClan then
-		updateAllMembers(updatedClan)
-	end
+	updateAllMembers(ClanData:GetClan(clanId))
+	notifyChanged(clanId)
 end)
 
 ChangeClanDescription.OnServerEvent:Connect(function(player, clanId, newDesc)
@@ -223,6 +205,7 @@ ChangeClanDescription.OnServerEvent:Connect(function(player, clanId, newDesc)
 	if not member or not Config:HasPermission(member.role, "cambiar_descripcion") then return end
 
 	ClanData:UpdateClan(clanId, {description = newDesc})
+	notifyChanged(clanId)
 end)
 
 ChangeClanLogo.OnServerEvent:Connect(function(player, clanId, newLogoId)
@@ -236,6 +219,7 @@ ChangeClanLogo.OnServerEvent:Connect(function(player, clanId, newLogoId)
 	if not member or not Config:HasPermission(member.role, "cambiar_logo") then return end
 
 	ClanData:UpdateClan(clanId, {logo = newLogoId})
+	notifyChanged(clanId)
 end)
 
 ChangeClanEmoji.OnServerEvent:Connect(function(player, clanId, newEmoji)
@@ -251,12 +235,8 @@ ChangeClanEmoji.OnServerEvent:Connect(function(player, clanId, newEmoji)
 	if not member or not Config:HasPermission(member.role, "cambiar_emoji") then return end
 
 	ClanData:UpdateClan(clanId, {emoji = newEmoji})
-	
-	-- Actualizar atributos de todos los miembros para reflejar el cambio al instante
-	local updatedClan = ClanData:GetClan(clanId)
-	if updatedClan then
-		updateAllMembers(updatedClan)
-	end
+	updateAllMembers(ClanData:GetClan(clanId))
+	notifyChanged(clanId)
 end)
 
 ChangeClanColor.OnServerEvent:Connect(function(player, clanId, newColor)
@@ -270,12 +250,8 @@ ChangeClanColor.OnServerEvent:Connect(function(player, clanId, newColor)
 	if not member or not Config:HasPermission(member.role, "cambiar_color") then return end
 
 	ClanData:UpdateClan(clanId, {color = newColor})
-	
-	-- Actualizar atributos de todos los miembros para reflejar el cambio al instante
-	local updatedClan = ClanData:GetClan(clanId)
-	if updatedClan then
-		updateAllMembers(updatedClan)
-	end
+	updateAllMembers(ClanData:GetClan(clanId))
+	notifyChanged(clanId)
 end)
 
 InvitePlayer.OnServerEvent:Connect(function(player, clanId, targetUserId)
@@ -292,6 +268,7 @@ InvitePlayer.OnServerEvent:Connect(function(player, clanId, targetUserId)
 
 	if success then
 		updatePlayerAttributes(targetUserId)
+		notifyChanged(clanId)
 	end
 end)
 
@@ -321,6 +298,7 @@ KickPlayer.OnServerEvent:Connect(function(player, clanId, targetUserId)
 
 	if success then
 		updatePlayerAttributes(targetUserId)
+		notifyChanged(clanId)
 	end
 end)
 
@@ -354,6 +332,7 @@ ChangeRole.OnServerEvent:Connect(function(player, clanId, targetUserId, newRole)
 
 	if success then
 		updatePlayerAttributes(targetUserId)
+		notifyChanged(clanId)
 	end
 end)
 
@@ -372,6 +351,7 @@ AddOwner.OnServerEvent:Connect(function(player, targetUserId)
 
 	if success then
 		updatePlayerAttributes(targetUserId)
+		notifyChanged(clanId)
 	end
 end)
 
@@ -390,6 +370,7 @@ RemoveOwner.OnServerEvent:Connect(function(player, targetUserId)
 
 	if success then
 		updatePlayerAttributes(targetUserId)
+		notifyChanged(clanId)
 	end
 end)
 
@@ -422,6 +403,7 @@ AdminDissolveClan.OnServerEvent:Connect(function(player, clanId)
 				updatePlayerAttributes(userId)
 			end)
 		end
+		notifyChanged(clanId)
 	end
 end)
 
@@ -454,6 +436,7 @@ DissolveClan.OnServerEvent:Connect(function(player, clanId)
 				updatePlayerAttributes(userId)
 			end)
 		end
+		notifyChanged(clanId)
 	end
 end)
 
@@ -468,6 +451,7 @@ LeaveClan.OnServerEvent:Connect(function(player, clanId)
 	if success then
 		ClanData:CancelRequest(clanId, player.UserId)
 		updatePlayerAttributes(player.UserId)
+		notifyChanged(clanId)
 	end
 end)
 
@@ -483,6 +467,7 @@ RequestJoinClan.OnServerEvent:Connect(function(player, clanId)
 
 	if success then
 		RequestJoinResult:FireClient(player, true, clanId, "Solicitud enviada")
+		notifyChanged(clanId)
 	else
 		RequestJoinResult:FireClient(player, false, clanId, result)
 	end
@@ -496,12 +481,7 @@ ApproveJoinRequest.OnServerEvent:Connect(function(player, clanId, targetUserId)
 
 	if success then
 		updatePlayerAttributes(targetUserId)
-
-		-- 🔥 Notificar al usuario aprobado para que limpie su caché
-		local targetPlayer = Players:GetPlayerByUserId(targetUserId)
-		if targetPlayer then
-			ClansUpdated:FireClient(targetPlayer, clanId)
-		end
+		notifyChanged(clanId)
 	end
 end)
 
@@ -512,11 +492,7 @@ RejectJoinRequest.OnServerEvent:Connect(function(player, clanId, targetUserId)
 	local success = ClanData:RejectRequest(clanId, player.UserId, targetUserId)
 
 	if success then
-		-- 🔥 Notificar al usuario rechazado para que limpie su caché
-		local targetPlayer = Players:GetPlayerByUserId(targetUserId)
-		if targetPlayer then
-			ClansUpdated:FireClient(targetPlayer, clanId)
-		end
+		notifyChanged(clanId)
 	end
 end)
 
@@ -534,9 +510,7 @@ CancelJoinRequest.OnServerEvent:Connect(function(player, clanId)
 	if not ok then return end
 
 	ClanData:CancelRequest(clanId, player.UserId)
-
-	-- 🔥 Notificar al cliente que sus solicitudes cambiaron
-	ClansUpdated:FireClient(player, clanId)
+	notifyChanged(clanId)
 end)
 
 CancelAllJoinRequests.OnServerEvent:Connect(function(player)
@@ -544,9 +518,7 @@ CancelAllJoinRequests.OnServerEvent:Connect(function(player)
 	if not ok then return end
 
 	ClanData:CancelAllRequests(player.UserId)
-
-	-- 🔥 Notificar a TODOS los players que algo cambió en solicitudes
-	ClansUpdated:FireAllClients(nil)
+	notifyChanged(nil)
 end)
 
 -- ============================================
