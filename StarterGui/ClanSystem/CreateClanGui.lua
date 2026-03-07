@@ -14,6 +14,7 @@ local UserInputService = game:GetService("UserInputService")
 -- Módulos externos
 local UI = require(ReplicatedStorage:WaitForChild("Core"):WaitForChild("UI"))
 local THEME = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("ThemeConfig"))
+local AdminConfig = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("AdminConfig"))
 local ClanSystemConfig = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("ClanSystemConfig"))
 local ClanClient = require(ReplicatedStorage:WaitForChild("Systems"):WaitForChild("ClanSystem"):WaitForChild("ClanClient"))
 local GlobalModalManager = require(ReplicatedStorage:WaitForChild("Systems"):WaitForChild("GlobalModalManager"))
@@ -32,7 +33,7 @@ local playerGui = player:WaitForChild("PlayerGui")
 local CONFIG = ClanConstants.CONFIG
 local State = ClanConstants.State
 local Memory = ClanConstants.Memory
-local isAdmin = table.find(ClanSystemConfig.ADMINS.AdminUserIds, player.UserId) ~= nil
+local isAdmin = AdminConfig:IsAdmin(player)
 
 -- Configurar el tracking de UI
 UI.setTrack(function(conn) return Memory:track(conn) end)
@@ -82,11 +83,11 @@ local SIDEBAR_W = isMobileDevice and 100 or 130
 local HEADER_H  = 52
 
 local CLAN_NAV_ITEMS = {
-	{ id = "TuClan",      label = "Tu Clan",     image = "92400453309538" },
-	{ id = "Disponibles", label = "Disponibles", image = "73958056241305" },
+	{ id = "TuClan",      label = "Tu Clan"   ,image="79638260789908"},  -- reemplaza 0 con tu asset id
+	{ id = "Disponibles", label = "Disponibles",image="75350864255657"}, -- reemplaza 0 con tu asset id
 }
 if isAdmin then
-	table.insert(CLAN_NAV_ITEMS, { id = "Admin", label = "Admin", image = "91597166299022" })
+	table.insert(CLAN_NAV_ITEMS, { id = "Admin", label = "Admin",image="81010877025533"})  -- reemplaza 0 con tu asset id
 end
 
 local sidebarNavInstance = SidebarNav.new({

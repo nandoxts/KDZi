@@ -5,6 +5,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 local ClanData = require(ServerStorage:WaitForChild("Systems"):WaitForChild("ClanSystem"):WaitForChild("ClanData"))
+local AdminConfig = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("AdminConfig"))
 local Config = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("ClanSystemConfig"))
 
 -- ============================================
@@ -30,7 +31,8 @@ end
 -- HELPERS
 -- ============================================
 local function isAdmin(userId)
-	return Config:IsAdmin(userId)
+	local player = Players:GetPlayerByUserId(userId)
+	return player and AdminConfig:IsAdmin(player) or false
 end
 
 local function updatePlayerAttributes(userId)
@@ -202,6 +204,12 @@ ChangeClanTag.OnServerEvent:Connect(function(player, clanId, newTag)
 	if not member or member.role ~= Config.ROLE_NAMES.OWNER then return end
 
 	ClanData:UpdateClan(clanId, {tag = newTag})
+	
+	-- Actualizar atributos de todos los miembros para reflejar el cambio al instante
+	local updatedClan = ClanData:GetClan(clanId)
+	if updatedClan then
+		updateAllMembers(updatedClan)
+	end
 end)
 
 ChangeClanDescription.OnServerEvent:Connect(function(player, clanId, newDesc)
@@ -243,6 +251,12 @@ ChangeClanEmoji.OnServerEvent:Connect(function(player, clanId, newEmoji)
 	if not member or not Config:HasPermission(member.role, "cambiar_emoji") then return end
 
 	ClanData:UpdateClan(clanId, {emoji = newEmoji})
+	
+	-- Actualizar atributos de todos los miembros para reflejar el cambio al instante
+	local updatedClan = ClanData:GetClan(clanId)
+	if updatedClan then
+		updateAllMembers(updatedClan)
+	end
 end)
 
 ChangeClanColor.OnServerEvent:Connect(function(player, clanId, newColor)
@@ -256,6 +270,12 @@ ChangeClanColor.OnServerEvent:Connect(function(player, clanId, newColor)
 	if not member or not Config:HasPermission(member.role, "cambiar_color") then return end
 
 	ClanData:UpdateClan(clanId, {color = newColor})
+	
+	-- Actualizar atributos de todos los miembros para reflejar el cambio al instante
+	local updatedClan = ClanData:GetClan(clanId)
+	if updatedClan then
+		updateAllMembers(updatedClan)
+	end
 end)
 
 InvitePlayer.OnServerEvent:Connect(function(player, clanId, targetUserId)

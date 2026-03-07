@@ -127,7 +127,13 @@ function ClanActions:editColor(gui, onSuccess)
 			local color = COLORS.colors[colorName]
 
 			if color then
-				return ClanClient:ChangeClanColor(color)
+				-- Convertir Color3 a array RGB [0-255]
+				local colorArray = {
+					math.floor(color.R * 255),
+					math.floor(color.G * 255),
+					math.floor(color.B * 255)
+				}
+				return ClanClient:ChangeClanColor(colorArray)
 			else
 				return false, "Color no encontrado"
 			end

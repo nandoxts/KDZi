@@ -9,20 +9,11 @@
 local MusicSystemConfig = {}
 
 -- ═══════════════════════════════════════════════════════════
--- CONFIGURACIÓN GENERAL
--- ═══════════════════════════════════════════════════════════
-MusicSystemConfig.SYSTEM = {
-	Version = "3.2",
-}
--- ═══════════════════════════════════════════════════════════
 -- LÍMITES Y RESTRICCIONES
 -- ═══════════════════════════════════════════════════════════
 MusicSystemConfig.LIMITS = {
 	MaxQueueSize = 15,
-	MaxSongsPerDJ = 500,
 	AllowDuplicatesInQueue = false,
-	MinAudioDuration = 10,
-	MaxAudioDuration = 6000,
 	AddToQueueCooldown = 2,
 	SkipCooldown = 30,
 	-- Límites por rol (cuántas canciones puede añadir cada jugador a la cola)
@@ -36,10 +27,8 @@ MusicSystemConfig.LIMITS = {
 -- ═══════════════════════════════════════════════════════════
 MusicSystemConfig.PLAYBACK = {
 	DefaultVolume = 1,
-	AllowVolumeControl = true,
 	MinVolume = 0,
 	MaxVolume = 1.0,
-	LoopQueue = false,
 }
 
 -- ═══════════════════════════════════════════════════════════
@@ -47,33 +36,7 @@ MusicSystemConfig.PLAYBACK = {
 -- ═══════════════════════════════════════════════════════════
 MusicSystemConfig.EVENT_MODE = {
 	Enabled = false,
-	ActivateCommand = ";event",
-	DeactivateCommand = ";unevent",
 	BlockedActions = {"NextSong", "AddToQueue", "RemoveFromQueue", "ClearQueue"},
-}
-
--- ═══════════════════════════════════════════════════════════
--- VALIDACIÓN DE MÚSICA
--- ═══════════════════════════════════════════════════════════
-MusicSystemConfig.VALIDATION = {
-	BlacklistedAudioIds = {},
-}
-
--- ═══════════════════════════════════════════════════════════
--- PERMISOS POR ACCIÓN
--- ═══════════════════════════════════════════════════════════
-MusicSystemConfig.PERMISSIONS = {
-	AddToQueue = "everyone",
-	RemoveFromQueue = "admin",
-	ClearQueue = "admin",
-	MoveInQueue = "admin",
-	PlaySong = "admin",
-	PauseSong = "admin",
-	StopSong = "admin",
-	NextSong = "admin",
-	ChangeVolume = "admin",
-	ToggleShuffle = "admin",
-	ToggleLoop = "admin",
 }
 
 -- ═══════════════════════════════════════════════════════════
@@ -139,91 +102,9 @@ function MusicSystemConfig:IsAdmin(user)
 	return false
 end
 
--- Verificar permiso para una acción
-function MusicSystemConfig:HasPermission(userOrPlayer, action)
-	local permission = self.PERMISSIONS[action]
-
-	if not permission then
-		return false -- Acción no configurada
-	end
-
-	if permission == "everyone" then
-		return true
-	elseif permission == "admin" then
-		-- userOrPlayer puede ser UserId (number), Player (Instance) o nombre (string)
-		if type(userOrPlayer) == "number" then
-			local Players = game:GetService("Players")
-			local plr = Players:GetPlayerByUserId(userOrPlayer)
-			return self:IsAdmin(plr)
-		else
-			return self:IsAdmin(userOrPlayer)
-		end
-	elseif permission == "vip" then
-		-- Implementar lógica de VIP si es necesario; por ahora tratar como admin
-		if type(userOrPlayer) == "number" then
-			local Players = game:GetService("Players")
-			local plr = Players:GetPlayerByUserId(userOrPlayer)
-			return self:IsAdmin(plr)
-		else
-			return self:IsAdmin(userOrPlayer)
-		end
-	end
-
-	return false
-end
-
--- Validar Audio ID
-function MusicSystemConfig:ValidateAudioId(audioId)
-	if not audioId or audioId <= 0 then
-		return false, "ID de audio inválido"
-	end
-
-	-- Verificar blacklist
-	for _, blacklistedId in ipairs(self.VALIDATION.BlacklistedAudioIds) do
-		if audioId == blacklistedId then
-			return false, "Este audio está en la lista negra"
-		end
-	end
-
-	return true
-end
-
--- Validar duración de audio
-function MusicSystemConfig:ValidateDuration(duration)
-	if duration < self.LIMITS.MinAudioDuration then
-		return false, "Audio muy corto (mínimo " .. self.LIMITS.MinAudioDuration .. "s)"
-	end
-
-	if duration > self.LIMITS.MaxAudioDuration then
-		return false, "Audio muy largo (máximo " .. self.LIMITS.MaxAudioDuration .. "s)"
-	end
-
-	return true
-end
-
 -- Obtener volumen predeterminado
 function MusicSystemConfig:GetDefaultVolume()
 	return self.PLAYBACK.DefaultVolume
-end
-
--- Validar volumen
-function MusicSystemConfig:ValidateVolume(volume)
-	if not self.PLAYBACK.AllowVolumeControl then
-		return false, "Control de volumen deshabilitado"
-	end
-
-	if volume < self.PLAYBACK.MinVolume or volume > self.PLAYBACK.MaxVolume then
-		return false, string.format("Volumen debe estar entre %.1f y %.1f", 
-			self.PLAYBACK.MinVolume, self.PLAYBACK.MaxVolume)
-	end
-
-	return true
-end
-
--- Obtener configuración de DJs por defecto
--- Backwards-compatible alias
-function MusicSystemConfig:GetDefaultDJs()
-	return self:GetDJs()
 end
 
 return MusicSystemConfig

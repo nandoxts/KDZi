@@ -9,20 +9,9 @@
 local ClanSystemConfig = {}
 
 -- ═══════════════════════════════════════════════════════════
--- ADMINISTRADORES
--- ═══════════════════════════════════════════════════════════
-ClanSystemConfig.ADMINS = {
-	AdminUserIds = {
-		8387751399,  -- nandoxts (Owner)
-	},
-	LogAdminActions = true,
-}
-
--- ═══════════════════════════════════════════════════════════
 -- BASE DE DATOS (DATASTORE)
 -- ═══════════════════════════════════════════════════════════
 ClanSystemConfig.DATABASE = {
-	UseDataStore = true,
 	ClanStoreName = "ClanData", -- DataStore único para todo el sistema
 	InitDelay = 2, -- Segundos de espera antes de crear clanes por defecto
 	CreateClanDelay = 0.1, -- Delay entre crear cada clan por defecto (evitar throttle)
@@ -290,16 +279,6 @@ ClanSystemConfig.VALIDATION = {
 -- FUNCIONES AUXILIARES
 -- ═══════════════════════════════════════════════════════════
 
--- Verificar si un usuario es admin
-function ClanSystemConfig:IsAdmin(userId)
-	for _, adminId in ipairs(self.ADMINS.AdminUserIds) do
-		if userId == adminId then 
-			return true 
-		end
-	end
-	return false
-end
-
 -- Obtener límite de rate para una acción
 function ClanSystemConfig:GetRateLimit(action)
 	return self.RATE_LIMITS[action] or 1
@@ -360,21 +339,6 @@ function ClanSystemConfig:ValidateTag(tag)
 	return true
 end
 
--- Validar color RGB (tabla {r,g,b} con valores 0-255)
-function ClanSystemConfig:ValidateColor(color)
-	if type(color) ~= "table" then
-		return false, "Color inválido: se espera una tabla {r,g,b}"
-	end
-	if #color ~= 3 then
-		return false, "Color inválido: se esperan 3 componentes RGB"
-	end
-	for i = 1, 3 do
-		local v = color[i]
-		if type(v) ~= "number" or v < 0 or v > 255 then
-			return false, "Color inválido: cada componente debe ser número entre 0 y 255"
-		end
-	end
-	return true
-end
+
 
 return ClanSystemConfig
