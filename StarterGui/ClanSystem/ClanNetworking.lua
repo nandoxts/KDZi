@@ -203,8 +203,12 @@ function ClanNetworking.createClanEntry(clanData, pendingList, clansScroll, load
 	else
 		UI.hover(joinBtn, THEME.accent, UI.brighten(THEME.accent, 1.15))
 		Memory:track(joinBtn.MouseButton1Click:Connect(function()
-			-- Solo enviar solicitud, la notificación se muestra en el listener global
-			ClanClient:RequestJoinClan(clanData.clanId)
+			-- Validación local primero
+			local ok, err = ClanClient:RequestJoinClan(clanData.clanId)
+			if not ok then
+				-- Mostrar error local inmediatamente
+				Notify:Error("Error en solicitud", err, 5)
+			end
 		end))
 	end
 

@@ -103,6 +103,8 @@ local function ensureInitialized()
 		getRemote("GetUserPendingRequests")
 		getRemote("AddOwner")
 		getRemote("RemoveOwner")
+		getRemote("RequestJoinResult")
+		getRemote("ClansUpdated")
 	end)
 
 	initialized = true
@@ -522,26 +524,19 @@ end
 -- LISTENER DE ACTUALIZACIONES
 -- ════════════════════════════════════════════════════════════════
 task.spawn(function()
-	if not ensureInitialized() then 
-		warn("[ClanClient] No se pudo inicializar listeners")
-		return 
-	end
+	if not ensureInitialized() then return end
 
 	local updateEvent = clanEvents and clanEvents:WaitForChild("ClansUpdated", 5)
-	if updateEvent then
-		updateEvent.OnClientEvent:Connect(function(changedClanId)
-			-- Invalidar caché para forzar refrescamiento
-			clansListCache = nil
-			clansListCacheTime = 0
-			pendingRequestsCache = nil
-			pendingRequestsCacheTime = 0
+	updateEvent.OnClientEvent:Connect(function(changedClanId)
+		-- Invalidar caché para forzar refrescamiento
+		clansListCache = nil
+		clansListCacheTime = 0
+		pendingRequestsCache = nil
+		pendingRequestsCacheTime = 0
 
-			-- Notificar UI que algo cambió (la UI se encarga de fetch)
-			ClanClient:_fireUpdateCallbacks(changedClanId)
-		end)
-	else
-		warn("[ClanClient] ERROR: ClansUpdated event no encontrado")
-	end
+		-- Notificar UI que algo cambió (la UI se encarga de fetch)
+		ClanClient:_fireUpdateCallbacks(changedClanId)
+	end)
 end)
 
 -- ════════════════════════════════════════════════════════════════
@@ -579,24 +574,29 @@ task.spawn(function()
 
 	-- clanEvents ya fue resuelto por ensureInitialized (RemotesGlobal/ClanEvents)
 	local RequestJoinResult = clanEvents and clanEvents:WaitForChild("RequestJoinResult", 10)
-	if RequestJoinResult then
-		RequestJoinResult.OnClientEvent:Connect(function(success, clanId, msg)
-			-- Invalidar caché de solicitudes pendientes
-			pendingRequestsCache = nil
-			pendingRequestsCacheTime = 0
 
-			-- ✅ Manejar notificaciones AQUÍ directamente (sin callbacks acumulativos)
-			local Notify = require(ReplicatedStorage:WaitForChild("Systems"):WaitForChild("NotificationSystem"):WaitForChild("NotificationSystem"))
+	RequestJoinResult.OnClientEvent:Connect(function(success, clanId, msg)
+		-- Invalidar caché de solicitudes pendientes
+		pendingRequestsCache = nil
+		pendingRequestsCacheTime = 0
 
-			if success then
-				Notify:Success("Solicitud enviada", msg or "Esperando aprobación", 5)
-				clansListCache = nil
-				clansListCacheTime = 0
+		-- ✅ Manejar notificaciones AQUÍ directamente (sin callbacks acumulativos)
+		local Notify = require(ReplicatedStorage:WaitForChild("Systems"):WaitForChild("NotificationSystem"):WaitForChild("NotificationSystem"))
+
+		if success then
+			Notify:Success("Solicitud enviada", msg or "Esperando aprobación del líder del clan", 5)
+			clansListCache = nil
+			clansListCacheTime = 0
+		else
+			-- Mensaje de error con el contexto
+			local errorMsg = msg or "No se pudo enviar la solicitud"
+			if msg:lower():find("ya") then
+				Notify:Error("Ya estés en un clan", errorMsg, 5)
 			else
-				Notify:Error("Error", msg or "No se pudo enviar", 5)
+				Notify:Error("Error en solicitud", errorMsg, 5)
 			end
-		end)
-	end
+		end
+	end)
 end)
 
 return ClanClient
