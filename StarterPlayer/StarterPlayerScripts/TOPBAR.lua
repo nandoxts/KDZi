@@ -58,68 +58,6 @@ end
 -- ════════════════════════════════════════════════════════════════
 
 -- ════════════════════════════════════════════════════════════════
--- ICONO: TIENDA
--- ════════════════════════════════════════════════════════════════
-_G.ShopIcon = Icon.new()
-	:setImage(9405933217)
-	:setName("Tienda")
-	:setCaption("Tienda")
-	:bindToggleKey(Enum.KeyCode.T)
-	:autoDeselect(false)
-
-_G.ShopIcon:bindEvent("selected", function()
-	GlobalModalManager:openModal("Shop")
-end)
-
-_G.ShopIcon:bindEvent("deselected", function()
-	GlobalModalManager:closeModal("Shop")
-end)
-
--- ════════════════════════════════════════════════════════════════
--- ICONO: CONFIGURACIÓN (SETTINGS MODAL)
--- ════════════════════════════════════════════════════════════════
-_G.SettingsIcon = Icon.new()
-	:setImage(9753762469)
-	:setName("Configuración")
-	:setCaption("Configuración")
-	:align("Right")
-	:bindToggleKey(Enum.KeyCode.C)
-	:autoDeselect(false)
-
-_G.SettingsIcon:bindEvent("selected", function()
-	if _G.OpenSettingsUI then
-		_G.OpenSettingsUI()
-	else
-		warn("[Topbar] OpenSettingsUI no está disponible")
-	end
-end)
-
-_G.SettingsIcon:bindEvent("deselected", function()
-	if _G.CloseSettingsUI then
-		_G.CloseSettingsUI()
-	end
-end)
-
--- ════════════════════════════════════════════════════════════════
--- ICONO: CLANES
--- ════════════════════════════════════════════════════════════════
-_G.ClanSystemIcon = Icon.new()
-	:setImage(108522831218138)
-	:setImageRatio(1)
-	:setImageScale(0.65)
-	:setOrder(2)
-	:autoDeselect(false)
-	:disableOverlay(true)
-
-_G.ClanSystemIcon:bindEvent("selected", function(icon)
-	GlobalModalManager:openModal("Clan")
-end)
-
-_G.ClanSystemIcon:bindEvent("deselected", function(icon)
-	GlobalModalManager:closeModal("Clan")
-end)
-
--- ════════════════════════════════════════════════════════════════
 -- ICONO: EMOTES
 -- ════════════════════════════════════════════════════════════════
 _G.EmotesIcon = Icon.new()
@@ -136,19 +74,27 @@ _G.EmotesIcon:bindEvent("deselected", function(icon)
 end)
 
 -- ════════════════════════════════════════════════════════════════
--- ICONO: MÚSICA (Dashboard)
+-- ICONO: MENÚ (abre panel lateral unificado)
 -- ════════════════════════════════════════════════════════════════
-_G.MusicDashboardIcon = Icon.new()
-	:setImage("13780950231")
-	:setOrder(1)
+_G.MenuIcon = Icon.new()
+	:setLabel("MENU")
+	:setName("Menu")
+	:setCaption("Abrir Menu")
+	:align("Right")
 	:autoDeselect(false)
 
-_G.MusicDashboardIcon:bindEvent("selected", function(icon)
-	GlobalModalManager:openModal("Music")
+_G.MenuIcon:bindEvent("selected", function()
+	if _G.OpenMenuPanel then
+		_G.OpenMenuPanel()
+	else
+		warn("[Topbar] OpenMenuPanel no está disponible aún")
+	end
 end)
 
-_G.MusicDashboardIcon:bindEvent("deselected", function(icon)
-	GlobalModalManager:closeModal("Music")
+_G.MenuIcon:bindEvent("deselected", function()
+	if _G.CloseMenuPanel then
+		_G.CloseMenuPanel()
+	end
 end)
 
 -- ════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
@@ -218,11 +164,8 @@ local iconsHidden = false
 
 -- Lista de todos los iconos a gestionar
 local topbarIcons = {
-	_G.ShopIcon,
-	_G.SettingsIcon,
-	_G.ClanSystemIcon,
 	_G.EmotesIcon,
-	_G.MusicDashboardIcon,
+	_G.MenuIcon,
 	soundIcon
 }
 

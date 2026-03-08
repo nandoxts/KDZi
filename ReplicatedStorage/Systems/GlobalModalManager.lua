@@ -104,6 +104,25 @@ local modals = {
 		icon = function() return nil end,  -- No tiene icono en topbar
 		category = "independent"  -- Puede coexistir con otros modales
 	},
+
+	Menu = {
+		open = function()
+			if _G.OpenMenuPanel then
+				local ok, err = pcall(function() _G.OpenMenuPanel() end)
+				if not ok then warn("[GMM] Error abriendo Menu: " .. tostring(err)) end
+			else
+				warn("[GMM] _G.OpenMenuPanel no está disponible")
+			end
+		end,
+		close = function()
+			if _G.CloseMenuPanel then
+				local ok, err = pcall(function() _G.CloseMenuPanel() end)
+				if not ok then warn("[GMM] Error cerrando Menu: " .. tostring(err)) end
+			end
+		end,
+		icon = function() return _G.MenuIcon end,
+		category = "independent"  -- El panel lateral convive con Emotes
+	},
 }
 
 -- ════════════════════════════════════════════════════════════════
