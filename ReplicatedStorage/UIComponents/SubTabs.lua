@@ -64,34 +64,20 @@ function SubTabs.new(parent, THEME, config)
 
 	local layout = Instance.new("UIListLayout")
 	layout.FillDirection = Enum.FillDirection.Horizontal
-	layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	layout.HorizontalAlignment = Enum.HorizontalAlignment.Left
 	layout.VerticalAlignment = Enum.VerticalAlignment.Center
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
-	layout.Padding = UDim.new(0, 4)
+	layout.Padding = UDim.new(0, 0)
 	layout.Parent = bar
 
-	local pad = Instance.new("UIPadding")
-	pad.PaddingLeft = UDim.new(0, 6)
-	pad.PaddingRight = UDim.new(0, 6)
-	pad.Parent = bar
-
-	-- Separador
-	local sep = Instance.new("Frame")
-	sep.Size = UDim2.new(1, 0, 0, 1)
-	sep.Position = UDim2.new(0, 0, 0, height)
-	sep.BackgroundColor3 = THEME.stroke or Color3.fromRGB(45, 45, 45)
-	sep.BackgroundTransparency = 0.6
-	sep.ZIndex = z
-	sep.Parent = parent
-
-	-- Crear botones
+	-- Crear botones (100% ancho, sin padding, sin gaps, sin corner)
 	local tabCount = #tabs
 	local btnWidth = tabCount > 0 and (1 / tabCount) or 1
 
 	for idx, tabDef in ipairs(tabs) do
 		local btn = Instance.new("TextButton")
 		btn.Name = tabDef.id
-		btn.Size = UDim2.new(btnWidth, -4, 0, 30)
+		btn.Size = UDim2.new(btnWidth, 0, 1, 0)
 		btn.BackgroundColor3 = THEME.card or Color3.fromRGB(35, 35, 35)
 		btn.BackgroundTransparency = 0.2
 		btn.Font = Enum.Font.GothamBold
@@ -103,7 +89,6 @@ function SubTabs.new(parent, THEME, config)
 		btn.ZIndex = z + 1
 		btn.LayoutOrder = idx
 		btn.Parent = bar
-		UI.rounded(btn, 8)
 
 		self.buttons[tabDef.id] = btn
 

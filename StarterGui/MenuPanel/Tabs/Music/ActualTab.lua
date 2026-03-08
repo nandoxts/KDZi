@@ -6,10 +6,9 @@ local ActualTab = {}
 
 function ActualTab.build(parent, THEME, state, R, H)
 	local make, tween, rounded, formatTime = H.make, H.tween, H.rounded, H.formatTime
-	local SKIP_CD = 3
+	local ICONS = H.ICONS
 	local CONTENT_TOP = state.subTabH + 1
 
-	local cooldownActive = false
 	local currentCover = ""
 	local queueCardPool = {}
 	local activeQueueCards = {}
@@ -24,7 +23,7 @@ function ActualTab.build(parent, THEME, state, R, H)
 		AutomaticCanvasSize = Enum.AutomaticSize.Y,
 		ZIndex = 210, Visible = true, Parent = parent,
 	})
-	ModernScrollbar.setup(panel, parent, THEME, { transparency = 0.45, offset = -4 })
+	ModernScrollbar.setup(panel, parent, THEME, { transparency = 0.45, offset = -4, zIndex = 300 })
 	make("UIListLayout", { Padding = UDim.new(0, 0), SortOrder = Enum.SortOrder.LayoutOrder, Parent = panel })
 
 	-- ── COVER ──
@@ -81,39 +80,40 @@ function ActualTab.build(parent, THEME, state, R, H)
 		ZIndex = 214, Parent = coverSection,
 	})
 
-	-- ── PROGRESO ──
+	-- ── PROGRESO (inline: time · bar · time) ──
 	local progressSection = make("Frame", {
-		Size = UDim2.new(1, 0, 0, 38), BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 0, 36), BackgroundTransparency = 1,
 		LayoutOrder = 2, ZIndex = 211, Parent = panel,
 	})
 
-	local progressBar = make("Frame", {
-		Size = UDim2.new(1, -24, 0, 4), Position = UDim2.new(0, 12, 0, 10),
-		BackgroundColor3 = Color3.fromRGB(55, 55, 55), ZIndex = 212, Parent = progressSection,
+	local timeLeft = make("TextLabel", {
+		Size = UDim2.new(0, 38, 0, 20), Position = UDim2.new(0, 12, 0.5, -10),
+		BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 13,
+		TextColor3 = THEME.accent, Text = "0:00",
+		TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 212, Parent = progressSection,
 	})
-	rounded(progressBar, 2)
+
+	local timeRight = make("TextLabel", {
+		Size = UDim2.new(0, 38, 0, 20), Position = UDim2.new(1, -50, 0.5, -10),
+		BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 13,
+		TextColor3 = Color3.fromRGB(170, 170, 170), Text = "0:00",
+		TextXAlignment = Enum.TextXAlignment.Right, ZIndex = 212, Parent = progressSection,
+	})
+
+	local progressBar = make("Frame", {
+		Size = UDim2.new(1, -112, 0, 6), Position = UDim2.new(0, 56, 0.5, -3),
+		BackgroundColor3 = Color3.fromRGB(40, 40, 40), ZIndex = 212, Parent = progressSection,
+	})
+	rounded(progressBar, 3)
 
 	local progressFill = make("Frame", {
 		Size = UDim2.new(0, 0, 1, 0), BackgroundColor3 = THEME.accent,
 		ZIndex = 213, Parent = progressBar,
 	})
-	rounded(progressFill, 2)
-
-	local timeLeft = make("TextLabel", {
-		Size = UDim2.new(0.5, -12, 0, 16), Position = UDim2.new(0, 12, 0, 18),
-		BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 12,
-		TextColor3 = Color3.fromRGB(170, 170, 170), Text = "0:00",
-		TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 212, Parent = progressSection,
-	})
-
-	local timeRight = make("TextLabel", {
-		Size = UDim2.new(0.5, -12, 0, 16), Position = UDim2.new(0.5, 0, 0, 18),
-		BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 12,
-		TextColor3 = Color3.fromRGB(170, 170, 170), Text = "0:00",
-		TextXAlignment = Enum.TextXAlignment.Right, ZIndex = 212, Parent = progressSection,
-	})
+	rounded(progressFill, 3)
 
 	-- ── REPRODUCCION ──
+	local ADMIN_BTN = 42
 	local reproSection = make("Frame", {
 		Size = UDim2.new(1, 0, 0, 78), BackgroundTransparency = 1,
 		LayoutOrder = 3, ZIndex = 211, Parent = panel,
@@ -131,72 +131,135 @@ function ActualTab.build(parent, THEME, state, R, H)
 		BackgroundTransparency = 1, ZIndex = 212, Parent = reproSection,
 	})
 
+	-- Admin circular buttons (gothic style)
+	local skipBtn, clearBtn
+	local inputLeftOff, inputRightOff = 0, 0
+
+	if state.isAdmin then
+		-- SKIP button (left) — dark + accent glow
+		skipBtn = make("TextButton", {
+			Size = UDim2.new(0, ADMIN_BTN, 0, ADMIN_BTN),
+			Position = UDim2.new(0, 0, 0, 0),
+			BackgroundColor3 = Color3.fromRGB(15, 12, 10),
+			Text = "", BorderSizePixel = 0, AutoButtonColor = false,
+			ZIndex = 214, Parent = reproRow,
+		})
+		rounded(skipBtn, ADMIN_BTN / 2)
+		make("UIStroke", {
+			Color = THEME.accent, Thickness = 2.5, Transparency = 0.15,
+			Name = "SkipStroke", Parent = skipBtn,
+		})
+		make("ImageLabel", {
+			Size = UDim2.new(0.55, 0, 0.55, 0), Position = UDim2.new(0.225, 0, 0.225, 0),
+			BackgroundTransparency = 1, Image = ICONS.SKIP,
+			ImageColor3 = THEME.accent,
+			ZIndex = 215, Parent = skipBtn,
+		})
+
+		-- CLEAR button (right) — dark + red glow
+		clearBtn = make("TextButton", {
+			Size = UDim2.new(0, ADMIN_BTN, 0, ADMIN_BTN),
+			Position = UDim2.new(1, -ADMIN_BTN, 0, 0),
+			BackgroundColor3 = Color3.fromRGB(15, 12, 10),
+			Text = "", BorderSizePixel = 0, AutoButtonColor = false,
+			ZIndex = 214, Parent = reproRow,
+		})
+		rounded(clearBtn, ADMIN_BTN / 2)
+		make("UIStroke", {
+			Color = Color3.fromRGB(180, 50, 50), Thickness = 2.5, Transparency = 0.15,
+			Name = "ClearStroke", Parent = clearBtn,
+		})
+		make("ImageLabel", {
+			Size = UDim2.new(0.5, 0, 0.5, 0), Position = UDim2.new(0.25, 0, 0.25, 0),
+			BackgroundTransparency = 1, Image = ICONS.DELETE,
+			ImageColor3 = Color3.fromRGB(180, 50, 50),
+			ZIndex = 215, Parent = clearBtn,
+		})
+
+		inputLeftOff = ADMIN_BTN + 8
+		inputRightOff = ADMIN_BTN + 8
+	end
+
+	-- Combined input + add button (pill shape)
+	local inputContainer = make("Frame", {
+		Size = UDim2.new(1, -(inputLeftOff + inputRightOff), 1, 0),
+		Position = UDim2.new(0, inputLeftOff, 0, 0),
+		BackgroundColor3 = Color3.fromRGB(28, 28, 28),
+		BorderSizePixel = 0, ZIndex = 213, Parent = reproRow,
+	})
+	rounded(inputContainer, 21)
+
 	local reproInput = make("TextBox", {
-		Size = UDim2.new(1, -52, 1, 0),
-		BackgroundColor3 = Color3.fromRGB(30, 30, 30),
+		Size = UDim2.new(1, -46, 1, 0),
+		Position = UDim2.new(0, 0, 0, 0),
+		BackgroundTransparency = 1,
 		Font = Enum.Font.GothamBold, TextSize = 15,
 		TextColor3 = THEME.text,
 		PlaceholderText = "ID de cancion...",
-		PlaceholderColor3 = Color3.fromRGB(100, 100, 100),
+		PlaceholderColor3 = Color3.fromRGB(90, 90, 90),
 		ClearTextOnFocus = false, Text = "",
-		ZIndex = 213, Parent = reproRow,
+		ZIndex = 214, Parent = inputContainer,
 	})
-	rounded(reproInput, 10)
-	make("UIPadding", { PaddingLeft = UDim.new(0, 14), PaddingRight = UDim.new(0, 14), Parent = reproInput })
+	make("UIPadding", { PaddingLeft = UDim.new(0, 16), PaddingRight = UDim.new(0, 6), Parent = reproInput })
 
-	local cooldownBtn = make("TextButton", {
-		Size = UDim2.new(0, 42, 0, 42), Position = UDim2.new(1, -42, 0, 0),
-		BackgroundColor3 = Color3.fromRGB(55, 55, 55),
-		Font = Enum.Font.GothamBold, TextSize = 16,
-		TextColor3 = Color3.fromRGB(180, 180, 180), Text = tostring(SKIP_CD),
-		BorderSizePixel = 0, AutoButtonColor = false, ZIndex = 214, Parent = reproRow,
+	local addBtn = make("TextButton", {
+		Size = UDim2.new(0, 34, 0, 34),
+		Position = UDim2.new(1, -38, 0.5, -17),
+		BackgroundColor3 = THEME.accent,
+		Text = "", BorderSizePixel = 0, AutoButtonColor = false,
+		ZIndex = 215, Parent = inputContainer,
 	})
-	rounded(cooldownBtn, 21)
-	local cdStroke = make("UIStroke", {
-		Color = Color3.fromRGB(90, 90, 90), Thickness = 2, Transparency = 0.3, Parent = cooldownBtn,
+	rounded(addBtn, 17)
+	make("ImageLabel", {
+		Size = UDim2.new(0.55, 0, 0.55, 0), Position = UDim2.new(0.225, 0, 0.225, 0),
+		BackgroundTransparency = 1, Image = ICONS.PLAY_ADD,
+		ImageColor3 = Color3.new(1, 1, 1),
+		ZIndex = 216, Parent = addBtn,
 	})
 
 	reproInput:GetPropertyChangedSignal("Text"):Connect(function()
 		reproInput.Text = reproInput.Text:gsub("[^%d]", ""):sub(1, 15)
 	end)
 
-	local function startCooldownUI(seconds)
-		if cooldownActive then return end
-		cooldownActive = true
-		local remaining = seconds
-		cooldownBtn.Text = tostring(remaining)
-		tween(cooldownBtn, 0.2, { BackgroundColor3 = THEME.accent })
-		tween(cdStroke, 0.2, { Color = THEME.accent, Transparency = 0.1 })
-		task.spawn(function()
-			while remaining > 0 do
-				task.wait(1)
-				remaining -= 1
-				if cooldownBtn.Parent then cooldownBtn.Text = tostring(remaining) end
-			end
-			cooldownActive = false
-			if cooldownBtn.Parent then
-				cooldownBtn.Text = tostring(SKIP_CD)
-				tween(cooldownBtn, 0.3, { BackgroundColor3 = Color3.fromRGB(55, 55, 55) })
-				tween(cdStroke, 0.3, { Color = Color3.fromRGB(90, 90, 90), Transparency = 0.3 })
-			end
-		end)
-	end
-
 	local function doQuickAdd()
 		local songId = tonumber(reproInput.Text)
-		if not songId or cooldownActive then return end
+		if not songId then return end
 		if R.Add then pcall(function() R.Add:FireServer(songId) end) end
 		reproInput.Text = ""
-		startCooldownUI(SKIP_CD)
 	end
 
-	cooldownBtn.MouseButton1Click:Connect(doQuickAdd)
-	cooldownBtn.MouseEnter:Connect(function()
-		if not cooldownActive then tween(cooldownBtn, 0.12, { BackgroundColor3 = Color3.fromRGB(75, 75, 75) }) end
+	addBtn.MouseButton1Click:Connect(doQuickAdd)
+	reproInput.FocusLost:Connect(function(enterPressed)
+		if enterPressed then doQuickAdd() end
 	end)
-	cooldownBtn.MouseLeave:Connect(function()
-		if not cooldownActive then tween(cooldownBtn, 0.12, { BackgroundColor3 = Color3.fromRGB(55, 55, 55) }) end
+	addBtn.MouseEnter:Connect(function()
+		tween(addBtn, 0.12, { BackgroundColor3 = Color3.fromRGB(255, 160, 30) })
 	end)
+	addBtn.MouseLeave:Connect(function()
+		tween(addBtn, 0.12, { BackgroundColor3 = THEME.accent })
+	end)
+
+	if state.isAdmin then
+		skipBtn.MouseButton1Click:Connect(function()
+			if R.Next then pcall(function() R.Next:FireServer() end) end
+		end)
+		skipBtn.MouseEnter:Connect(function()
+			tween(skipBtn, 0.15, { BackgroundColor3 = Color3.fromRGB(30, 24, 18) })
+		end)
+		skipBtn.MouseLeave:Connect(function()
+			tween(skipBtn, 0.15, { BackgroundColor3 = Color3.fromRGB(15, 12, 10) })
+		end)
+
+		clearBtn.MouseButton1Click:Connect(function()
+			if R.Clear then pcall(function() R.Clear:FireServer() end) end
+		end)
+		clearBtn.MouseEnter:Connect(function()
+			tween(clearBtn, 0.15, { BackgroundColor3 = Color3.fromRGB(30, 18, 18) })
+		end)
+		clearBtn.MouseLeave:Connect(function()
+			tween(clearBtn, 0.15, { BackgroundColor3 = Color3.fromRGB(15, 12, 10) })
+		end)
+	end
 
 	-- ── COLA (LISTA) ──
 	local listaSection = make("Frame", {
@@ -225,7 +288,6 @@ function ActualTab.build(parent, THEME, state, R, H)
 	})
 
 	-- Queue card factory (CanvasGroup + iconos modernos — mismo estilo MusicDjDashboard)
-	local ICONS = H.ICONS
 	local QC_H = 58
 
 	local function createQueueCard()

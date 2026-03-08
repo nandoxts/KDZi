@@ -88,7 +88,7 @@ function ModernScrollbar.setup(scrollFrame, parentFrame, THEME, options)
 	track.Name = "Track"
 	track.Size = UDim2.new(1, 0, 1, 0)
 	track.BackgroundColor3 = THEME.stroke
-	track.BackgroundTransparency = 0.7
+	track.BackgroundTransparency = 1
 	track.BorderSizePixel = 0
 	track.ZIndex = zIndex
 	track.Parent = container
@@ -102,7 +102,7 @@ function ModernScrollbar.setup(scrollFrame, parentFrame, THEME, options)
 	thumb.Size = UDim2.new(1, 0, 0.3, 0)
 	thumb.Position = UDim2.new(0, 0, 0, 0)
 	thumb.BackgroundColor3 = color
-	thumb.BackgroundTransparency = transparency
+	thumb.BackgroundTransparency = 1
 	thumb.BorderSizePixel = 0
 	thumb.ZIndex = zIndex + 1
 	thumb.Parent = container
@@ -110,18 +110,37 @@ function ModernScrollbar.setup(scrollFrame, parentFrame, THEME, options)
 	thumbCorner.CornerRadius = UDim.new(0, 4)
 	thumbCorner.Parent = thumb
 
-	-- ── Update logic ───────────────────────────────────────────────
+	-- ── Update + Auto-hide logic ───────────────────────────────────
+	local needsScroll  = false
+	local hoverScroll  = false   -- mouse sobre el scrollFrame
+	local hoverBar     = false   -- mouse sobre track/thumb
+	local hideThread   = nil     -- debounce para evitar flicker
+
+	local function refreshFade()
+		local show = needsScroll and (hoverScroll or hoverBar)
+		if show then
+			TweenService:Create(track, TweenInfo.new(0.15), { BackgroundTransparency = 0.7 }):Play()
+			TweenService:Create(thumb, TweenInfo.new(0.15), {
+				BackgroundTransparency = hoverBar and transparencyHover or transparency
+			}):Play()
+		else
+			TweenService:Create(track, TweenInfo.new(0.3), { BackgroundTransparency = 1 }):Play()
+			TweenService:Create(thumb, TweenInfo.new(0.3), { BackgroundTransparency = 1 }):Play()
+		end
+	end
+
 	local function update()
 		local canvasH = scrollFrame.AbsoluteCanvasSize.Y
 		local windowH = scrollFrame.AbsoluteWindowSize.Y
 
-		-- Si window es 0 (frame invisible), no ocultar — esperar a que sea visible
 		if windowH < 1 then return end
 
 		if canvasH <= windowH + 1 then
+			needsScroll = false
 			container.Visible = false
 			return
 		end
+		needsScroll = true
 		container.Visible = true
 
 		local thumbRatio = math.clamp(windowH / canvasH, 0.08, 1)
@@ -135,7 +154,6 @@ function ModernScrollbar.setup(scrollFrame, parentFrame, THEME, options)
 	scrollFrame:GetPropertyChangedSignal("CanvasPosition"):Connect(update)
 	scrollFrame:GetPropertyChangedSignal("AbsoluteCanvasSize"):Connect(update)
 	scrollFrame:GetPropertyChangedSignal("AbsoluteWindowSize"):Connect(update)
-	-- Re-evaluar cuando el frame cambia de tamaño real (invisible→visible)
 	scrollFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
 		task.defer(update)
 	end)
@@ -150,31 +168,43 @@ function ModernScrollbar.setup(scrollFrame, parentFrame, THEME, options)
 		end
 	end)
 
-	-- ── Hover ──────────────────────────────────────────────────────
-	local function onHoverEnter()
+	-- ── Hover: scrollFrame → mostrar/ocultar scrollbar con fade ───
+	scrollFrame.MouseEnter:Connect(function()
+		hoverScroll = true
+		if hideThread then task.cancel(hideThread); hideThread = nil end
+		refreshFade()
+	end)
+	scrollFrame.MouseLeave:Connect(function()
+		hoverScroll = false
+		-- Pequeño delay para evitar flicker al mover mouse hacia la barra
+		hideThread = task.delay(0.12, function()
+			hideThread = nil
+			refreshFade()
+		end)
+	end)
+
+	-- ── Hover: barra → mantener visible + expandir ────────────────
+	local function onBarEnter()
+		hoverBar = true
+		if hideThread then task.cancel(hideThread); hideThread = nil end
+		refreshFade()
 		TweenService:Create(container, TweenInfo.new(0.15), {
 			Size = UDim2.new(0, widthHover, 1, -paddingV * 2)
 		}):Play()
-		TweenService:Create(thumb, TweenInfo.new(0.15), {
-			BackgroundColor3 = colorHover,
-			BackgroundTransparency = transparencyHover
-		}):Play()
 	end
 
-	local function onHoverLeave()
+	local function onBarLeave()
+		hoverBar = false
+		refreshFade()
 		TweenService:Create(container, TweenInfo.new(0.2), {
 			Size = UDim2.new(0, width, 1, -paddingV * 2)
 		}):Play()
-		TweenService:Create(thumb, TweenInfo.new(0.2), {
-			BackgroundColor3 = color,
-			BackgroundTransparency = transparency
-		}):Play()
 	end
 
-	track.MouseEnter:Connect(onHoverEnter)
-	thumb.MouseEnter:Connect(onHoverEnter)
-	track.MouseLeave:Connect(onHoverLeave)
-	thumb.MouseLeave:Connect(onHoverLeave)
+	track.MouseEnter:Connect(onBarEnter)
+	thumb.MouseEnter:Connect(onBarEnter)
+	track.MouseLeave:Connect(onBarLeave)
+	thumb.MouseLeave:Connect(onBarLeave)
 
 	update()
 

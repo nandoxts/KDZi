@@ -39,10 +39,11 @@ end
 
 -- Iconos modernos compartidos (mismos que MusicDjDashboard)
 Helpers.ICONS = {
-	PLAY_ADD = "rbxassetid://84692791859484",
+	PLAY_ADD = "rbxassetid://108828649435041",
 	CHECK    = "rbxassetid://102926522001210",
 	DELETE   = "rbxassetid://94904012825024",
 	LOADING  = "rbxassetid://122161736287488",
+	SKIP     = "rbxassetid://125130348287636",
 }
 
 -- CanvasGroup helper — recorta hijos respetando UICorner (protección de bordes)

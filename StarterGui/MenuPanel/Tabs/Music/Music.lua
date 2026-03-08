@@ -51,7 +51,7 @@ end)
 local Music = {}
 
 function Music.build(parent, THEME, sharedState)
-	local isAdmin  = MusicConfig and MusicConfig.IsAdmin and MusicConfig.IsAdmin(player) or false
+	local isAdmin  = MusicConfig and MusicConfig.IsAdmin and MusicConfig:IsAdmin(player) or false
 	local MAX_VOL  = (MusicConfig and MusicConfig.PLAYBACK and MusicConfig.PLAYBACK.MaxVolume) or 1
 	local MIN_VOL  = (MusicConfig and MusicConfig.PLAYBACK and MusicConfig.PLAYBACK.MinVolume) or 0
 	local DEF_VOL  = (MusicConfig and MusicConfig.PLAYBACK and MusicConfig.PLAYBACK.DefaultVolume) or 0.5
@@ -236,13 +236,11 @@ function Music.build(parent, THEME, sharedState)
 		if R.RemoveResponse then
 			R.RemoveResponse.OnClientEvent:Connect(function(response)
 				if response then showNotification(response) end
-				actual.drawQueue()
 			end)
 		end
 		if R.ClearResponse then
 			R.ClearResponse.OnClientEvent:Connect(function(response)
 				if response then showNotification(response) end
-				state.playQueue = {}; actual.drawQueue()
 			end)
 		end
 	end)
