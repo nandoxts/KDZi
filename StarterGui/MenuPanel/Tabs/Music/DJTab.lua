@@ -1,6 +1,8 @@
 -- Music/DJTab.lua — Sub-tab DJ (lista DJs, canciones, virtual scroll, busqueda)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 local ModernScrollbar = require(ReplicatedStorage:WaitForChild("UIComponents"):WaitForChild("ModernScrollbar"))
+local SearchModern = require(ReplicatedStorage:WaitForChild("UIComponents"):WaitForChild("SearchModern"))
 
 local DJTab = {}
 
@@ -23,7 +25,8 @@ function DJTab.build(parent, THEME, state, R, H)
 	local panel = make("Frame", {
 		Size = UDim2.new(1, 0, 1, -CONTENT_TOP),
 		Position = UDim2.new(0, 0, 0, CONTENT_TOP),
-		BackgroundTransparency = 1, ClipsDescendants = true,
+		BackgroundColor3 = THEME.bg, BackgroundTransparency = 0,
+		ClipsDescendants = true,
 		ZIndex = 210, Visible = false, Parent = parent,
 	})
 
@@ -36,11 +39,11 @@ function DJTab.build(parent, THEME, state, R, H)
 		AutomaticCanvasSize = Enum.AutomaticSize.Y,
 		ZIndex = 211, Visible = true, Parent = panel,
 	})
-	ModernScrollbar.setup(djListView, panel, THEME, { transparency = 0.45, offset = -4 })
-	make("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder, Parent = djListView })
+	local djListSB = ModernScrollbar.setup(djListView, panel, THEME, { transparency = 0.45, offset = -4, zIndex = 300 })
+	make("UIListLayout", { Padding = UDim.new(0, 0), SortOrder = Enum.SortOrder.LayoutOrder, Parent = djListView })
 	make("UIPadding", {
-		PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10),
-		PaddingTop = UDim.new(0, 8), PaddingBottom = UDim.new(0, 12),
+		PaddingLeft = UDim.new(0, 0), PaddingRight = UDim.new(0, 0),
+		PaddingTop = UDim.new(0, 0), PaddingBottom = UDim.new(0, 0),
 		Parent = djListView,
 	})
 
@@ -51,68 +54,60 @@ function DJTab.build(parent, THEME, state, R, H)
 		ZIndex = 211, Visible = false, Parent = panel,
 	})
 
-	local djHeaderH = 56
+	local djHeaderH = 60
 	local djHeader = make("Frame", {
 		Size = UDim2.new(1, 0, 0, djHeaderH),
-		BackgroundColor3 = Color3.fromRGB(22, 22, 22), ZIndex = 213, Parent = djSongsView,
+		BackgroundColor3 = Color3.fromRGB(22, 22, 22),
+		ClipsDescendants = true, ZIndex = 213, Parent = djSongsView,
+	})
+
+	local djHeaderBg = make("ImageLabel", {
+		Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1,
+		ScaleType = Enum.ScaleType.Crop, Image = "",
+		ImageTransparency = 0.2, ZIndex = 213, Name = "HeaderBg", Parent = djHeader,
+	})
+	make("Frame", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 0.35,
+		BorderSizePixel = 0, ZIndex = 214, Parent = djHeader,
 	})
 
 	local djBackBtn = make("TextButton", {
 		Size = UDim2.new(0, 36, 0, 36), Position = UDim2.new(0, 8, 0.5, -18),
-		BackgroundColor3 = Color3.fromRGB(40, 40, 40),
+		BackgroundColor3 = Color3.fromRGB(40, 40, 40), BackgroundTransparency = 0.3,
 		Font = Enum.Font.GothamBold, TextSize = 16,
 		TextColor3 = THEME.text, Text = "←",
-		BorderSizePixel = 0, AutoButtonColor = false, ZIndex = 214, Parent = djHeader,
+		BorderSizePixel = 0, AutoButtonColor = false, ZIndex = 215, Parent = djHeader,
 	})
 	rounded(djBackBtn, 8)
 
-	local djHeaderCover = make("ImageLabel", {
-		Size = UDim2.new(0, 36, 0, 36), Position = UDim2.new(0, 52, 0.5, -18),
-		BackgroundColor3 = Color3.fromRGB(35, 35, 35),
-		ScaleType = Enum.ScaleType.Crop, Image = "",
-		ZIndex = 214, Parent = djHeader,
-	})
-	rounded(djHeaderCover, 8)
-
 	local djHeaderName = make("TextLabel", {
-		Size = UDim2.new(1, -110, 0, 20), Position = UDim2.new(0, 96, 0, 8),
-		BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 15,
-		TextColor3 = THEME.text, Text = "",
+		Size = UDim2.new(1, -60, 0, 22), Position = UDim2.new(0, 52, 0, 6),
+		BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 16,
+		TextColor3 = Color3.new(1, 1, 1), Text = "",
 		TextXAlignment = Enum.TextXAlignment.Left,
-		TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 214, Parent = djHeader,
+		TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 215, Parent = djHeader,
 	})
 
 	local djHeaderCount = make("TextLabel", {
-		Size = UDim2.new(1, -110, 0, 14), Position = UDim2.new(0, 96, 0, 30),
-		BackgroundTransparency = 1, Font = Enum.Font.GothamMedium, TextSize = 11,
+		Size = UDim2.new(1, -60, 0, 16), Position = UDim2.new(0, 52, 0, 30),
+		BackgroundTransparency = 1, Font = Enum.Font.GothamMedium, TextSize = 13,
 		TextColor3 = THEME.accent, Text = "0 canciones",
-		TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 214, Parent = djHeader,
+		TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 215, Parent = djHeader,
 	})
 
-	-- Search bar
-	local djSearchBar = make("Frame", {
-		Size = UDim2.new(1, -20, 0, 36), Position = UDim2.new(0, 10, 0, djHeaderH + 6),
-		BackgroundColor3 = Color3.fromRGB(30, 30, 30), ZIndex = 213, Parent = djSongsView,
+	-- Search bar (SearchModern)
+	local djSearchBar, djSearchInput = SearchModern.new(djSongsView, {
+		placeholder = "Buscar Canción",
+		size = UDim2.new(1, 0, 0, 36),
+		bg = Color3.fromRGB(30, 30, 30),
+		corner = 0,
+		z = 213,
+		inputName = "DJSearchInput",
 	})
-	rounded(djSearchBar, 10)
+	djSearchBar.Position = UDim2.new(0, 0, 0, djHeaderH)
 
-	make("TextLabel", {
-		Size = UDim2.new(0, 28, 1, 0), Position = UDim2.new(0, 6, 0, 0),
-		BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 14,
-		TextColor3 = Color3.fromRGB(100, 100, 100), Text = "🔍",
-		ZIndex = 214, Parent = djSearchBar,
-	})
-
-	local djSearchInput = make("TextBox", {
-		Size = UDim2.new(1, -38, 1, 0), Position = UDim2.new(0, 34, 0, 0),
-		BackgroundTransparency = 1, Font = Enum.Font.Gotham, TextSize = 13,
-		TextColor3 = THEME.text,
-		PlaceholderText = "Buscar Canción",
-		PlaceholderColor3 = Color3.fromRGB(100, 100, 100),
-		ClearTextOnFocus = false, Text = "", ZIndex = 214, Parent = djSearchBar,
-	})
-
-	local djSongListTop = djHeaderH + 48
+	local djSongListTop = djHeaderH + 36
 	local djSongListScroll = make("ScrollingFrame", {
 		Size = UDim2.new(1, 0, 1, -djSongListTop),
 		Position = UDim2.new(0, 0, 0, djSongListTop),
@@ -120,33 +115,45 @@ function DJTab.build(parent, THEME, state, R, H)
 		ScrollBarThickness = 0, ClipsDescendants = true,
 		CanvasSize = UDim2.new(0, 0, 0, 0), ZIndex = 212, Parent = djSongsView,
 	})
-	ModernScrollbar.setup(djSongListScroll, djSongsView, THEME, { transparency = 0.45, offset = -2 })
+	local djSongsSB = ModernScrollbar.setup(djSongListScroll, djSongsView, THEME, { transparency = 0.45, offset = -2, zIndex = 300 })
 
 	local djSongsContainer = make("Frame", {
 		Size = UDim2.fromScale(1, 0), BackgroundTransparency = 1,
 		ZIndex = 213, Parent = djSongListScroll,
 	})
 
-	-- ── SONG CARD VIRTUAL SCROLL ──
+	-- ── SONG CARD VIRTUAL SCROLL (CanvasGroup + iconos modernos) ──
+	local ICONS = H.ICONS
+
 	local function createSongCard()
-		local card = make("Frame", {
-			Size = UDim2.new(1, -12, 0, CARD_H),
-			BackgroundColor3 = Color3.fromRGB(26, 26, 26),
-			ZIndex = 214, Visible = false, Parent = djSongsContainer,
-		})
-		rounded(card, 10)
+		local card = Instance.new("CanvasGroup")
+		card.Name = "SongCard"
+		card.Size = UDim2.new(1, -12, 0, CARD_H)
+		card.BackgroundColor3 = Color3.fromRGB(26, 26, 26)
+		card.BackgroundTransparency = 0
+		card.BorderSizePixel = 0
+		card.GroupTransparency = 0
+		card.ZIndex = 214
+		card.Visible = false
+		card.Parent = djSongsContainer
+		make("UICorner", { CornerRadius = UDim.new(0, 10), Parent = card })
+		H.stroked(card, 0.3)
 
-		local coverBg = make("ImageLabel", {
-			Size = UDim2.new(0, 42, 0, 42), Position = UDim2.new(0, 8, 0.5, -21),
-			BackgroundColor3 = Color3.fromRGB(40, 40, 40),
-			ScaleType = Enum.ScaleType.Crop, Image = "",
-			ZIndex = 215, Name = "DJCover", Parent = card,
+		-- Cover full-height izquierda (CanvasGroup recorta bordes)
+		local coverBg = make("Frame", {
+			Size = UDim2.new(0, CARD_H, 1, 0),
+			BackgroundColor3 = Color3.fromRGB(35, 35, 35), BackgroundTransparency = 0,
+			BorderSizePixel = 0, ZIndex = 215, Name = "CoverBg", Parent = card,
 		})
-		rounded(coverBg, 8)
+		make("ImageLabel", {
+			Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1,
+			ScaleType = Enum.ScaleType.Crop, Image = "", BorderSizePixel = 0,
+			ZIndex = 216, Name = "DJCover", Parent = coverBg,
+		})
 
-		local tx = 58
+		local tx = CARD_H + 8
 		make("TextLabel", {
-			Size = UDim2.new(1, -(tx + 40), 0, 20), Position = UDim2.new(0, tx, 0, 10),
+			Size = UDim2.new(1, -(tx + 44), 0, 20), Position = UDim2.new(0, tx, 0, 10),
 			BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 14,
 			TextColor3 = THEME.text, Text = "",
 			TextXAlignment = Enum.TextXAlignment.Left,
@@ -155,27 +162,58 @@ function DJTab.build(parent, THEME, state, R, H)
 		})
 
 		make("TextLabel", {
-			Size = UDim2.new(1, -(tx + 40), 0, 14), Position = UDim2.new(0, tx, 0, 32),
-			BackgroundTransparency = 1, Font = Enum.Font.GothamMedium, TextSize = 11,
+			Size = UDim2.new(1, -(tx + 44), 0, 14), Position = UDim2.new(0, tx, 0, 32),
+			BackgroundTransparency = 1, Font = Enum.Font.GothamMedium, TextSize = 12,
 			TextColor3 = Color3.fromRGB(130, 130, 130), Text = "",
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextTruncate = Enum.TextTruncate.AtEnd,
 			ZIndex = 215, Name = "ArtistLabel", Parent = card,
 		})
 
+		-- Botón agregar (circular con icono moderno)
 		local addBtn = make("TextButton", {
-			Size = UDim2.new(0, 30, 0, 30), Position = UDim2.new(1, -36, 0.5, -15),
-			BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 18,
-			TextColor3 = Color3.fromRGB(180, 180, 180), Text = "▶",
-			BorderSizePixel = 0, AutoButtonColor = false,
+			Size = UDim2.new(0, 32, 0, 32), Position = UDim2.new(1, -38, 0.5, -16),
+			BackgroundColor3 = Color3.fromRGB(60, 60, 68),
+			Text = "", BorderSizePixel = 0, AutoButtonColor = false,
 			ZIndex = 216, Name = "AddButton", Parent = card,
+		})
+		rounded(addBtn, 16)
+		make("ImageLabel", {
+			Size = UDim2.new(0.7, 0, 0.7, 0), Position = UDim2.new(0.15, 0, 0.15, 0),
+			BackgroundTransparency = 1, Image = ICONS.PLAY_ADD,
+			ImageColor3 = THEME.text,
+			ZIndex = 217, Name = "IconImage", Parent = addBtn,
+		})
+		make("ImageLabel", {
+			Size = UDim2.new(0.7, 0, 0.7, 0), Position = UDim2.new(0.15, 0, 0.15, 0),
+			BackgroundTransparency = 1, Image = ICONS.LOADING,
+			ImageColor3 = THEME.text, ZIndex = 218,
+			Visible = false, Name = "LoadingIcon", Parent = addBtn,
 		})
 
 		addBtn.MouseButton1Click:Connect(function()
 			local songId = card:GetAttribute("SongID")
 			if songId and not H.isInQueue(state.playQueue, songId) and not state.pendingCardSongIds[songId] then
 				state.pendingCardSongIds[songId] = true
-				addBtn.Text = "…"; addBtn.TextColor3 = THEME.accent
+				local iconImg = addBtn:FindFirstChild("IconImage")
+				local loadingIcon = addBtn:FindFirstChild("LoadingIcon")
+				if iconImg then iconImg.Visible = false end
+				if loadingIcon then
+					loadingIcon.Visible = true
+					loadingIcon.Rotation = 0
+					task.spawn(function()
+						local tw = TweenService:Create(
+							loadingIcon,
+							TweenInfo.new(1.2, Enum.EasingStyle.Linear, Enum.EasingDirection.In, -1),
+							{ Rotation = 360 }
+						)
+						tw:Play()
+						while loadingIcon.Visible do task.wait(0.1) end
+						if tw then tw:Cancel() end
+					end)
+				end
+				addBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
+				addBtn.AutoButtonColor = false
 				if R.Add then pcall(function() R.Add:FireServer(songId) end) end
 			end
 		end)
@@ -232,14 +270,26 @@ function DJTab.build(parent, THEME, state, R, H)
 
 		local ab = card:FindFirstChild("AddButton", true)
 		if ab then
+			local icon = ab:FindFirstChild("IconImage")
+			local loadingIcon = ab:FindFirstChild("LoadingIcon")
 			local inQ = H.isInQueue(state.playQueue, data.id)
 			local pending = state.pendingCardSongIds[data.id]
+
 			if pending then
-				ab.Text = "…"; ab.TextColor3 = THEME.accent
+				ab.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
+				ab.AutoButtonColor = false
+				if icon then icon.Visible = false end
+				if loadingIcon then loadingIcon.Visible = true end
 			elseif inQ then
-				ab.Text = "✓"; ab.TextColor3 = THEME.success or Color3.fromRGB(40, 180, 80)
+				ab.BackgroundColor3 = THEME.success or Color3.fromRGB(40, 180, 80)
+				ab.AutoButtonColor = false
+				if icon then icon.Image = ICONS.CHECK; icon.ImageColor3 = Color3.new(1, 1, 1); icon.Visible = true end
+				if loadingIcon then loadingIcon.Visible = false end
 			else
-				ab.Text = "▶"; ab.TextColor3 = Color3.fromRGB(180, 180, 180)
+				ab.BackgroundColor3 = Color3.fromRGB(60, 60, 68)
+				ab.AutoButtonColor = true
+				if icon then icon.Image = ICONS.PLAY_ADD; icon.ImageColor3 = THEME.text; icon.Visible = true end
+				if loadingIcon then loadingIcon.Visible = false end
 			end
 		end
 
@@ -251,6 +301,36 @@ function DJTab.build(parent, THEME, state, R, H)
 
 	-- API
 	local api = { panel = panel }
+
+	-- Actualiza directamente la card visible de un songId tras AddResponse
+	function api.updatePendingCard(response, songId, isSuccess)
+		task.defer(function()
+			if not songId then return end
+			for _, card in ipairs(djCardPool) do
+				if card.Visible and card:GetAttribute("SongID") == songId then
+					local addBtn = card:FindFirstChild("AddButton", true)
+					if not addBtn then break end
+
+					local loadingIcon = addBtn:FindFirstChild("LoadingIcon")
+					if loadingIcon then loadingIcon.Visible = false end
+
+					local icon = addBtn:FindFirstChild("IconImage")
+					if icon then icon.Visible = true end
+
+					if isSuccess then
+						if icon then icon.Image = ICONS.CHECK; icon.ImageColor3 = Color3.new(1, 1, 1) end
+						addBtn.BackgroundColor3 = THEME.success or Color3.fromRGB(40, 180, 80)
+						addBtn.AutoButtonColor = false
+					else
+						if icon then icon.Image = ICONS.PLAY_ADD; icon.ImageColor3 = THEME.text end
+						addBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 68)
+						addBtn.AutoButtonColor = true
+					end
+					break
+				end
+			end
+		end)
+	end
 
 	function api.updateVisibleCards()
 		if not djSongListScroll or not djSongListScroll.Parent then return end
@@ -307,13 +387,29 @@ function DJTab.build(parent, THEME, state, R, H)
 		end)
 	end
 
+	local TW_PAGE = TweenInfo.new(0.28, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+	local _djSliding = false
+
 	function api.selectDJ(djName, djData)
 		state.selectedDJ = djName; state.selectedDJInfo = djData
-		djListView.Visible = false; djSongsView.Visible = true
+
+		-- Slide: lista sale izquierda, canciones entran desde derecha
+		if not _djSliding then
+			_djSliding = true
+			djSongsView.Position = UDim2.fromScale(1, 0)
+			djSongsView.Visible = true
+			TweenService:Create(djListView, TW_PAGE, { Position = UDim2.fromScale(-1, 0) }):Play()
+			TweenService:Create(djSongsView, TW_PAGE, { Position = UDim2.fromScale(0, 0) }):Play()
+			task.delay(0.28, function()
+				djListView.Visible = false
+				djListView.Position = UDim2.fromScale(0, 0)
+				_djSliding = false
+			end)
+		end
 
 		djHeaderName.Text = djName
 		djHeaderCount.Text = (djData.songCount or 0) .. " canciones"
-		djHeaderCover.Image = djData.cover or ""
+		djHeaderBg.Image = djData.cover or ""
 
 		local vs = state.vs
 		vs.totalSongs = djData.songCount or 0
@@ -337,7 +433,19 @@ function DJTab.build(parent, THEME, state, R, H)
 	end
 
 	djBackBtn.MouseButton1Click:Connect(function()
-		djSongsView.Visible = false; djListView.Visible = true
+		-- Slide inverso: canciones salen derecha, lista entra desde izquierda
+		if _djSliding then return end
+		_djSliding = true
+		djListView.Position = UDim2.fromScale(-1, 0)
+		djListView.Visible = true
+		TweenService:Create(djSongsView, TW_PAGE, { Position = UDim2.fromScale(1, 0) }):Play()
+		TweenService:Create(djListView, TW_PAGE, { Position = UDim2.fromScale(0, 0) }):Play()
+		task.delay(0.28, function()
+			djSongsView.Visible = false
+			djSongsView.Position = UDim2.fromScale(0, 0)
+			djListView.Visible = true
+			_djSliding = false
+		end)
 		state.selectedDJ = nil; state.selectedDJInfo = nil
 	end)
 	djBackBtn.MouseEnter:Connect(function() tween(djBackBtn, 0.1, { BackgroundColor3 = Color3.fromRGB(55, 55, 55) }) end)
@@ -366,7 +474,6 @@ function DJTab.build(parent, THEME, state, R, H)
 				ClipsDescendants = true, ZIndex = 213,
 				LayoutOrder = idx, Parent = djListView,
 			})
-			rounded(djCard, 12)
 
 			if dj.cover and dj.cover ~= "" then
 				make("ImageLabel", {
@@ -399,7 +506,7 @@ function DJTab.build(parent, THEME, state, R, H)
 
 			make("TextLabel", {
 				Size = UDim2.new(1, -20, 0, 16), Position = UDim2.new(0, 10, 1, -22),
-				BackgroundTransparency = 1, Font = Enum.Font.GothamMedium, TextSize = 12,
+			BackgroundTransparency = 1, Font = Enum.Font.GothamMedium, TextSize = 13,
 				TextColor3 = THEME.accent,
 				Text = (dj.songCount or 0) .. " canciones",
 				TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 216, Parent = djCard,
@@ -413,6 +520,8 @@ function DJTab.build(parent, THEME, state, R, H)
 			clickBtn.MouseEnter:Connect(function() tween(djCard, 0.15, { BackgroundColor3 = Color3.fromRGB(35, 35, 35) }) end)
 			clickBtn.MouseLeave:Connect(function() tween(djCard, 0.15, { BackgroundColor3 = Color3.fromRGB(25, 25, 25) }) end)
 		end
+
+		if djListSB then task.defer(djListSB.update) end
 	end
 
 	-- DJ Search handler

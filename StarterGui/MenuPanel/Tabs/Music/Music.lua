@@ -11,6 +11,38 @@ local Helpers  = require(script.Parent:WaitForChild("Helpers"))
 local ActualTab = require(script.Parent:WaitForChild("ActualTab"))
 local DJTab     = require(script.Parent:WaitForChild("DJTab"))
 
+local Notify = require(ReplicatedStorage:WaitForChild("Systems"):WaitForChild("NotificationSystem"):WaitForChild("NotificationSystem"))
+
+-- Response codes (mismos que MusicDjDashboard)
+local ResponseCodes = {
+	SUCCESS = "SUCCESS", ERROR_INVALID_ID = "ERROR_INVALID_ID",
+	ERROR_BLACKLISTED = "ERROR_BLACKLISTED", ERROR_DUPLICATE = "ERROR_DUPLICATE",
+	ERROR_NOT_FOUND = "ERROR_NOT_FOUND", ERROR_NOT_AUDIO = "ERROR_NOT_AUDIO",
+	ERROR_NOT_AUTHORIZED = "ERROR_NOT_AUTHORIZED", ERROR_QUEUE_FULL = "ERROR_QUEUE_FULL",
+	ERROR_PERMISSION = "ERROR_PERMISSION", ERROR_UNKNOWN = "ERROR_UNKNOWN",
+}
+
+local ResponseMessages = {
+	[ResponseCodes.SUCCESS] = {type = "success", title = "Éxito"},
+	[ResponseCodes.ERROR_INVALID_ID] = {type = "error", title = "ID Inválido"},
+	[ResponseCodes.ERROR_BLACKLISTED] = {type = "error", title = "Audio Bloqueado"},
+	[ResponseCodes.ERROR_DUPLICATE] = {type = "warning", title = "Duplicado"},
+	[ResponseCodes.ERROR_NOT_FOUND] = {type = "error", title = "No Encontrado"},
+	[ResponseCodes.ERROR_NOT_AUDIO] = {type = "error", title = "Tipo Incorrecto"},
+	[ResponseCodes.ERROR_NOT_AUTHORIZED] = {type = "error", title = "No Autorizado"},
+	[ResponseCodes.ERROR_QUEUE_FULL] = {type = "warning", title = "Cola Llena"},
+	[ResponseCodes.ERROR_PERMISSION] = {type = "error", title = "Sin Permiso"},
+	[ResponseCodes.ERROR_UNKNOWN] = {type = "error", title = "Error"},
+}
+
+local function showNotification(response)
+	local cfg = ResponseMessages[response.code] or ResponseMessages[ResponseCodes.ERROR_UNKNOWN]
+	local msg = response.message or "Operación completada"
+	if response.data and response.data.songName then msg = msg .. ": " .. response.data.songName end
+	local fn = ({success = Notify.Success, warning = Notify.Warning, error = Notify.Error})[cfg.type] or Notify.Info
+	fn(Notify, cfg.title, msg, cfg.type == "error" and 4 or 3)
+end
+
 local MusicConfig = nil
 pcall(function()
 	MusicConfig = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("MusicSystemConfig"))
@@ -78,83 +110,21 @@ function Music.build(parent, THEME, sharedState)
 	}
 
 	-- ── SUB-TAB BAR ──
-	local make, tween, rounded = Helpers.make, Helpers.tween, Helpers.rounded
+	local SubTabs = require(ReplicatedStorage:WaitForChild("UIComponents"):WaitForChild("SubTabs"))
 
-	local subTabBar = make("Frame", {
-		Size = UDim2.new(1, 0, 0, SUB_TAB_H),
-		BackgroundColor3 = THEME.bg, BorderSizePixel = 0,
-		ZIndex = 215, Parent = parent,
-	})
-	make("UIListLayout", {
-		FillDirection = Enum.FillDirection.Horizontal,
-		HorizontalAlignment = Enum.HorizontalAlignment.Left,
-		VerticalAlignment = Enum.VerticalAlignment.Center,
-		SortOrder = Enum.SortOrder.LayoutOrder,
-		Padding = UDim.new(0, 4), Parent = subTabBar,
-	})
-	make("UIPadding", { PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10), Parent = subTabBar })
-
-	local activeSubTab = "actual"
-
-	local btnActual = make("TextButton", {
-		Size = UDim2.new(0, 90, 0, 30),
-		BackgroundColor3 = THEME.accent, BackgroundTransparency = 0.1,
-		Font = Enum.Font.GothamBold, TextSize = 12,
-		TextColor3 = THEME.text, Text = "ACTUAL",
-		BorderSizePixel = 0, AutoButtonColor = false,
-		ZIndex = 216, LayoutOrder = 1, Parent = subTabBar,
-	})
-	rounded(btnActual, 8)
-
-	local btnDJ = make("TextButton", {
-		Size = UDim2.new(0, 90, 0, 30),
-		BackgroundColor3 = THEME.card or Color3.fromRGB(35, 35, 35),
-		BackgroundTransparency = 0.2,
-		Font = Enum.Font.GothamBold, TextSize = 12,
-		TextColor3 = THEME.muted, Text = "DJ",
-		BorderSizePixel = 0, AutoButtonColor = false,
-		ZIndex = 216, LayoutOrder = 2, Parent = subTabBar,
-	})
-	rounded(btnDJ, 8)
-
-	make("Frame", {
-		Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 0, SUB_TAB_H),
-		BackgroundColor3 = THEME.stroke or Color3.fromRGB(45, 45, 45),
-		BackgroundTransparency = 0.6, ZIndex = 215, Parent = parent,
+	local subTabs = SubTabs.new(parent, THEME, {
+		tabs = { {id = "actual", label = "ACTUAL"}, {id = "dj", label = "DJ"} },
+		height = SUB_TAB_H,
+		default = "actual",
+		z = 215,
 	})
 
 	-- ── BUILD SUB-TABS ──
 	local actual = ActualTab.build(parent, THEME, state, R, Helpers)
 	local dj     = DJTab.build(parent, THEME, state, R, Helpers)
 
-	local function switchSubTab(tab)
-		activeSubTab = tab
-		actual.panel.Visible = (tab == "actual")
-		dj.panel.Visible     = (tab == "dj")
-		if tab == "actual" then
-			tween(btnActual, 0.18, { BackgroundColor3 = THEME.accent, BackgroundTransparency = 0.1, TextColor3 = THEME.text })
-			tween(btnDJ, 0.18, { BackgroundColor3 = THEME.card or Color3.fromRGB(35, 35, 35), BackgroundTransparency = 0.2, TextColor3 = THEME.muted })
-		else
-			tween(btnDJ, 0.18, { BackgroundColor3 = THEME.accent, BackgroundTransparency = 0.1, TextColor3 = THEME.text })
-			tween(btnActual, 0.18, { BackgroundColor3 = THEME.card or Color3.fromRGB(35, 35, 35), BackgroundTransparency = 0.2, TextColor3 = THEME.muted })
-		end
-	end
-
-	btnActual.MouseButton1Click:Connect(function() switchSubTab("actual") end)
-	btnDJ.MouseButton1Click:Connect(function() switchSubTab("dj") end)
-
-	for _, b in ipairs({ btnActual, btnDJ }) do
-		b.MouseEnter:Connect(function()
-			if (b == btnActual and activeSubTab ~= "actual") or (b == btnDJ and activeSubTab ~= "dj") then
-				tween(b, 0.12, { BackgroundTransparency = 0.15 })
-			end
-		end)
-		b.MouseLeave:Connect(function()
-			if (b == btnActual and activeSubTab ~= "actual") or (b == btnDJ and activeSubTab ~= "dj") then
-				tween(b, 0.12, { BackgroundTransparency = 0.2 })
-			end
-		end)
-	end
+	subTabs:register("actual", actual.panel)
+	subTabs:register("dj", dj.panel)
 
 	-- ── VOLUME ──
 	local musicGroup = SoundService:FindFirstChild("MusicSoundGroup")
@@ -240,16 +210,38 @@ function Music.build(parent, THEME, sharedState)
 		end
 
 		if R.AddResponse then
-			R.AddResponse.OnClientEvent:Connect(function(ok, songId)
-				if songId then state.pendingCardSongIds[songId] = nil end
-				dj.updateVisibleCards(); actual.drawQueue()
+			R.AddResponse.OnClientEvent:Connect(function(response)
+				if not response then return end
+				showNotification(response)
+
+				-- Resolver pending cards (mismo patrón que MusicDjDashboard)
+				local songId = response.data and response.data.songId
+				local isSuccess = response.success or response.code == ResponseCodes.ERROR_DUPLICATE
+
+				if songId then
+					state.pendingCardSongIds[songId] = nil
+				else
+					-- Sin songId específico: limpiar TODOS los pending
+					for sid, _ in pairs(state.pendingCardSongIds) do
+						state.pendingCardSongIds[sid] = nil
+					end
+				end
+
+				-- Actualizar iconos de song cards en DJTab directamente
+				dj.updatePendingCard(response, songId, isSuccess)
+				dj.updateVisibleCards()
+				actual.drawQueue()
 			end)
 		end
 		if R.RemoveResponse then
-			R.RemoveResponse.OnClientEvent:Connect(function() actual.drawQueue() end)
+			R.RemoveResponse.OnClientEvent:Connect(function(response)
+				if response then showNotification(response) end
+				actual.drawQueue()
+			end)
 		end
 		if R.ClearResponse then
-			R.ClearResponse.OnClientEvent:Connect(function()
+			R.ClearResponse.OnClientEvent:Connect(function(response)
+				if response then showNotification(response) end
 				state.playQueue = {}; actual.drawQueue()
 			end)
 		end
@@ -277,7 +269,6 @@ function Music.build(parent, THEME, sharedState)
 		if progressConn then progressConn:Disconnect(); progressConn = nil end
 	end
 
-	switchSubTab("actual")
 	dj.connectScrollListener()
 
 	return { onOpen = onOpen, onClose = onClose }

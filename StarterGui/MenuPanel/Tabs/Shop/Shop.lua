@@ -1,7 +1,7 @@
 --[[
-	Shop/init.lua — ModuleScript
-	Tab de TIENDA para el MenuPanel.
-	Grid 2 columnas de gamepasses con check de propiedad y boton de compra.
+	Shop/Shop.lua — Tab de TIENDA para el MenuPanel.
+	Cards con gradiente lateral, avatar, titulo grande, descripcion, compra/gift.
+	Diseño referencia: cards sin borde, gradient izquierdo, gift icon grande.
 ]]
 
 local Shop = {}
@@ -20,15 +20,35 @@ function Shop.build(parent, THEME, sharedState)
 	local TW = TweenInfo.new(0.22, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 	local ROBUX_CHAR = utf8.char(0xE002)
 
+	-- Colores del gradiente lateral por card (toque de color unico)
+	local GRAD_COLORS = {
+		Color3.fromRGB(90, 40, 140),  -- VIP: morado
+		Color3.fromRGB(40, 80, 160),  -- COMANDOS: azul
+		Color3.fromRGB(140, 50, 100), -- COLORES: rosa
+		Color3.fromRGB(30, 90, 140),  -- POLICIA: azul oscuro
+		Color3.fromRGB(50, 50, 50),   -- LADRON: gris
+		Color3.fromRGB(60, 40, 130),  -- SEGURIDAD: indigo
+		Color3.fromRGB(120, 60, 30),  -- ARMY BOOMS: bronce
+		Color3.fromRGB(100, 50, 120), -- LIGHTSTICK: violeta
+	}
+
 	local GAMEPASSES = {
-		{ name = "VIP",        price = 200,  gid = Configuration.VIP,        icon = "76721656269888"  },
-		{ name = "COMANDOS",   price = 1500, gid = Configuration.COMMANDS,   icon = "128637341143304" },
-		{ name = "COLORES",    price = 50,   gid = Configuration.COLORS,     icon = "91877799240345"  },
-		{ name = "POLICIA",    price = 135,  gid = Configuration.TOMBO,      icon = "139661313218787" },
-		{ name = "LADRON",     price = 135,  gid = Configuration.CHORO,      icon = "84699864716808"  },
-		{ name = "SEGURIDAD",  price = 135,  gid = Configuration.SERE,       icon = "85734290151599"  },
-		{ name = "ARMY BOOMS", price = 80,   gid = Configuration.ARMYBOOMS,  icon = "134501492548324" },
-		{ name = "LIGHTSTICK", price = 80,   gid = Configuration.LIGHTSTICK, icon = "86122436659328"  },
+		{ name = "VIP",        price = 200,  gid = Configuration.VIP,        icon = "76721656269888",
+		  desc = "[ + ] Acceso VIP exclusivo!\n[ + ] Las mejores vistas y zonas!\n[ + ] Etiqueta VIP!" },
+		{ name = "COMANDOS",   price = 1500, gid = Configuration.COMMANDS,   icon = "128637341143304",
+		  desc = "[ + ] Acceso ilimitado a una\nemocionante variedad de\ncomandos de chat!" },
+		{ name = "COLORES",    price = 50,   gid = Configuration.COLORS,     icon = "91877799240345",
+		  desc = "[ + ] Colores personalizados!\n[ + ] Destaca con estilo unico!" },
+		{ name = "POLICIA",    price = 135,  gid = Configuration.TOMBO,      icon = "139661313218787",
+		  desc = "[ + ] Tool Exclusiva: Policia!\n[ + ] Etiqueta POLICIA!" },
+		{ name = "LADRON",     price = 135,  gid = Configuration.CHORO,      icon = "84699864716808",
+		  desc = "[ + ] Tool Exclusiva: Ladron!\n[ + ] Etiqueta LADRON!" },
+		{ name = "SEGURIDAD",  price = 135,  gid = Configuration.SERE,       icon = "85734290151599",
+		  desc = "[ + ] Tool Exclusiva: Seguridad!\n[ + ] Etiqueta SEGURIDAD!" },
+		{ name = "ARMY BOOMS", price = 80,   gid = Configuration.ARMYBOOMS,  icon = "134501492548324",
+		  desc = "[ + ] Armas exclusivas!\n[ + ] Efectos especiales!" },
+		{ name = "LIGHTSTICK", price = 80,   gid = Configuration.LIGHTSTICK, icon = "86122436659328",
+		  desc = "[ + ] Lightstick exclusivo!\n[ + ] Brilla en el show!" },
 	}
 
 	-- Ownership cache
@@ -60,161 +80,255 @@ function Shop.build(parent, THEME, sharedState)
 		end)
 	end
 
-	-- Header
-	local headerLbl = Instance.new("TextLabel")
-	headerLbl.Size                   = UDim2.new(1, -24, 0, 30)
-	headerLbl.Position               = UDim2.new(0, 12, 0, 8)
-	headerLbl.BackgroundTransparency = 1
-	headerLbl.Font                   = Enum.Font.GothamBold
-	headerLbl.TextSize               = 13
-	headerLbl.TextColor3             = THEME.text
-	headerLbl.TextXAlignment         = Enum.TextXAlignment.Left
-	headerLbl.Text                   = "GAMEPASSES"
-	headerLbl.ZIndex                 = 204
-	headerLbl.Parent                 = parent
-
 	-- Scroll
 	local scroll = Instance.new("ScrollingFrame")
-	scroll.Size                   = UDim2.new(1, -16, 1, -44)
-	scroll.Position               = UDim2.new(0, 8, 0, 44)
+	scroll.Size                   = UDim2.fromScale(1, 1)
 	scroll.BackgroundTransparency = 1
 	scroll.BorderSizePixel        = 0
 	scroll.ScrollBarThickness     = 0
 	scroll.CanvasSize             = UDim2.new(0, 0, 0, 0)
+	scroll.AutomaticCanvasSize    = Enum.AutomaticSize.Y
 	scroll.ClipsDescendants       = true
 	scroll.ZIndex                 = 204
 	scroll.Parent                 = parent
-	ModernScrollbar.setup(scroll, parent, THEME, {transparency = 0.4, offset = 0})
+	ModernScrollbar.setup(scroll, parent, THEME, {transparency = 0.4, offset = -4, zIndex = 220})
 
-	-- Grid 2 columnas
-	local grid = Instance.new("UIGridLayout")
-	grid.CellSize            = UDim2.new(0.5, -6, 0, 176)
-	grid.CellPadding         = UDim2.new(0, 8, 0, 8)
-	grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
-	grid.SortOrder           = Enum.SortOrder.LayoutOrder
-	grid.Parent              = scroll
+	local listLayout = Instance.new("UIListLayout")
+	listLayout.Padding             = UDim.new(0, 0)
+	listLayout.SortOrder           = Enum.SortOrder.LayoutOrder
+	listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	listLayout.Parent              = scroll
 
-	local gPad = Instance.new("UIPadding")
-	gPad.PaddingLeft   = UDim.new(0, 4)
-	gPad.PaddingRight  = UDim.new(0, 4)
-	gPad.PaddingTop    = UDim.new(0, 6)
-	gPad.PaddingBottom = UDim.new(0, 16)
-	gPad.Parent        = scroll
+	local sPad = Instance.new("UIPadding")
+	sPad.PaddingLeft   = UDim.new(0, 0)
+	sPad.PaddingRight  = UDim.new(0, 0)
+	sPad.PaddingTop    = UDim.new(0, 0)
+	sPad.PaddingBottom = UDim.new(0, 0)
+	sPad.Parent        = scroll
 
 	sharedState.shopCards = sharedState.shopCards or {}
 
 	for i, gp in ipairs(GAMEPASSES) do
-		local card = Instance.new("Frame")
+		local gradColor = GRAD_COLORS[i] or Color3.fromRGB(60, 40, 120)
+
+		-- Card (sin stroke, sin accent bar)
+		local card = Instance.new("CanvasGroup")
 		card.Name                   = "Card_" .. i
+		card.Size                   = UDim2.new(1, 0, 0, 0)
+		card.AutomaticSize          = Enum.AutomaticSize.Y
 		card.BackgroundColor3       = THEME.card
-		card.BackgroundTransparency = 0.05
+		card.BackgroundTransparency = 0
 		card.BorderSizePixel        = 0
 		card.ZIndex                 = 205
 		card.LayoutOrder            = i
 		card.Parent                 = scroll
 
-		local cc = Instance.new("UICorner"); cc.CornerRadius = UDim.new(0, 12); cc.Parent = card
-		local cs = Instance.new("UIStroke"); cs.Color = THEME.stroke; cs.Thickness = 1; cs.Transparency = 0.5; cs.Parent = card
+		-- Linea separadora inferior (1px)
+		local sep = Instance.new("Frame")
+		sep.Size = UDim2.new(1, 0, 0, 1)
+		sep.Position = UDim2.new(0, 0, 1, -1)
+		sep.BackgroundColor3 = THEME.stroke or Color3.fromRGB(50, 50, 50)
+		sep.BackgroundTransparency = 0.5
+		sep.BorderSizePixel = 0
+		sep.ZIndex = 215
+		sep.Parent = card
 
-		local bgDeco = Instance.new("Frame")
-		bgDeco.Size                   = UDim2.new(1, 0, 0.55, 0)
-		bgDeco.BackgroundColor3       = THEME.elevated
-		bgDeco.BackgroundTransparency = 0.1
-		bgDeco.BorderSizePixel        = 0
-		bgDeco.ZIndex                 = 205
-		bgDeco.Parent                 = card
-		local bgc = Instance.new("UICorner"); bgc.CornerRadius = UDim.new(0, 12); bgc.Parent = bgDeco
+		-- Gradiente lateral (cubre ~35% izquierdo, se desvanece a transparente)
+		local gradOverlay = Instance.new("Frame")
+		gradOverlay.Size = UDim2.new(0.45, 0, 1, 0)
+		gradOverlay.Position = UDim2.fromScale(0, 0)
+		gradOverlay.BackgroundColor3 = gradColor
+		gradOverlay.BackgroundTransparency = 0
+		gradOverlay.BorderSizePixel = 0
+		gradOverlay.ZIndex = 206
+		gradOverlay.Parent = card
+		local gd = Instance.new("UIGradient")
+		gd.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.55),
+			NumberSequenceKeypoint.new(0.6, 0.85),
+			NumberSequenceKeypoint.new(1, 1),
+		})
+		gd.Rotation = 0
+		gd.Parent = gradOverlay
 
-		local img = Instance.new("ImageLabel")
-		img.Size                   = UDim2.new(0.75, 0, 0, 72)
-		img.Position               = UDim2.new(0.125, 0, 0, 8)
-		img.BackgroundTransparency = 1
-		img.Image                  = "rbxassetid://" .. gp.icon
-		img.ScaleType              = Enum.ScaleType.Fit
-		img.ZIndex                 = 206
-		img.Parent                 = card
+		-- Padding interno del contenido
+		local content = Instance.new("Frame")
+		content.Size = UDim2.new(1, 0, 0, 0)
+		content.AutomaticSize = Enum.AutomaticSize.Y
+		content.BackgroundTransparency = 1
+		content.ZIndex = 210
+		content.Parent = card
+		local cPad = Instance.new("UIPadding")
+		cPad.PaddingLeft = UDim.new(0, 14); cPad.PaddingRight = UDim.new(0, 12)
+		cPad.PaddingTop = UDim.new(0, 14); cPad.PaddingBottom = UDim.new(0, 14)
+		cPad.Parent = content
 
-		local nameLbl = Instance.new("TextLabel")
-		nameLbl.Size                   = UDim2.new(1, -8, 0, 18)
-		nameLbl.Position               = UDim2.new(0, 4, 0, 90)
-		nameLbl.BackgroundTransparency = 1
-		nameLbl.Font                   = Enum.Font.GothamBold
-		nameLbl.TextSize               = 11
-		nameLbl.TextColor3             = THEME.text
-		nameLbl.TextXAlignment         = Enum.TextXAlignment.Center
-		nameLbl.Text                   = gp.name
-		nameLbl.ZIndex                 = 206
-		nameLbl.Parent                 = card
+		local innerLay = Instance.new("UIListLayout")
+		innerLay.Padding = UDim.new(0, 10)
+		innerLay.SortOrder = Enum.SortOrder.LayoutOrder
+		innerLay.Parent = content
 
-		local priceLbl = Instance.new("TextLabel")
-		priceLbl.Size                   = UDim2.new(1, -8, 0, 16)
-		priceLbl.Position               = UDim2.new(0, 4, 0, 108)
-		priceLbl.BackgroundTransparency = 1
-		priceLbl.Font                   = Enum.Font.GothamBold
-		priceLbl.TextSize               = 12
-		priceLbl.TextColor3             = THEME.accent
-		priceLbl.TextXAlignment         = Enum.TextXAlignment.Center
-		priceLbl.Text                   = ROBUX_CHAR .. " " .. gp.price
-		priceLbl.ZIndex                 = 206
-		priceLbl.Parent                 = card
+		-- ═══ Top row: avatar + title + desc ═══
+		local topRow = Instance.new("Frame")
+		topRow.Size = UDim2.new(1, 0, 0, 76)
+		topRow.BackgroundTransparency = 1
+		topRow.ZIndex = 210
+		topRow.LayoutOrder = 1
+		topRow.Parent = content
 
-		local buyBtn = Instance.new("TextButton")
-		buyBtn.Name                  = "BuyBtn"
-		buyBtn.Size                  = UDim2.new(1, -16, 0, 26)
-		buyBtn.Position              = UDim2.new(0, 8, 1, -32)
-		buyBtn.BackgroundColor3      = Color3.fromRGB(50, 50, 50)
-		buyBtn.BackgroundTransparency = 0
-		buyBtn.Font                  = Enum.Font.GothamBold
-		buyBtn.TextSize              = 11
-		buyBtn.TextColor3            = Color3.new(1, 1, 1)
-		buyBtn.Text                  = "COMPRAR"
-		buyBtn.BorderSizePixel       = 0
-		buyBtn.ZIndex                = 207
-		buyBtn.Parent                = card
-		local bc = Instance.new("UICorner"); bc.CornerRadius = UDim.new(0, 7); bc.Parent = buyBtn
+		-- Avatar (76x76 circulo)
+		local AVATAR_S = 76
+		local avatarFrame = Instance.new("Frame")
+		avatarFrame.Size = UDim2.new(0, AVATAR_S, 0, AVATAR_S)
+		avatarFrame.BackgroundColor3 = THEME.elevated
+		avatarFrame.BorderSizePixel = 0
+		avatarFrame.ZIndex = 211
+		avatarFrame.Parent = topRow
+		local aC = Instance.new("UICorner"); aC.CornerRadius = UDim.new(1, 0); aC.Parent = avatarFrame
 
-		sharedState.shopCards[gp.gid] = buyBtn
-		if _G._MenuPanelShopCards then
-			_G._MenuPanelShopCards[gp.gid] = buyBtn
-		end
+		local avatarImg = Instance.new("ImageLabel")
+		avatarImg.Size = UDim2.fromScale(1, 1)
+		avatarImg.BackgroundTransparency = 1
+		avatarImg.Image = "rbxassetid://" .. gp.icon
+		avatarImg.ScaleType = Enum.ScaleType.Crop
+		avatarImg.ZIndex = 212
+		avatarImg.Parent = avatarFrame
+		local aiC = Instance.new("UICorner"); aiC.CornerRadius = UDim.new(1, 0); aiC.Parent = avatarImg
 
-		fetchOwnership(gp.gid, function(owned)
-			if owned then
-				buyBtn.Text                  = "ACTIVADO"
-				buyBtn.BackgroundColor3      = Color3.fromRGB(220, 220, 220)
-				buyBtn.BackgroundTransparency = 0
-				buyBtn.TextColor3            = Color3.fromRGB(20, 20, 20)
+		-- Title (orange, bold, grande)
+		local TEXT_X = AVATAR_S + 12
+		local titleLbl = Instance.new("TextLabel")
+		titleLbl.Size = UDim2.new(1, -TEXT_X, 0, 28)
+		titleLbl.Position = UDim2.new(0, TEXT_X, 0, 0)
+		titleLbl.BackgroundTransparency = 1
+		titleLbl.Font = Enum.Font.GothamBlack
+		titleLbl.TextSize = 20
+		titleLbl.TextColor3 = THEME.accent
+		titleLbl.TextXAlignment = Enum.TextXAlignment.Left
+		titleLbl.TextTruncate = Enum.TextTruncate.AtEnd
+		titleLbl.Text = gp.name
+		titleLbl.ZIndex = 211
+		titleLbl.Parent = topRow
+
+		-- Description
+		local descLbl = Instance.new("TextLabel")
+		descLbl.Size = UDim2.new(1, -TEXT_X, 0, 0)
+		descLbl.Position = UDim2.new(0, TEXT_X, 0, 30)
+		descLbl.AutomaticSize = Enum.AutomaticSize.Y
+		descLbl.BackgroundTransparency = 1
+		descLbl.Font = Enum.Font.Gotham
+		descLbl.TextSize = 13
+		descLbl.TextColor3 = THEME.textSoft
+		descLbl.TextXAlignment = Enum.TextXAlignment.Left
+		descLbl.TextWrapped = true
+		descLbl.RichText = true
+		descLbl.Text = gp.desc or ""
+		descLbl.ZIndex = 211
+		descLbl.Parent = topRow
+
+		-- Ajustar topRow al contenido
+		task.defer(function()
+			if descLbl.Parent then
+				task.wait() -- esperar layout
+				local descH = descLbl.TextBounds.Y
+				local totalH = math.max(AVATAR_S, 30 + descH + 4)
+				topRow.Size = UDim2.new(1, 0, 0, totalH)
 			end
 		end)
 
-		card.MouseEnter:Connect(function()
-			TweenService:Create(card, TW, {BackgroundTransparency = 0}):Play()
+		-- ═══ Bottom row: buy button + gift + discount ═══
+		local bottomRow = Instance.new("Frame")
+		bottomRow.Size = UDim2.new(1, 0, 0, 44)
+		bottomRow.BackgroundTransparency = 1
+		bottomRow.ZIndex = 210
+		bottomRow.LayoutOrder = 2
+		bottomRow.Parent = content
+
+		-- Buy pill
+		local buyBtn = Instance.new("TextButton")
+		buyBtn.Name = "BuyBtn"
+		buyBtn.Size = UDim2.new(0, 170, 0, 40)
+		buyBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+		buyBtn.Font = Enum.Font.GothamBold
+		buyBtn.TextSize = 15
+		buyBtn.TextColor3 = Color3.new(1, 1, 1)
+		buyBtn.Text = ROBUX_CHAR .. " " .. gp.price
+		buyBtn.BorderSizePixel = 0
+		buyBtn.AutoButtonColor = false
+		buyBtn.ZIndex = 212
+		buyBtn.Parent = bottomRow
+		local bC = Instance.new("UICorner"); bC.CornerRadius = UDim.new(0, 20); bC.Parent = buyBtn
+
+		-- Gift icon (grande, colorido)
+		local giftImg = Instance.new("ImageLabel")
+		giftImg.Size = UDim2.new(0, 44, 0, 44)
+		giftImg.Position = UDim2.new(0, 180, 0, -2)
+		giftImg.BackgroundTransparency = 1
+		giftImg.Image = "rbxassetid://7733717447"
+		giftImg.ImageColor3 = THEME.accent
+		giftImg.ZIndex = 212
+		giftImg.Parent = bottomRow
+
+		-- Discount label (grande, rojo)
+		local discLblB = Instance.new("TextLabel")
+		discLblB.Size = UDim2.new(0, 50, 0, 28)
+		discLblB.Position = UDim2.new(0, 224, 0, 6)
+		discLblB.BackgroundTransparency = 1
+		discLblB.Font = Enum.Font.GothamBlack
+		discLblB.TextSize = 18
+		discLblB.TextColor3 = Color3.fromRGB(255, 60, 60)
+		discLblB.Text = "-10%"
+		discLblB.ZIndex = 212
+		discLblB.Parent = bottomRow
+
+		sharedState.shopCards[gp.gid] = buyBtn
+		if _G._MenuPanelShopCards then _G._MenuPanelShopCards[gp.gid] = buyBtn end
+
+		fetchOwnership(gp.gid, function(owned)
+			if owned then
+				buyBtn.Text = "TIENES"
+				buyBtn.BackgroundColor3 = Color3.fromRGB(40, 180, 80)
+				buyBtn.TextColor3 = Color3.new(1, 1, 1)
+			end
 		end)
-		card.MouseLeave:Connect(function()
-			TweenService:Create(card, TW, {BackgroundTransparency = 0.05}):Play()
+
+		-- Hover en el card
+		card.InputBegan:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseMovement then
+				TweenService:Create(card, TW, {BackgroundColor3 = THEME.elevated}):Play()
+			end
+		end)
+		card.InputEnded:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseMovement then
+				TweenService:Create(card, TW, {BackgroundColor3 = THEME.card}):Play()
+			end
 		end)
 
 		buyBtn.MouseButton1Click:Connect(function()
 			if gpCache[gp.gid] then return end
-			pcall(function()
-				MarketplaceService:PromptGamePassPurchase(player, gp.gid)
-			end)
+			pcall(function() MarketplaceService:PromptGamePassPurchase(player, gp.gid) end)
+		end)
+		buyBtn.MouseEnter:Connect(function()
+			if not gpCache[gp.gid] then
+				TweenService:Create(buyBtn, TW, {BackgroundColor3 = Color3.fromRGB(70, 70, 70)}):Play()
+			end
+		end)
+		buyBtn.MouseLeave:Connect(function()
+			if not gpCache[gp.gid] then
+				TweenService:Create(buyBtn, TW, {BackgroundColor3 = Color3.fromRGB(50, 50, 50)}):Play()
+			end
 		end)
 	end
 
-	grid:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-		scroll.CanvasSize = UDim2.new(0, 0, 0, grid.AbsoluteContentSize.Y + 24)
-	end)
-
+	-- Purchase callback
 	MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(plr, passId, bought)
 		if plr ~= player or not bought then return end
 		gpCache[passId] = true
 		local btn = sharedState.shopCards and sharedState.shopCards[passId]
 		if btn and btn.Parent then
-			btn.Text                  = "ACTIVADO"
-			btn.BackgroundColor3      = Color3.fromRGB(220, 220, 220)
-			btn.BackgroundTransparency = 0
-			btn.TextColor3            = Color3.fromRGB(20, 20, 20)
+			btn.Text = "TIENES"
+			btn.BackgroundColor3 = Color3.fromRGB(40, 180, 80)
+			btn.TextColor3 = Color3.new(1, 1, 1)
 		end
 	end)
 end

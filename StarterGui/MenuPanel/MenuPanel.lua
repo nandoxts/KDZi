@@ -8,10 +8,11 @@ local TweenService      = game:GetService("TweenService")
 local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
 local THEME     = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("ThemeConfig"))
 
-local Tabs       = script.Parent:WaitForChild("Tabs")
-local MusicTab   = require(Tabs:WaitForChild("Music"):WaitForChild("Music"))
-local ShopTab    = require(Tabs:WaitForChild("Shop"):WaitForChild("Shop"))
-local CreditsTab = require(Tabs:WaitForChild("Credits"):WaitForChild("Credits"))
+local Tabs        = script.Parent:WaitForChild("Tabs")
+local MusicTab    = require(Tabs:WaitForChild("Music"):WaitForChild("Music"))
+local ShopTab     = require(Tabs:WaitForChild("Shop"):WaitForChild("Shop"))
+local CreditsTab  = require(Tabs:WaitForChild("Credits"):WaitForChild("Credits"))
+local SettingsTab = require(Tabs:WaitForChild("Settings"):WaitForChild("Settings"))
 
 -- Stubs globales tempranos
 local _panelReady, _pendingOpen = false, nil
@@ -33,9 +34,10 @@ local POS_OPEN   = UDim2.new(1, 0, 0, 0)
 local POS_CLOSED = UDim2.new(1, PANEL_W + 10, 0, 0)
 
 local TABS = {
-	{ id = "music",   label = "MUSICA",   icon = "?" },
-	{ id = "shop",    label = "TIENDA",   icon = "?" },
-	{ id = "credits", label = "CREDITOS", icon = "?" },
+	{ id = "music",    label = "MUSICA",   icon = "?" },
+	{ id = "shop",     label = "TIENDA",   icon = "?" },
+	{ id = "settings", label = "AJUSTES",  icon = "?" },
+	{ id = "credits",  label = "CREDITOS", icon = "?" },
 }
 
 -- Helpers
@@ -59,13 +61,14 @@ screenGui.Parent = playerGui
 local overlay = Instance.new("TextButton")
 overlay.Size = UDim2.fromScale(1, 1); overlay.BackgroundColor3 = THEME.deep
 overlay.BackgroundTransparency = 1; overlay.Text = ""; overlay.BorderSizePixel = 0
-overlay.ZIndex = 200; overlay.Visible = false; overlay.Parent = screenGui
+overlay.ZIndex = 200; overlay.Visible = false; overlay.AutoButtonColor = false; overlay.Parent = screenGui
 
 -- Panel
-local panel = Instance.new("Frame")
+local panel = Instance.new("TextButton")
 panel.Name = "MenuPanel"; panel.Size = UDim2.new(0, PANEL_W, 1, 0)
 panel.Position = POS_CLOSED; panel.AnchorPoint = Vector2.new(1, 0)
 panel.BackgroundColor3 = THEME.bg; panel.BorderSizePixel = 0; panel.ZIndex = 201
+panel.Active = true; panel.AutoButtonColor = false; panel.Text = ""
 panel.Parent = screenGui
 
 local canvas = Instance.new("CanvasGroup")
@@ -101,10 +104,15 @@ tabBar.Position = UDim2.new(0, 0, 0, HEADER_H)
 tabBar.BackgroundColor3 = THEME.bg; tabBar.BorderSizePixel = 0
 tabBar.ZIndex = 203; tabBar.Parent = canvas
 
-local pillContainer = Instance.new("Frame")
+local pillContainer = Instance.new("ScrollingFrame")
 pillContainer.Size = UDim2.new(1, -20, 0, 38)
 pillContainer.Position = UDim2.new(0, 10, 0.5, -19)
 pillContainer.BackgroundTransparency = 1; pillContainer.BorderSizePixel = 0
+pillContainer.ScrollBarThickness = 0
+pillContainer.ScrollingDirection = Enum.ScrollingDirection.X
+pillContainer.AutomaticCanvasSize = Enum.AutomaticSize.X
+pillContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
+pillContainer.ClipsDescendants = true
 pillContainer.ZIndex = 204; pillContainer.Parent = tabBar
 
 do
@@ -136,9 +144,7 @@ local function openPanel()
 	isOpen = true
 	overlay.Visible = true; overlay.BackgroundTransparency = 1
 	tween(overlay, TW_SMOOTH, {BackgroundTransparency = THEME.overlayAlpha})
-	canvas.GroupTransparency = 0.1
 	tween(panel, TW_SLIDE, {Position = POS_OPEN})
-	tween(canvas, TW_SMOOTH, {GroupTransparency = 0})
 end
 
 local function resetPills()
@@ -149,27 +155,44 @@ local function resetPills()
 	end
 end
 
+local _tabSwitching = false
+
 local function closePanel()
 	if not isOpen then return end
 	isOpen = false
 	tween(overlay, TW_SNAP, {BackgroundTransparency = 1})
 	tween(panel, TW_SLIDE, {Position = POS_CLOSED})
-	tween(canvas, TW_SNAP, {GroupTransparency = 0.1})
 	task.delay(0.40, function()
 		if not isOpen then overlay.Visible = false end
 	end)
 	if activeTabId and tabAPIs[activeTabId] and tabAPIs[activeTabId].onClose then
 		pcall(tabAPIs[activeTabId].onClose)
 	end
+	-- Reset ALL tab frames para evitar páginas combinadas al reabrir
+	for _, frame in pairs(tabFrames) do
+		frame.Visible = false
+		frame.Position = UDim2.fromScale(0, 0)
+	end
 	activeTabId = nil
+	_tabSwitching = false
 	resetPills()
 end
 
--- Switcher
+-- Lookup de índice para dirección de slide
+local tabIndexOf = {}
+for i, t in ipairs(TABS) do tabIndexOf[t.id] = i end
+
+local TW_PAGE = TweenInfo.new(0.28, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+
+local scrollToTab -- forward declaration
+
 local function selectTab(tabId)
-	if activeTabId == tabId then return end
-	if activeTabId and tabAPIs[activeTabId] and tabAPIs[activeTabId].onClose then
-		pcall(tabAPIs[activeTabId].onClose)
+	if activeTabId == tabId or _tabSwitching then return end
+	_tabSwitching = true
+
+	local oldId = activeTabId
+	if oldId and tabAPIs[oldId] and tabAPIs[oldId].onClose then
+		pcall(tabAPIs[oldId].onClose)
 	end
 	activeTabId = tabId
 
@@ -185,8 +208,39 @@ local function selectTab(tabId)
 			tween(lbl, TW_SMOOTH, {TextColor3 = active and THEME.accent or THEME.tabInactive})
 		end
 	end
+	scrollToTab(tabId)
 
-	for id, f in pairs(tabFrames) do f.Visible = (id == tabId) end
+	-- Animación slide horizontal
+	local oldFrame = oldId and tabFrames[oldId]
+	local newFrame = tabFrames[tabId]
+
+	if oldFrame and newFrame and oldFrame ~= newFrame then
+		local oldIdx = tabIndexOf[oldId] or 0
+		local newIdx = tabIndexOf[tabId] or 0
+		local forward = newIdx > oldIdx
+
+		-- Posicionar nuevo fuera de pantalla
+		newFrame.Position = UDim2.fromScale(forward and 1 or -1, 0)
+		newFrame.Visible = true
+
+		-- Slide: viejo sale, nuevo entra
+		TweenService:Create(oldFrame, TW_PAGE, {
+			Position = UDim2.fromScale(forward and -1 or 1, 0)
+		}):Play()
+		TweenService:Create(newFrame, TW_PAGE, {
+			Position = UDim2.fromScale(0, 0)
+		}):Play()
+
+		task.delay(0.28, function()
+			oldFrame.Visible = false
+			oldFrame.Position = UDim2.fromScale(0, 0)
+			_tabSwitching = false
+		end)
+	else
+		if oldFrame then oldFrame.Visible = false end
+		if newFrame then newFrame.Visible = true end
+		_tabSwitching = false
+	end
 
 	if tabAPIs[tabId] and tabAPIs[tabId].onOpen then
 		pcall(tabAPIs[tabId].onOpen)
@@ -239,7 +293,21 @@ end
 -- Build tab modules
 tabAPIs["music"] = MusicTab.build(tabFrames["music"], THEME, sharedState) or {}
 ShopTab.build(tabFrames["shop"], THEME, sharedState); tabAPIs["shop"] = {}
+SettingsTab.build(tabFrames["settings"], THEME); tabAPIs["settings"] = {}
 CreditsTab.build(tabFrames["credits"], THEME); tabAPIs["credits"] = {}
+
+-- Auto-scroll pills al tab activo
+scrollToTab = function(tabId)
+	local btn = tabBtns[tabId]
+	if not btn then return end
+	local cW = pillContainer.AbsoluteSize.X
+	local bX = btn.AbsolutePosition.X - pillContainer.AbsolutePosition.X + pillContainer.CanvasPosition.X
+	local bW = btn.AbsoluteSize.X
+	local target = bX - (cW / 2) + (bW / 2)
+	local maxS = math.max(0, pillContainer.AbsoluteCanvasSize.X - cW)
+	target = math.clamp(target, 0, maxS)
+	TweenService:Create(pillContainer, TW_SMOOTH, { CanvasPosition = Vector2.new(target, 0) }):Play()
+end
 
 -- Dismiss
 local function dismiss()

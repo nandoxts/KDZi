@@ -115,6 +115,9 @@ function ModernScrollbar.setup(scrollFrame, parentFrame, THEME, options)
 		local canvasH = scrollFrame.AbsoluteCanvasSize.Y
 		local windowH = scrollFrame.AbsoluteWindowSize.Y
 
+		-- Si window es 0 (frame invisible), no ocultar — esperar a que sea visible
+		if windowH < 1 then return end
+
 		if canvasH <= windowH + 1 then
 			container.Visible = false
 			return
@@ -132,6 +135,20 @@ function ModernScrollbar.setup(scrollFrame, parentFrame, THEME, options)
 	scrollFrame:GetPropertyChangedSignal("CanvasPosition"):Connect(update)
 	scrollFrame:GetPropertyChangedSignal("AbsoluteCanvasSize"):Connect(update)
 	scrollFrame:GetPropertyChangedSignal("AbsoluteWindowSize"):Connect(update)
+	-- Re-evaluar cuando el frame cambia de tamaño real (invisible→visible)
+	scrollFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+		task.defer(update)
+	end)
+
+	-- Sincronizar visibilidad: si scrollFrame se oculta, ocultar mirror completo
+	scrollFrame:GetPropertyChangedSignal("Visible"):Connect(function()
+		if not scrollFrame.Visible then
+			mirror.Visible = false
+		else
+			mirror.Visible = true
+			task.defer(update)
+		end
+	end)
 
 	-- ── Hover ──────────────────────────────────────────────────────
 	local function onHoverEnter()

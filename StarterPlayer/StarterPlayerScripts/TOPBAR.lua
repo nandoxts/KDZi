@@ -84,17 +84,11 @@ _G.MenuIcon = Icon.new()
 	:autoDeselect(false)
 
 _G.MenuIcon:bindEvent("selected", function()
-	if _G.OpenMenuPanel then
-		_G.OpenMenuPanel()
-	else
-		warn("[Topbar] OpenMenuPanel no está disponible aún")
-	end
+	GlobalModalManager:openModal("Menu")
 end)
 
 _G.MenuIcon:bindEvent("deselected", function()
-	if _G.CloseMenuPanel then
-		_G.CloseMenuPanel()
-	end
+	GlobalModalManager:closeModal("Menu")
 end)
 
 -- ════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════

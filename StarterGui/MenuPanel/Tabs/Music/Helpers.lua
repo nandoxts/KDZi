@@ -37,6 +37,30 @@ function Helpers.isInQueue(queue, id)
 	return false
 end
 
+-- Iconos modernos compartidos (mismos que MusicDjDashboard)
+Helpers.ICONS = {
+	PLAY_ADD = "rbxassetid://84692791859484",
+	CHECK    = "rbxassetid://102926522001210",
+	DELETE   = "rbxassetid://94904012825024",
+	LOADING  = "rbxassetid://122161736287488",
+}
+
+-- CanvasGroup helper — recorta hijos respetando UICorner (protección de bordes)
+function Helpers.makeCanvas(parent, corner, z)
+	local canvas = Instance.new("CanvasGroup")
+	canvas.Name = "Canvas"
+	canvas.Size = UDim2.new(1, 0, 1, 0)
+	canvas.BackgroundTransparency = 1
+	canvas.BorderSizePixel = 0
+	canvas.GroupTransparency = 0
+	canvas.ZIndex = z or 103
+	canvas.Parent = parent
+	local c = Instance.new("UICorner")
+	c.CornerRadius = UDim.new(0, corner or 10)
+	c.Parent = canvas
+	return canvas
+end
+
 -- Referencia directa a UI por si los módulos necesitan más
 Helpers.UI = UI
 

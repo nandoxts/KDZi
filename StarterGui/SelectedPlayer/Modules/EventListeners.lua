@@ -45,7 +45,7 @@ function EventListeners.setupDonationListeners()
 			-- Mensaje en chat global PARA TODOS
 			local displayName = recipientName
 			if recipientName == "ignxts" then
-				displayName = "Ritmo Latino"
+				displayName = "Mambo Kings"
 			end
 
 			pcall(function()

@@ -28,10 +28,11 @@ function ActualTab.build(parent, THEME, state, R, H)
 	make("UIListLayout", { Padding = UDim.new(0, 0), SortOrder = Enum.SortOrder.LayoutOrder, Parent = panel })
 
 	-- ── COVER ──
-	local COVER_H = 230
+	local COVER_H = 520
 	local coverSection = make("Frame", {
 		Size = UDim2.new(1, 0, 0, COVER_H),
-		BackgroundColor3 = Color3.fromRGB(18, 18, 18),
+		BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+		BackgroundTransparency = 0, BorderSizePixel = 0,
 		ClipsDescendants = true, LayoutOrder = 1, ZIndex = 211, Parent = panel,
 	})
 
@@ -120,7 +121,7 @@ function ActualTab.build(parent, THEME, state, R, H)
 
 	make("TextLabel", {
 		Size = UDim2.new(1, -24, 0, 18), Position = UDim2.new(0, 12, 0, 4),
-		BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 11,
+		BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 13,
 		TextColor3 = Color3.fromRGB(140, 140, 140), Text = "REPRODUCCION",
 		TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 212, Parent = reproSection,
 	})
@@ -205,7 +206,7 @@ function ActualTab.build(parent, THEME, state, R, H)
 
 	local listaLabel = make("TextLabel", {
 		Size = UDim2.new(1, -24, 0, 20), Position = UDim2.new(0, 12, 0, 2),
-		BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 11,
+		BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 13,
 		TextColor3 = Color3.fromRGB(140, 140, 140), Text = "LISTA · 0",
 		TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 212, Parent = listaSection,
 	})
@@ -223,25 +224,42 @@ function ActualTab.build(parent, THEME, state, R, H)
 		ZIndex = 212, Visible = true, Parent = queueContainer,
 	})
 
-	-- Queue card factory
+	-- Queue card factory (CanvasGroup + iconos modernos — mismo estilo MusicDjDashboard)
+	local ICONS = H.ICONS
+	local QC_H = 58
+
 	local function createQueueCard()
-		local card = make("Frame", {
-			Size = UDim2.new(1, 0, 0, 58),
-			BackgroundColor3 = Color3.fromRGB(26, 26, 26),
-			ZIndex = 213, Visible = false, Parent = queueContainer,
+		local card = Instance.new("CanvasGroup")
+		card.Name = "QueueCard"
+		card.Size = UDim2.new(1, 0, 0, QC_H)
+		card.BackgroundColor3 = Color3.fromRGB(26, 26, 26)
+		card.BackgroundTransparency = 0
+		card.BorderSizePixel = 0
+		card.GroupTransparency = 0
+		card.ZIndex = 213
+		card.Visible = false
+		card.Parent = queueContainer
+		make("UICorner", { CornerRadius = UDim.new(0, 10), Parent = card })
+		make("UIStroke", {
+			Color = Color3.fromRGB(50, 50, 55), Thickness = 1, Transparency = 0.3,
+			ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Name = "CardStroke", Parent = card,
 		})
-		rounded(card, 10)
 
-		local cover = make("ImageLabel", {
-			Size = UDim2.new(0, 42, 0, 42), Position = UDim2.new(0, 8, 0.5, -21),
-			BackgroundColor3 = Color3.fromRGB(40, 40, 40),
-			ScaleType = Enum.ScaleType.Crop, Image = "",
-			ZIndex = 214, Name = "Cover", Parent = card,
+		-- Cover full-height izquierda (CanvasGroup recorta los bordes)
+		local coverBg = make("Frame", {
+			Size = UDim2.new(0, QC_H, 1, 0),
+			BackgroundColor3 = Color3.fromRGB(35, 35, 35), BackgroundTransparency = 0,
+			BorderSizePixel = 0, ZIndex = 214, Name = "CoverBg", Parent = card,
 		})
-		rounded(cover, 8)
+		make("ImageLabel", {
+			Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1,
+			ScaleType = Enum.ScaleType.Crop, Image = "", BorderSizePixel = 0,
+			ZIndex = 215, Name = "Cover", Parent = coverBg,
+		})
 
+		local tx = QC_H + 8
 		make("TextLabel", {
-			Size = UDim2.new(1, -100, 0, 20), Position = UDim2.new(0, 58, 0, 10),
+			Size = UDim2.new(1, -(tx + 8), 0, 20), Position = UDim2.new(0, tx, 0, 10),
 			BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 14,
 			TextColor3 = THEME.text, Text = "",
 			TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd,
@@ -249,29 +267,26 @@ function ActualTab.build(parent, THEME, state, R, H)
 		})
 
 		make("TextLabel", {
-			Size = UDim2.new(1, -100, 0, 15), Position = UDim2.new(0, 58, 0, 31),
-			BackgroundTransparency = 1, Font = Enum.Font.GothamMedium, TextSize = 11,
+			Size = UDim2.new(1, -(tx + 8), 0, 14), Position = UDim2.new(0, tx, 0, 32),
+			BackgroundTransparency = 1, Font = Enum.Font.GothamMedium, TextSize = 12,
 			TextColor3 = Color3.fromRGB(130, 130, 130), Text = "",
 			TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd,
 			ZIndex = 214, Name = "ArtistLabel", Parent = card,
 		})
 
-		make("TextLabel", {
-			Size = UDim2.new(0, 28, 0, 28), Position = UDim2.new(1, -36, 0.5, -14),
-			BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 18,
-			TextColor3 = Color3.fromRGB(180, 180, 180), Text = "▶",
-			ZIndex = 214, Name = "PlayIcon", Parent = card,
-		})
-
 		if state.isAdmin then
 			local rmBtn = make("TextButton", {
-				Size = UDim2.new(0, 24, 0, 24), Position = UDim2.new(1, -64, 0.5, -12),
-				BackgroundColor3 = Color3.fromRGB(180, 50, 50), BackgroundTransparency = 0.6,
-				Font = Enum.Font.GothamBold, TextSize = 10,
-				TextColor3 = Color3.new(1, 1, 1), Text = "✕",
-				BorderSizePixel = 0, ZIndex = 215, Name = "RemoveBtn", Parent = card,
+				Size = UDim2.new(0, 28, 0, 28), Position = UDim2.new(1, -36, 0.5, -14),
+				BackgroundColor3 = Color3.fromRGB(180, 50, 50), BackgroundTransparency = 0.4,
+				Text = "", BorderSizePixel = 0, AutoButtonColor = false,
+				ZIndex = 216, Name = "RemoveBtn", Parent = card,
 			})
-			rounded(rmBtn, 6)
+			rounded(rmBtn, 8)
+			make("ImageLabel", {
+				Size = UDim2.new(0.65, 0, 0.65, 0), Position = UDim2.new(0.175, 0, 0.175, 0),
+				BackgroundTransparency = 1, Image = ICONS.DELETE, ImageColor3 = Color3.new(1, 1, 1),
+				ZIndex = 217, Parent = rmBtn,
+			})
 			rmBtn.MouseButton1Click:Connect(function()
 				local idx = card:GetAttribute("QueueIndex")
 				if idx and R.Remove then pcall(function() R.Remove:FireServer(idx) end) end
@@ -324,17 +339,22 @@ function ActualTab.build(parent, THEME, state, R, H)
 
 			card.BackgroundColor3 = isActive and Color3.fromRGB(35, 30, 20) or Color3.fromRGB(26, 26, 26)
 
+			-- UIStroke activa
+			local stroke = card:FindFirstChild("CardStroke")
+			if stroke then
+				stroke.Color = isActive and THEME.accent or Color3.fromRGB(50, 50, 55)
+				stroke.Transparency = isActive and 0.4 or 0.3
+			end
+
 			local nl = card:FindFirstChild("NameLabel")
 			if nl then nl.Text = song.name or "Desconocida"; nl.TextColor3 = isActive and THEME.accent or THEME.text end
 
 			local al = card:FindFirstChild("ArtistLabel")
 			if al then al.Text = song.artist or song.requestedBy or "" end
 
-			local cov = card:FindFirstChild("Cover")
+			local cov = card:FindFirstChild("Cover", true)
 			if cov then cov.Image = song.djCover or "" end
 
-			local pi = card:FindFirstChild("PlayIcon")
-			if pi then pi.TextColor3 = isActive and THEME.accent or Color3.fromRGB(180, 180, 180) end
 		end
 
 		listaSection.Size = UDim2.new(1, 0, 0, count * 61 + 32)

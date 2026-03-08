@@ -121,7 +121,7 @@ local modals = {
 			end
 		end,
 		icon = function() return _G.MenuIcon end,
-		category = "independent"  -- El panel lateral convive con Emotes
+		category = "main"  -- Exclusivo: cierra Clan/Music al abrir
 	},
 }
 

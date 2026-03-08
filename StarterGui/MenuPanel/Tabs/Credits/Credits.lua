@@ -1,26 +1,39 @@
 --[[
-	Credits/init.lua — ModuleScript
-	Tab de CREDITOS para el MenuPanel.
-	Muestra mensaje de agradecimiento + tarjetas del equipo.
+	Credits/Credits.lua — Tab de CREDITOS para el MenuPanel.
+	Diseño moderno: avatares reales, sin lineas decorativas, cards con gradiente.
 ]]
 
 local Credits = {}
 
 function Credits.build(parent, THEME)
+	local Players = game:GetService("Players")
+	local TweenService = game:GetService("TweenService")
 	local ModernScrollbar = require(
 		game:GetService("ReplicatedStorage"):WaitForChild("UIComponents"):WaitForChild("ModernScrollbar")
 	)
 
-	local FRAME_ALPHA = THEME.frameAlpha or 0.08
+	local TW = TweenInfo.new(0.22, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 
 	local CREDITS = {
-		message = "Gracias por ser parte de Ritmo Latino! A cada persona que entra, participa, baila y comparte buena vibra: gracias de corazon. Su apoyo, sus ideas y su energia han sido clave para que este servidor crezca y se sienta como casa.",
+		message = "Gracias por ser parte de Mambo Kings! A cada persona que entra, participa, baila y comparte buena vibra: gracias de corazon. Su apoyo, sus ideas y su energia han sido clave para que este servidor crezca y se sienta como casa.",
 		team = {
-			{ name = "ignxts",        role = "DEV EXPERT" },
-			{ name = "xlm_brem",      role = "DEVELOPER"  },
-			{ name = "AngeloGarciia", role = "CREADOR"     },
+			{ name = "ignxts",        role = "DEV EXPERT", userId = nil, grad = Color3.fromRGB(90, 40, 140) },
+			{ name = "xlm_brem",      role = "DEVELOPER",  userId = nil, grad = Color3.fromRGB(40, 80, 160) },
+			{ name = "AngeloGarciia", role = "CREADOR",    userId = nil, grad = Color3.fromRGB(140, 60, 30) },
 		},
 	}
+
+	-- Resolver userIds por nombre
+	task.spawn(function()
+		for _, m in ipairs(CREDITS.team) do
+			local ok, id = pcall(function()
+				return Players:GetUserIdFromNameAsync(m.name)
+			end)
+			if ok and id then
+				m.userId = id
+			end
+		end
+	end)
 
 	local scroll = Instance.new("ScrollingFrame")
 	scroll.Size                   = UDim2.fromScale(1, 1)
@@ -41,61 +54,41 @@ function Credits.build(parent, THEME)
 	layout.Parent              = scroll
 
 	local pad = Instance.new("UIPadding")
-	pad.PaddingLeft   = UDim.new(0, 14)
-	pad.PaddingRight  = UDim.new(0, 14)
-	pad.PaddingTop    = UDim.new(0, 18)
+	pad.PaddingLeft   = UDim.new(0, 12)
+	pad.PaddingRight  = UDim.new(0, 12)
+	pad.PaddingTop    = UDim.new(0, 16)
 	pad.PaddingBottom = UDim.new(0, 20)
 	pad.Parent        = scroll
 
-	local topLine = Instance.new("Frame")
-	topLine.Size                   = UDim2.new(0.3, 0, 0, 3)
-	topLine.BackgroundColor3       = THEME.accent
-	topLine.BackgroundTransparency = 0.15
-	topLine.BorderSizePixel        = 0
-	topLine.ZIndex                 = 205
-	topLine.LayoutOrder            = 1
-	topLine.Parent                 = scroll
-	local tlc = Instance.new("UICorner"); tlc.CornerRadius = UDim.new(1, 0); tlc.Parent = topLine
-
+	-- Titulo
 	local titleLbl = Instance.new("TextLabel")
-	titleLbl.Size                   = UDim2.new(1, 0, 0, 36)
+	titleLbl.Size                   = UDim2.new(1, 0, 0, 32)
 	titleLbl.BackgroundTransparency = 1
-	titleLbl.Font                   = Enum.Font.GothamBold
+	titleLbl.Font                   = Enum.Font.GothamBlack
 	titleLbl.TextSize               = 22
 	titleLbl.TextColor3             = THEME.accent
 	titleLbl.TextXAlignment         = Enum.TextXAlignment.Center
-	titleLbl.Text                   = "Créditos"
-	titleLbl.LayoutOrder            = 2
+	titleLbl.Text                   = "CREDITOS"
+	titleLbl.LayoutOrder            = 1
 	titleLbl.ZIndex                 = 205
 	titleLbl.Parent                 = scroll
 
-	local divider = Instance.new("Frame")
-	divider.Size                   = UDim2.new(0.12, 0, 0, 2)
-	divider.BackgroundColor3       = THEME.accent
-	divider.BackgroundTransparency = 0.2
-	divider.BorderSizePixel        = 0
-	divider.ZIndex                 = 205
-	divider.LayoutOrder            = 3
-	divider.Parent                 = scroll
-	local dc = Instance.new("UICorner"); dc.CornerRadius = UDim.new(1, 0); dc.Parent = divider
-
-	local msgCard = Instance.new("Frame")
+	-- Mensaje card
+	local msgCard = Instance.new("CanvasGroup")
 	msgCard.Size                   = UDim2.new(1, 0, 0, 0)
 	msgCard.AutomaticSize          = Enum.AutomaticSize.Y
 	msgCard.BackgroundColor3       = THEME.card
-	msgCard.BackgroundTransparency = FRAME_ALPHA
 	msgCard.BorderSizePixel        = 0
 	msgCard.ZIndex                 = 205
-	msgCard.LayoutOrder            = 4
+	msgCard.LayoutOrder            = 2
 	msgCard.Parent                 = scroll
-	local mcc = Instance.new("UICorner"); mcc.CornerRadius = UDim.new(0, 10); mcc.Parent = msgCard
-	local mcs = Instance.new("UIStroke"); mcs.Color = THEME.stroke; mcs.Thickness = 1; mcs.Transparency = 0.5; mcs.Parent = msgCard
+	local mcc = Instance.new("UICorner"); mcc.CornerRadius = UDim.new(0, 12); mcc.Parent = msgCard
 
 	local msgPad = Instance.new("UIPadding")
-	msgPad.PaddingLeft   = UDim.new(0, 14)
-	msgPad.PaddingRight  = UDim.new(0, 14)
-	msgPad.PaddingTop    = UDim.new(0, 12)
-	msgPad.PaddingBottom = UDim.new(0, 12)
+	msgPad.PaddingLeft   = UDim.new(0, 16)
+	msgPad.PaddingRight  = UDim.new(0, 16)
+	msgPad.PaddingTop    = UDim.new(0, 14)
+	msgPad.PaddingBottom = UDim.new(0, 14)
 	msgPad.Parent        = msgCard
 
 	local msgLbl = Instance.new("TextLabel")
@@ -104,89 +97,162 @@ function Credits.build(parent, THEME)
 	msgLbl.BackgroundTransparency = 1
 	msgLbl.Font                   = Enum.Font.Gotham
 	msgLbl.TextSize               = 13
-	msgLbl.TextColor3             = THEME.text
+	msgLbl.TextColor3             = THEME.textSoft
 	msgLbl.TextWrapped            = true
 	msgLbl.TextXAlignment         = Enum.TextXAlignment.Center
 	msgLbl.Text                   = CREDITS.message
 	msgLbl.ZIndex                 = 206
 	msgLbl.Parent                 = msgCard
 
+	-- Header equipo
 	local teamHeader = Instance.new("TextLabel")
-	teamHeader.Size                   = UDim2.new(1, 0, 0, 20)
+	teamHeader.Size                   = UDim2.new(1, 0, 0, 24)
 	teamHeader.BackgroundTransparency = 1
 	teamHeader.Font                   = Enum.Font.GothamBold
-	teamHeader.TextSize               = 11
+	teamHeader.TextSize               = 12
 	teamHeader.TextColor3             = THEME.accent
 	teamHeader.TextXAlignment         = Enum.TextXAlignment.Center
-	teamHeader.Text                   = "— EQUIPO —"
+	teamHeader.Text                   = "EQUIPO"
 	teamHeader.ZIndex                 = 205
-	teamHeader.LayoutOrder            = 5
+	teamHeader.LayoutOrder            = 3
 	teamHeader.Parent                 = scroll
 
+	-- Team cards
 	for i, member in ipairs(CREDITS.team) do
-		local devCard = Instance.new("Frame")
-		devCard.Size                   = UDim2.new(1, 0, 0, 58)
+		local CARD_H = 70
+
+		local devCard = Instance.new("CanvasGroup")
+		devCard.Size                   = UDim2.new(1, 0, 0, CARD_H)
 		devCard.BackgroundColor3       = THEME.card
-		devCard.BackgroundTransparency = FRAME_ALPHA
 		devCard.BorderSizePixel        = 0
 		devCard.ZIndex                 = 205
-		devCard.LayoutOrder            = 5 + i
+		devCard.LayoutOrder            = 3 + i
 		devCard.Parent                 = scroll
-		local dcc = Instance.new("UICorner"); dcc.CornerRadius = UDim.new(0, 10); dcc.Parent = devCard
-		local dcs = Instance.new("UIStroke"); dcs.Color = THEME.stroke; dcs.Thickness = 1; dcs.Transparency = 0.5; dcs.Parent = devCard
+		local dcc = Instance.new("UICorner"); dcc.CornerRadius = UDim.new(0, 12); dcc.Parent = devCard
 
-		local accentBar = Instance.new("Frame")
-		accentBar.Size                   = UDim2.new(0, 4, 0.65, 0)
-		accentBar.Position               = UDim2.new(0, 10, 0.175, 0)
-		accentBar.BackgroundColor3       = THEME.accent
-		accentBar.BorderSizePixel        = 0
-		accentBar.ZIndex                 = 206
-		accentBar.Parent                 = devCard
-		local abc = Instance.new("UICorner"); abc.CornerRadius = UDim.new(1, 0); abc.Parent = accentBar
+		-- Gradiente lateral
+		local gradOverlay = Instance.new("Frame")
+		gradOverlay.Size = UDim2.new(0.4, 0, 1, 0)
+		gradOverlay.BackgroundColor3 = member.grad
+		gradOverlay.BackgroundTransparency = 0
+		gradOverlay.BorderSizePixel = 0
+		gradOverlay.ZIndex = 206
+		gradOverlay.Parent = devCard
+		local gd = Instance.new("UIGradient")
+		gd.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.5),
+			NumberSequenceKeypoint.new(0.6, 0.85),
+			NumberSequenceKeypoint.new(1, 1),
+		})
+		gd.Parent = gradOverlay
 
+		-- Avatar real (circular, 48x48)
+		local AVATAR_S = 48
 		local avatarFrame = Instance.new("Frame")
-		avatarFrame.Size                   = UDim2.new(0, 36, 0, 36)
-		avatarFrame.Position               = UDim2.new(0, 22, 0.5, -18)
-		avatarFrame.BackgroundColor3       = THEME.elevated
-		avatarFrame.BorderSizePixel        = 0
-		avatarFrame.ZIndex                 = 206
-		avatarFrame.Parent                 = devCard
-		local afc = Instance.new("UICorner"); afc.CornerRadius = UDim.new(0, 10); afc.Parent = avatarFrame
+		avatarFrame.Size             = UDim2.new(0, AVATAR_S, 0, AVATAR_S)
+		avatarFrame.Position         = UDim2.new(0, 14, 0.5, -AVATAR_S / 2)
+		avatarFrame.BackgroundColor3 = THEME.elevated
+		avatarFrame.BorderSizePixel  = 0
+		avatarFrame.ZIndex           = 208
+		avatarFrame.Parent           = devCard
+		local afc = Instance.new("UICorner"); afc.CornerRadius = UDim.new(1, 0); afc.Parent = avatarFrame
 
-		local avatarLbl = Instance.new("TextLabel")
-		avatarLbl.Size                   = UDim2.fromScale(1, 1)
-		avatarLbl.BackgroundTransparency = 1
-		avatarLbl.Font                   = Enum.Font.GothamBold
-		avatarLbl.TextSize               = 14
-		avatarLbl.TextColor3             = THEME.accent
-		avatarLbl.Text                   = string.upper(string.sub(member.name, 1, 1))
-		avatarLbl.ZIndex                 = 207
-		avatarLbl.Parent                 = avatarFrame
+		local avatarImg = Instance.new("ImageLabel")
+		avatarImg.Size                   = UDim2.fromScale(1, 1)
+		avatarImg.BackgroundTransparency = 1
+		avatarImg.ScaleType              = Enum.ScaleType.Crop
+		avatarImg.ZIndex                 = 209
+		avatarImg.Image                  = ""
+		avatarImg.Parent                 = avatarFrame
+		local aiC = Instance.new("UICorner"); aiC.CornerRadius = UDim.new(1, 0); aiC.Parent = avatarImg
 
+		-- Fallback letter
+		local avatarLetter = Instance.new("TextLabel")
+		avatarLetter.Size                   = UDim2.fromScale(1, 1)
+		avatarLetter.BackgroundTransparency = 1
+		avatarLetter.Font                   = Enum.Font.GothamBold
+		avatarLetter.TextSize               = 18
+		avatarLetter.TextColor3             = THEME.accent
+		avatarLetter.Text                   = string.upper(string.sub(member.name, 1, 1))
+		avatarLetter.ZIndex                 = 209
+		avatarLetter.Parent                 = avatarFrame
+
+		-- Cargar avatar real async
+		task.spawn(function()
+			-- Esperar a que se resuelva userId
+			local tries = 0
+			while not member.userId and tries < 40 do
+				task.wait(0.25)
+				tries = tries + 1
+			end
+			if member.userId then
+				local ok, thumb = pcall(function()
+					return Players:GetUserThumbnailAsync(
+						member.userId,
+						Enum.ThumbnailType.HeadShot,
+						Enum.ThumbnailSize.Size100x100
+					)
+				end)
+				if ok and thumb and avatarImg.Parent then
+					avatarImg.Image = thumb
+					avatarLetter.Visible = false
+				end
+			end
+		end)
+
+		-- Nombre
+		local TEXT_X = 14 + AVATAR_S + 14
 		local mName = Instance.new("TextLabel")
-		mName.Size                   = UDim2.new(1, -72, 0, 20)
-		mName.Position               = UDim2.new(0, 66, 0, 8)
+		mName.Size                   = UDim2.new(1, -TEXT_X - 10, 0, 22)
+		mName.Position               = UDim2.new(0, TEXT_X, 0, 12)
 		mName.BackgroundTransparency = 1
 		mName.Font                   = Enum.Font.GothamBold
-		mName.TextSize               = 13
+		mName.TextSize               = 15
 		mName.TextColor3             = THEME.text
 		mName.TextXAlignment         = Enum.TextXAlignment.Left
+		mName.TextTruncate           = Enum.TextTruncate.AtEnd
 		mName.Text                   = member.name
-		mName.ZIndex                 = 206
+		mName.ZIndex                 = 208
 		mName.Parent                 = devCard
 
 		local mRole = Instance.new("TextLabel")
-		mRole.Size                   = UDim2.new(1, -72, 0, 16)
-		mRole.Position               = UDim2.new(0, 66, 0, 30)
+		mRole.Size                   = UDim2.new(1, -TEXT_X - 10, 0, 16)
+		mRole.Position               = UDim2.new(0, TEXT_X, 0, 36)
 		mRole.BackgroundTransparency = 1
-		mRole.Font                   = Enum.Font.Gotham
-		mRole.TextSize               = 10
+		mRole.Font                   = Enum.Font.GothamBold
+		mRole.TextSize               = 11
 		mRole.TextColor3             = THEME.accent
 		mRole.TextXAlignment         = Enum.TextXAlignment.Left
 		mRole.Text                   = member.role
-		mRole.ZIndex                 = 206
+		mRole.ZIndex                 = 208
 		mRole.Parent                 = devCard
+
+		-- Hover
+		devCard.InputBegan:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseMovement then
+				TweenService:Create(devCard, TW, {BackgroundColor3 = THEME.elevated}):Play()
+			end
+		end)
+		devCard.InputEnded:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseMovement then
+				TweenService:Create(devCard, TW, {BackgroundColor3 = THEME.card}):Play()
+			end
+		end)
 	end
+
+	-- Footer
+	local footer = Instance.new("TextLabel")
+	footer.Size                   = UDim2.new(1, 0, 0, 30)
+	footer.BackgroundTransparency = 1
+	footer.Font                   = Enum.Font.Gotham
+	footer.TextSize               = 10
+	footer.TextColor3             = THEME.textSoft
+	footer.TextTransparency       = 0.4
+	footer.TextXAlignment         = Enum.TextXAlignment.Center
+	footer.Text                   = "Mambo Kings " .. utf8.char(0x2764) .. " 2026"
+	footer.ZIndex                 = 205
+	footer.LayoutOrder            = 100
+	footer.Parent                 = scroll
 end
 
 return Credits

@@ -378,7 +378,7 @@ SettingsConfig.SETTINGS = {
 		},
 		{
 			id = "credits_text",
-			label = "¡Gracias por ser parte de Ritmo Latino! 💜🎶 A cada persona que entra, participa, baila y comparte buena vibra: gracias de corazón. Su apoyo, sus ideas y su energía han sido clave para que este servidor crezca y se sienta como casa. Ritmo Latino no sería lo mismo sin ustedes. ✨ ¡Sigamos construyendo juntos más momentos, música y comunidad! 🕺💃",
+			label = "¡Gracias por ser parte de Mambo Kings! 💜🎶 A cada persona que entra, participa, baila y comparte buena vibra: gracias de corazón. Su apoyo, sus ideas y su energía han sido clave para que este servidor crezca y se sienta como casa. Mambo Kings no sería lo mismo sin ustedes. ✨ ¡Sigamos construyendo juntos más momentos, música y comunidad! 🕺💃",
 			type = "credit"
 		}
 	}
