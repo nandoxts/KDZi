@@ -31,7 +31,7 @@ local THEME = {
 
 	-- Tab
 	tabActive    = Color3.fromRGB(255, 140,  0),
-	tabInactive  = Color3.fromRGB(120, 120, 120),
+	tabInactive  = Color3.fromRGB(66, 66, 66),
 
 	-- Botones / estados
 	btnDanger    = Color3.fromRGB(220, 50,  50),
