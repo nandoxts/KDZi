@@ -67,7 +67,7 @@ function SearchModern.new(parent, options)
 	input.PlaceholderText = placeholder
 	input.PlaceholderColor3 = THEME.subtle
 	input.TextColor3 = THEME.text
-	input.TextSize = options.isMobile and 13 or 13
+	input.TextSize = options.textSize or (options.isMobile and 13 or 13)
 	input.Font = Enum.Font.Gotham
 	input.TextXAlignment = Enum.TextXAlignment.Left
 	input.ZIndex = z + 1

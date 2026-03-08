@@ -96,15 +96,16 @@ function DJTab.build(parent, THEME, state, R, H)
 	-- Search bar (SearchModern)
 	local djSearchBar, djSearchInput = SearchModern.new(djSongsView, {
 		placeholder = "Buscar Canción",
-		size = UDim2.new(1, 0, 0, 36),
+		size = UDim2.new(1, 0, 0, 46),
 		bg = THEME.card,
 		corner = 0,
 		z = 213,
 		inputName = "DJSearchInput",
+		textSize = 16,
 	})
 	djSearchBar.Position = UDim2.new(0, 0, 0, djHeaderH)
 
-	local djSongListTop = djHeaderH + 36
+	local djSongListTop = djHeaderH + 46
 	local djSongListScroll = make("ScrollingFrame", {
 		Size = UDim2.new(1, 0, 1, -djSongListTop),
 		Position = UDim2.new(0, 0, 0, djSongListTop),
