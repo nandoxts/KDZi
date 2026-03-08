@@ -34,21 +34,21 @@ function Shop.build(parent, THEME, sharedState)
 
 	local GAMEPASSES = {
 		{ name = "VIP",        price = 200,  gid = Configuration.VIP,        icon = "76721656269888",
-		  desc = "[ + ] Acceso VIP exclusivo!\n[ + ] Las mejores vistas y zonas!\n[ + ] Etiqueta VIP!" },
+			desc = "[ + ] Acceso VIP exclusivo!\n[ + ] Las mejores vistas y zonas!\n[ + ] Etiqueta VIP!" },
 		{ name = "COMANDOS",   price = 1500, gid = Configuration.COMMANDS,   icon = "128637341143304",
-		  desc = "[ + ] Acceso ilimitado a una\nemocionante variedad de\ncomandos de chat!" },
+			desc = "[ + ] Acceso ilimitado a una\nemocionante variedad de\ncomandos de chat!" },
 		{ name = "COLORES",    price = 50,   gid = Configuration.COLORS,     icon = "91877799240345",
-		  desc = "[ + ] Colores personalizados!\n[ + ] Destaca con estilo unico!" },
+			desc = "[ + ] Colores personalizados!\n[ + ] Destaca con estilo unico!" },
 		{ name = "POLICIA",    price = 135,  gid = Configuration.TOMBO,      icon = "139661313218787",
-		  desc = "[ + ] Tool Exclusiva: Policia!\n[ + ] Etiqueta POLICIA!" },
+			desc = "[ + ] Tool Exclusiva: Policia!\n[ + ] Etiqueta POLICIA!" },
 		{ name = "LADRON",     price = 135,  gid = Configuration.CHORO,      icon = "84699864716808",
-		  desc = "[ + ] Tool Exclusiva: Ladron!\n[ + ] Etiqueta LADRON!" },
+			desc = "[ + ] Tool Exclusiva: Ladron!\n[ + ] Etiqueta LADRON!" },
 		{ name = "SEGURIDAD",  price = 135,  gid = Configuration.SERE,       icon = "85734290151599",
-		  desc = "[ + ] Tool Exclusiva: Seguridad!\n[ + ] Etiqueta SEGURIDAD!" },
+			desc = "[ + ] Tool Exclusiva: Seguridad!\n[ + ] Etiqueta SEGURIDAD!" },
 		{ name = "ARMY BOOMS", price = 80,   gid = Configuration.ARMYBOOMS,  icon = "134501492548324",
-		  desc = "[ + ] Armas exclusivas!\n[ + ] Efectos especiales!" },
+			desc = "[ + ] Armas exclusivas!\n[ + ] Efectos especiales!" },
 		{ name = "LIGHTSTICK", price = 80,   gid = Configuration.LIGHTSTICK, icon = "86122436659328",
-		  desc = "[ + ] Lightstick exclusivo!\n[ + ] Brilla en el show!" },
+			desc = "[ + ] Lightstick exclusivo!\n[ + ] Brilla en el show!" },
 	}
 
 	-- Ownership cache

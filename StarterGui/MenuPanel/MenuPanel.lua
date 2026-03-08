@@ -4,6 +4,7 @@
 local Players           = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService      = game:GetService("TweenService")
+local TextService       = game:GetService("TextService")
 
 local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
 local THEME     = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("ThemeConfig"))
@@ -23,7 +24,7 @@ _G.CloseMenuPanel = function() end
 
 -- Layout
 local PANEL_W   = THEME.panelWidth or 390
-local HEADER_H, TABBAR_H = 50, 52
+local HEADER_H, TABBAR_H = 50, 48
 local CONTENT_Y = HEADER_H + TABBAR_H
 
 local TW_SNAP   = TweenInfo.new(0.18, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
@@ -34,10 +35,10 @@ local POS_OPEN   = UDim2.new(1, 0, 0, 0)
 local POS_CLOSED = UDim2.new(1, PANEL_W + 10, 0, 0)
 
 local TABS = {
-	{ id = "music",    label = "MUSICA",   icon = "?" },
-	{ id = "shop",     label = "TIENDA",   icon = "?" },
-	{ id = "settings", label = "AJUSTES",  icon = "?" },
-	{ id = "credits",  label = "CREDITOS", icon = "?" },
+	{ id = "music",    label = "MUSICA",   icon = "rbxassetid://100807726055929" },
+	{ id = "shop",     label = "TIENDA",   icon = "rbxassetid://80411403902609" },
+	{ id = "settings", label = "AJUSTES",  icon = "rbxassetid://89050709715008" },
+	{ id = "credits",  label = "CREDITOS", icon = "rbxassetid://118960630802353" },
 }
 
 -- Helpers
@@ -81,16 +82,26 @@ header.Size = UDim2.new(1, 0, 0, HEADER_H); header.BackgroundColor3 = THEME.head
 header.BorderSizePixel = 0; header.ZIndex = 203; header.Parent = canvas
 
 local headerPill = Instance.new("Frame")
-headerPill.Size = UDim2.new(0, 130, 0, 32)
-headerPill.Position = UDim2.new(1, -145, 0.5, -16)
+headerPill.Size = UDim2.new(0, 140, 0, 40)
+headerPill.Position = UDim2.new(1, -152, 0.5, -20)
 headerPill.BackgroundColor3 = THEME.pillActive; headerPill.BorderSizePixel = 0
 headerPill.ZIndex = 204; headerPill.Parent = header
 addCorner(headerPill, THEME.radiusPill)
 
+local headerPillIcon = Instance.new("ImageLabel")
+headerPillIcon.Name = "Icon"; headerPillIcon.Size = UDim2.new(0, 32, 0, 32)
+headerPillIcon.Position = UDim2.new(0, 8, 0.5, -16)
+headerPillIcon.BackgroundTransparency = 1; headerPillIcon.ScaleType = Enum.ScaleType.Fit
+headerPillIcon.ResampleMode = Enum.ResamplerMode.Default
+headerPillIcon.ImageColor3 = THEME.text; headerPillIcon.Image = ""
+headerPillIcon.ZIndex = 205; headerPillIcon.Parent = headerPill
+
 local headerPillLabel = Instance.new("TextLabel")
-headerPillLabel.Size = UDim2.fromScale(1, 1); headerPillLabel.BackgroundTransparency = 1
+headerPillLabel.Size = UDim2.new(1, -46, 1, 0); headerPillLabel.Position = UDim2.new(0, 46, 0, 0)
+headerPillLabel.BackgroundTransparency = 1
 headerPillLabel.Font = Enum.Font.GothamBold; headerPillLabel.TextSize = 13
-headerPillLabel.TextColor3 = THEME.text; headerPillLabel.Text = "X  MUSICA"
+headerPillLabel.TextColor3 = THEME.text; headerPillLabel.Text = "MUSICA"
+headerPillLabel.TextXAlignment = Enum.TextXAlignment.Left
 headerPillLabel.ZIndex = 205; headerPillLabel.Parent = headerPill
 
 local headerPillBtn = Instance.new("TextButton")
@@ -105,8 +116,8 @@ tabBar.BackgroundColor3 = THEME.bg; tabBar.BorderSizePixel = 0
 tabBar.ZIndex = 203; tabBar.Parent = canvas
 
 local pillContainer = Instance.new("ScrollingFrame")
-pillContainer.Size = UDim2.new(1, -20, 0, 38)
-pillContainer.Position = UDim2.new(0, 10, 0.5, -19)
+pillContainer.Size = UDim2.new(1, 0, 0, 38)
+pillContainer.Position = UDim2.new(0, 0, 0.5, -19)
 pillContainer.BackgroundTransparency = 1; pillContainer.BorderSizePixel = 0
 pillContainer.ScrollBarThickness = 0
 pillContainer.ScrollingDirection = Enum.ScrollingDirection.X
@@ -151,7 +162,9 @@ local function resetPills()
 	for _, b in pairs(tabBtns) do
 		tween(b, TW_SNAP, {BackgroundColor3 = THEME.pillInactive})
 		local lbl = b:FindFirstChild("Lbl")
+		local ico = b:FindFirstChild("Ico")
 		if lbl then tween(lbl, TW_SNAP, {TextColor3 = THEME.tabInactive}) end
+		if ico then tween(ico, TW_SNAP, {ImageColor3 = THEME.tabInactive}) end
 	end
 end
 
@@ -197,15 +210,23 @@ local function selectTab(tabId)
 	activeTabId = tabId
 
 	for _, t in ipairs(TABS) do
-		if t.id == tabId then headerPillLabel.Text = "X  " .. t.label; break end
+		if t.id == tabId then
+			headerPillLabel.Text = t.label
+			if t.icon ~= "" then headerPillIcon.Image = t.icon end
+			break
+		end
 	end
 
 	for id, b in pairs(tabBtns) do
 		local active = (id == tabId)
 		local lbl = b:FindFirstChild("Lbl")
+		local ico = b:FindFirstChild("Ico")
 		tween(b, TW_SMOOTH, {BackgroundColor3 = active and THEME.pillActive or THEME.pillInactive})
 		if lbl then
 			tween(lbl, TW_SMOOTH, {TextColor3 = active and THEME.accent or THEME.tabInactive})
+		end
+		if ico then
+			tween(ico, TW_SMOOTH, {ImageColor3 = active and THEME.accent or THEME.tabInactive})
 		end
 	end
 	scrollToTab(tabId)
@@ -248,20 +269,38 @@ local function selectTab(tabId)
 end
 
 -- Construir pills + frames
+local ICON_SZ = 22
+local PAD_L, PAD_R, GAP = 8, 10, 4
 for idx, tabDef in ipairs(TABS) do
-	local pillW = math.max(#tabDef.label * 10 + 42, 100)
+	local hasIcon = tabDef.icon ~= ""
+	local textW = TextService:GetTextSize(tabDef.label, THEME.fontTab, Enum.Font.GothamBold, Vector2.new(400, 36)).X
+	local pillW = (hasIcon and (PAD_L + ICON_SZ + GAP) or PAD_L) + textW + PAD_R
 
 	local b = Instance.new("TextButton")
-	b.Name = tabDef.id; b.Size = UDim2.new(0, pillW, 0, 34)
+	b.Name = tabDef.id; b.Size = UDim2.new(0, pillW, 0, 36)
 	b.BackgroundColor3 = THEME.pillInactive; b.Text = ""
 	b.BorderSizePixel = 0; b.ZIndex = 205; b.LayoutOrder = idx
 	addCorner(b, THEME.radiusPill)
 
+	if hasIcon then
+		local ico = Instance.new("ImageLabel")
+		ico.Name = "Ico"; ico.Size = UDim2.new(0, ICON_SZ, 0, ICON_SZ)
+		ico.Position = UDim2.new(0, PAD_L, 0.5, -ICON_SZ / 2)
+		ico.BackgroundTransparency = 1; ico.ScaleType = Enum.ScaleType.Fit
+		ico.ResampleMode = Enum.ResamplerMode.Default
+		ico.Image = tabDef.icon; ico.ImageColor3 = THEME.tabInactive
+		ico.ZIndex = 207; ico.Parent = b
+	end
+
+	local lblX = hasIcon and (PAD_L + ICON_SZ + GAP) or PAD_L
 	local lbl = Instance.new("TextLabel")
-	lbl.Name = "Lbl"; lbl.Size = UDim2.fromScale(1, 1)
+	lbl.Name = "Lbl"
+	lbl.Size = UDim2.new(1, -lblX, 1, 0)
+	lbl.Position = UDim2.new(0, lblX, 0, 0)
 	lbl.BackgroundTransparency = 1; lbl.Font = Enum.Font.GothamBold
 	lbl.TextSize = THEME.fontTab; lbl.TextColor3 = THEME.tabInactive
-	lbl.Text = tabDef.icon .. "  " .. tabDef.label; lbl.ZIndex = 206
+	lbl.TextXAlignment = Enum.TextXAlignment.Left
+	lbl.Text = tabDef.label; lbl.ZIndex = 206
 	lbl.Parent = b
 
 	tabBtns[tabDef.id] = b
@@ -278,14 +317,18 @@ for idx, tabDef in ipairs(TABS) do
 		if activeTabId ~= tabDef.id then
 			tween(b, TW_SNAP, {BackgroundColor3 = THEME.elevated})
 			local l = b:FindFirstChild("Lbl")
+			local ic = b:FindFirstChild("Ico")
 			if l then tween(l, TW_SNAP, {TextColor3 = THEME.textSoft}) end
+			if ic then tween(ic, TW_SNAP, {ImageColor3 = THEME.textSoft}) end
 		end
 	end)
 	b.MouseLeave:Connect(function()
 		if activeTabId ~= tabDef.id then
 			tween(b, TW_SNAP, {BackgroundColor3 = THEME.pillInactive})
 			local l = b:FindFirstChild("Lbl")
+			local ic = b:FindFirstChild("Ico")
 			if l then tween(l, TW_SNAP, {TextColor3 = THEME.tabInactive}) end
+			if ic then tween(ic, TW_SNAP, {ImageColor3 = THEME.tabInactive}) end
 		end
 	end)
 end
