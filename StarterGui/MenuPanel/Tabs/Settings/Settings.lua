@@ -171,7 +171,7 @@ function Settings.build(parent, THEME)
 		iconLbl.Size                   = UDim2.new(0, 20, 0, 20)
 		iconLbl.Position               = UDim2.new(0, 0, 0.5, -10)
 		iconLbl.BackgroundTransparency = 1
-		iconLbl.Image                  = "rbxassetid://7734053495"
+		iconLbl.Image                  = "rbxassetid://119463017376976"
 		iconLbl.ImageColor3            = THEME.text
 		iconLbl.ZIndex                 = 206
 		iconLbl.Parent                 = row
@@ -191,13 +191,13 @@ function Settings.build(parent, THEME)
 
 		-- Track
 		local track = Instance.new("Frame")
-		track.Size            = UDim2.new(1, -84, 0, 6)
-		track.Position        = UDim2.new(0, 74, 0.5, -3)
+		track.Size            = UDim2.new(1, -84, 0, 14)
+		track.Position        = UDim2.new(0, 74, 0.5, -7)
 		track.BackgroundColor3 = THEME.elevated
 		track.BorderSizePixel = 0
 		track.ZIndex          = 206
 		track.Parent          = row
-		local tC = Instance.new("UICorner"); tC.CornerRadius = UDim.new(0, 3); tC.Parent = track
+		local tC = Instance.new("UICorner"); tC.CornerRadius = UDim.new(0, 4); tC.Parent = track
 
 		-- Fill
 		local fill = Instance.new("Frame")
@@ -206,17 +206,17 @@ function Settings.build(parent, THEME)
 		fill.BorderSizePixel = 0
 		fill.ZIndex          = 207
 		fill.Parent          = track
-		local fC = Instance.new("UICorner"); fC.CornerRadius = UDim.new(0, 3); fC.Parent = fill
+		local fC = Instance.new("UICorner"); fC.CornerRadius = UDim.new(0, 4); fC.Parent = fill
 
 		-- Thumb
 		local thumb = Instance.new("Frame")
-		thumb.Size            = UDim2.new(0, 16, 0, 16)
-		thumb.Position        = UDim2.new(state.volume / 100, -8, 0.5, -8)
+		thumb.Size            = UDim2.new(0, 18, 0, 20)
+		thumb.Position        = UDim2.new(state.volume / 100, -9, 0.5, -10)
 		thumb.BackgroundColor3 = Color3.new(1, 1, 1)
 		thumb.BorderSizePixel = 0
 		thumb.ZIndex          = 208
 		thumb.Parent          = track
-		local thC = Instance.new("UICorner"); thC.CornerRadius = UDim.new(0, 8); thC.Parent = thumb
+		local thC = Instance.new("UICorner"); thC.CornerRadius = UDim.new(0, 4); thC.Parent = thumb
 
 		local dragging = false
 
@@ -225,7 +225,7 @@ function Settings.build(parent, THEME)
 			state.volume = pct
 			pctLbl.Text = pct .. "%"
 			fill.Size = UDim2.new(pct / 100, 0, 1, 0)
-			thumb.Position = UDim2.new(pct / 100, -8, 0.5, -8)
+			thumb.Position = UDim2.new(pct / 100, -9, 0.5, -10)
 			local vol = pct / 100
 			local snd = workspace:FindFirstChild("QueueSound")
 			if snd then snd.Volume = vol end

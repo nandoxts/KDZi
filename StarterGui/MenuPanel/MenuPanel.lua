@@ -1,5 +1,5 @@
--- MenuPanel.lua v6.0 — Panel lateral BLACKOUT ORANGE
--- by ignxts + George Bellota
+-- MenuPanel.lua v7.0 — Panel lateral FULL BLACK
+-- by ignxts
 
 local Players           = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -25,25 +25,27 @@ _G.CloseMenuPanel = function() end
 
 -- Layout
 local PANEL_W   = THEME.panelWidth or 390
-local HEADER_H, TABBAR_H = 50, 38
+local HEADER_H, TABBAR_H = 0, 38
 local CONTENT_Y = HEADER_H + TABBAR_H
-local ICON_SZ = 22
-local TAB_PAD = 20
-local ICON_GAP = 4
+local ICON_SZ = 25
+local TAB_PAD = 15
+local ICON_GAP = 3
+local BORDER_R = 14
+local TOPBAR_H = 62 -- espacio libre para el topbar de MENU
 
 local TW_SNAP   = TweenInfo.new(0.18, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 local TW_SMOOTH = TweenInfo.new(0.28, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 local TW_SLIDE  = TweenInfo.new(0.34, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 
-
-local POS_OPEN   = UDim2.new(1, 0, 0, 0)
-local POS_CLOSED = UDim2.new(1, PANEL_W + 10, 0, 0)
+-- Panel empieza debajo del topbar, border radius visible en todas las esquinas
+local POS_OPEN   = UDim2.new(1, 0, 0, TOPBAR_H)
+local POS_CLOSED = UDim2.new(1, PANEL_W + 10, 0, TOPBAR_H)
 
 local TABS = {
-	{ id = "music",    label = "MUSICA",   icon = "rbxassetid://100807726055929" },
-	{ id = "shop",     label = "TIENDA",   icon = "rbxassetid://80411403902609" },
-	{ id = "settings", label = "AJUSTES",  icon = "rbxassetid://89050709715008" },
-	{ id = "credits",  label = "CREDITOS", icon = "rbxassetid://118960630802353" },
+	{ id = "music",    label = "MUSICA",   icon = "rbxassetid://128030996841410" },
+	{ id = "shop",     label = "TIENDA",   icon = "rbxassetid://83068902823364" },
+	{ id = "settings", label = "AJUSTES",  icon = "rbxassetid://138336967142132" },
+	{ id = "credits",  label = "CREDITOS", icon = "rbxassetid://107899112970032" },
 }
 
 -- Helpers
@@ -65,33 +67,68 @@ screenGui.Parent = playerGui
 
 -- Overlay
 local overlay = Instance.new("TextButton")
-overlay.Size = UDim2.fromScale(1, 1); overlay.BackgroundColor3 = THEME.deep
+overlay.Size = UDim2.fromScale(1, 1); overlay.BackgroundColor3 = THEME.bg
 overlay.BackgroundTransparency = 1; overlay.Text = ""; overlay.BorderSizePixel = 0
 overlay.ZIndex = 200; overlay.Visible = false; overlay.AutoButtonColor = false; overlay.Parent = screenGui
 
 -- Panel
 local panel = Instance.new("TextButton")
-panel.Name = "MenuPanel"; panel.Size = UDim2.new(0, PANEL_W, 1, 0)
+panel.Name = "MenuPanel"; panel.Size = UDim2.new(0, PANEL_W, 1, -TOPBAR_H)
 panel.Position = POS_CLOSED; panel.AnchorPoint = Vector2.new(1, 0)
 panel.BackgroundColor3 = THEME.bg; panel.BorderSizePixel = 0; panel.ZIndex = 201
 panel.Active = true; panel.AutoButtonColor = false; panel.Text = ""
+panel.ClipsDescendants = true
 panel.Parent = screenGui
+addCorner(panel, BORDER_R)
+local panelStroke = Instance.new("UIStroke")
+panelStroke.Color = THEME.stroke; panelStroke.Thickness = 1.5
+panelStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+panelStroke.Parent = panel
 
 local canvas = Instance.new("CanvasGroup")
-canvas.Size = UDim2.fromScale(1, 1); canvas.BackgroundTransparency = 1
+canvas.Size = UDim2.fromScale(1, 1)
+canvas.BackgroundTransparency = 1
 canvas.BorderSizePixel = 0; canvas.ZIndex = 202; canvas.Parent = panel
+addCorner(canvas, BORDER_R)
 
--- Header
+-- Inner edge vignette (left) — dark fade from edge inward
+local edgeL = Instance.new("Frame")
+edgeL.Name = "EdgeGlowL"; edgeL.Size = UDim2.new(0, 35, 1, 0)
+edgeL.BackgroundColor3 = THEME.bg; edgeL.BorderSizePixel = 0
+edgeL.ZIndex = 250; edgeL.Parent = canvas
+local gL = Instance.new("UIGradient")
+gL.Transparency = NumberSequence.new({
+	NumberSequenceKeypoint.new(0, 0.4),
+	NumberSequenceKeypoint.new(0.6, 0.85),
+	NumberSequenceKeypoint.new(1, 1),
+})
+gL.Parent = edgeL
+
+-- Inner edge vignette (right)
+local edgeR = Instance.new("Frame")
+edgeR.Name = "EdgeGlowR"; edgeR.Size = UDim2.new(0, 35, 1, 0)
+edgeR.Position = UDim2.new(1, -35, 0, 0)
+edgeR.BackgroundColor3 = THEME.bg; edgeR.BorderSizePixel = 0
+edgeR.ZIndex = 250; edgeR.Parent = canvas
+local gR = Instance.new("UIGradient")
+gR.Transparency = NumberSequence.new({
+	NumberSequenceKeypoint.new(0, 1),
+	NumberSequenceKeypoint.new(0.4, 0.85),
+	NumberSequenceKeypoint.new(1, 0.4),
+})
+gR.Parent = edgeR
+
+-- Header (hidden)
 local header = Instance.new("Frame")
-header.Size = UDim2.new(1, 0, 0, HEADER_H); header.BackgroundColor3 = THEME.head
-header.BorderSizePixel = 0; header.ZIndex = 203; header.Parent = canvas
+header.Size = UDim2.new(1, 0, 0, HEADER_H); header.BackgroundColor3 = THEME.bg
+header.BorderSizePixel = 0; header.ZIndex = 203; header.Visible = false; header.Parent = canvas
 
 local headerPill = Instance.new("Frame")
 headerPill.Size = UDim2.new(0, 140, 0, 40)
 headerPill.Position = UDim2.new(1, -152, 0.5, -20)
-headerPill.BackgroundColor3 = THEME.pillActive; headerPill.BorderSizePixel = 0
+headerPill.BackgroundColor3 = THEME.elevated; headerPill.BorderSizePixel = 0
 headerPill.ZIndex = 204; headerPill.Parent = header
-addCorner(headerPill, THEME.radiusPill)
+addCorner(headerPill, UDim.new(0, 8))
 
 local headerPillIcon = Instance.new("ImageLabel")
 headerPillIcon.Name = "Icon"; headerPillIcon.Size = UDim2.new(0, 32, 0, 32)
@@ -170,12 +207,12 @@ end
 
 local function resetPills()
 	for _, b in pairs(tabBtns) do
-		tween(b, TW_SNAP, {BackgroundColor3 = THEME.pillInactive})
+		tween(b, TW_SNAP, {BackgroundColor3 = THEME.card})
 		local lbl = b:FindFirstChild("Lbl", true)
 		local ico = b:FindFirstChild("Ico", true)
 		local pad = b:FindFirstChild("Pad")
-		if lbl then tween(lbl, TW_SNAP, {TextColor3 = THEME.tabInactive}) end
-		if ico then tween(ico, TW_SNAP, {ImageColor3 = THEME.tabInactive}) end
+		if lbl then tween(lbl, TW_SNAP, {TextColor3 = THEME.muted}) end
+		if ico then tween(ico, TW_SNAP, {ImageColor3 = THEME.muted}) end
 		if pad then tween(pad, TW_SNAP, {PaddingLeft = UDim.new(0, TAB_PAD), PaddingRight = UDim.new(0, TAB_PAD)}) end
 	end
 end
@@ -238,12 +275,12 @@ local function selectTab(tabId)
 		local lbl = b:FindFirstChild("Lbl", true)
 		local ico = b:FindFirstChild("Ico", true)
 		local pad = b:FindFirstChild("Pad")
-		tween(b, TW_SMOOTH, {BackgroundColor3 = active and THEME.pillActive or THEME.pillInactive})
+		tween(b, TW_SMOOTH, {BackgroundColor3 = active and THEME.elevated or THEME.card})
 		if lbl then
-			tween(lbl, TW_SMOOTH, {TextColor3 = active and THEME.accent or THEME.tabInactive})
+			tween(lbl, TW_SMOOTH, {TextColor3 = active and THEME.accent or THEME.muted})
 		end
 		if ico then
-			tween(ico, TW_SMOOTH, {ImageColor3 = active and THEME.accent or THEME.tabInactive})
+			tween(ico, TW_SMOOTH, {ImageColor3 = active and THEME.accent or THEME.muted})
 		end
 		if pad then
 			local p = active and TAB_PAD + 5 or TAB_PAD
@@ -297,7 +334,7 @@ for idx, tabDef in ipairs(TABS) do
 	local b = Instance.new("TextButton")
 	b.Name = tabDef.id; b.Size = UDim2.new(0, 0, 1, 0)
 	b.AutomaticSize = Enum.AutomaticSize.X
-	b.BackgroundColor3 = THEME.pillInactive; b.Text = ""
+	b.BackgroundColor3 = THEME.card; b.Text = ""
 	b.BorderSizePixel = 0; b.ZIndex = 205; b.LayoutOrder = idx
 
 	-- UIPadding para ancho animado
@@ -326,7 +363,7 @@ for idx, tabDef in ipairs(TABS) do
 		ico.Name = "Ico"; ico.Size = UDim2.new(0, ICON_SZ, 0, ICON_SZ)
 		ico.BackgroundTransparency = 1; ico.ScaleType = Enum.ScaleType.Fit
 		ico.ResampleMode = Enum.ResamplerMode.Default
-		ico.Image = tabDef.icon; ico.ImageColor3 = THEME.tabInactive
+		ico.Image = tabDef.icon; ico.ImageColor3 = THEME.muted
 		ico.ZIndex = 207; ico.LayoutOrder = 1; ico.Parent = inner
 	end
 
@@ -335,7 +372,7 @@ for idx, tabDef in ipairs(TABS) do
 	lbl.Size = UDim2.new(0, 0, 0, ICON_SZ)
 	lbl.AutomaticSize = Enum.AutomaticSize.X
 	lbl.BackgroundTransparency = 1; lbl.Font = Enum.Font.GothamBold
-	lbl.TextSize = 14; lbl.TextColor3 = THEME.tabInactive
+	lbl.TextSize = 14; lbl.TextColor3 = THEME.muted
 	lbl.Text = tabDef.label; lbl.ZIndex = 206; lbl.LayoutOrder = 2
 	lbl.Parent = inner
 
@@ -354,17 +391,17 @@ for idx, tabDef in ipairs(TABS) do
 			tween(b, TW_SNAP, {BackgroundColor3 = THEME.elevated})
 			local l = b:FindFirstChild("Lbl", true)
 			local ic = b:FindFirstChild("Ico", true)
-			if l then tween(l, TW_SNAP, {TextColor3 = THEME.textSoft}) end
-			if ic then tween(ic, TW_SNAP, {ImageColor3 = THEME.textSoft}) end
+			if l then tween(l, TW_SNAP, {TextColor3 = THEME.dim}) end
+			if ic then tween(ic, TW_SNAP, {ImageColor3 = THEME.dim}) end
 		end
 	end)
 	b.MouseLeave:Connect(function()
 		if activeTabId ~= tabDef.id then
-			tween(b, TW_SNAP, {BackgroundColor3 = THEME.pillInactive})
+			tween(b, TW_SNAP, {BackgroundColor3 = THEME.card})
 			local l = b:FindFirstChild("Lbl", true)
 			local ic = b:FindFirstChild("Ico", true)
-			if l then tween(l, TW_SNAP, {TextColor3 = THEME.tabInactive}) end
-			if ic then tween(ic, TW_SNAP, {ImageColor3 = THEME.tabInactive}) end
+			if l then tween(l, TW_SNAP, {TextColor3 = THEME.muted}) end
+			if ic then tween(ic, TW_SNAP, {ImageColor3 = THEME.muted}) end
 		end
 	end)
 end
@@ -396,8 +433,8 @@ end
 
 overlay.MouseButton1Click:Connect(dismiss)
 headerPillBtn.MouseButton1Click:Connect(dismiss)
-headerPillBtn.MouseEnter:Connect(function() tween(headerPill, TW_SNAP, {BackgroundColor3 = THEME.elevated}) end)
-headerPillBtn.MouseLeave:Connect(function() tween(headerPill, TW_SNAP, {BackgroundColor3 = THEME.pillActive}) end)
+headerPillBtn.MouseEnter:Connect(function() tween(headerPill, TW_SNAP, {BackgroundColor3 = THEME.stroke}) end)
+headerPillBtn.MouseLeave:Connect(function() tween(headerPill, TW_SNAP, {BackgroundColor3 = THEME.elevated}) end)
 
 -- API global
 _G.OpenMenuPanel = function(tab) openPanel(); selectTab(tab or "music") end

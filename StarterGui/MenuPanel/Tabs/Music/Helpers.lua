@@ -39,11 +39,12 @@ end
 
 -- Iconos modernos compartidos (mismos que MusicDjDashboard)
 Helpers.ICONS = {
-	PLAY_ADD = "rbxassetid://108828649435041",
+	PLAY_ADD = "rbxassetid://106062824601262",
 	CHECK    = "rbxassetid://102926522001210",
-	DELETE   = "rbxassetid://94904012825024",
-	LOADING  = "rbxassetid://122161736287488",
-	SKIP     = "rbxassetid://125130348287636",
+	DELETE   = "rbxassetid://100580390387788",
+	LOADING  = "rbxassetid://72909990569897",
+	SKIP     = "rbxassetid://130796780610204",
+	BACK     = "rbxassetid://97043688093134",
 }
 
 -- CanvasGroup helper — recorta hijos respetando UICorner (protección de bordes)
@@ -64,5 +65,36 @@ end
 
 -- Referencia directa a UI por si los módulos necesitan más
 Helpers.UI = UI
+
+-- Botón circular outlined reutilizable (transparente + UIStroke + icono centrado)
+-- Retorna { btn, icon } para poder cambiar icono/estado después
+function Helpers.outlinedCircleBtn(parent, opts)
+	local size = opts.size or 32
+	local icon = opts.icon
+	local theme = opts.theme
+	local z = opts.zIndex or 216
+	local pos = opts.position or UDim2.new(0, 0, 0, 0)
+	local name = opts.name or "OutlinedBtn"
+
+	local btn = Helpers.make("TextButton", {
+		Size = UDim2.new(0, size, 0, size),
+		Position = pos,
+		BackgroundTransparency = 1,
+		Text = "", BorderSizePixel = 0, AutoButtonColor = false,
+		ZIndex = z, Name = name, Parent = parent,
+	})
+	Helpers.rounded(btn, size / 2)
+	Helpers.make("UIStroke", {
+		Color = theme.stroke, Thickness = 1.5,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = btn,
+	})
+	local iconLabel = Helpers.make("ImageLabel", {
+		Size = UDim2.new(0.55, 0, 0.55, 0), Position = UDim2.new(0.225, 0, 0.225, 0),
+		BackgroundTransparency = 1, Image = icon or "",
+		ImageColor3 = theme.dim,
+		ZIndex = z + 1, Name = "IconImage", Parent = btn,
+	})
+	return btn, iconLabel
+end
 
 return Helpers

@@ -57,7 +57,7 @@ function DJTab.build(parent, THEME, state, R, H)
 	local djHeaderH = 60
 	local djHeader = make("Frame", {
 		Size = UDim2.new(1, 0, 0, djHeaderH),
-		BackgroundColor3 = Color3.fromRGB(22, 22, 22),
+		BackgroundColor3 = THEME.card,
 		ClipsDescendants = true, ZIndex = 213, Parent = djSongsView,
 	})
 
@@ -72,14 +72,11 @@ function DJTab.build(parent, THEME, state, R, H)
 		BorderSizePixel = 0, ZIndex = 214, Parent = djHeader,
 	})
 
-	local djBackBtn = make("TextButton", {
-		Size = UDim2.new(0, 36, 0, 36), Position = UDim2.new(0, 8, 0.5, -18),
-		BackgroundColor3 = Color3.fromRGB(40, 40, 40), BackgroundTransparency = 0.3,
-		Font = Enum.Font.GothamBold, TextSize = 16,
-		TextColor3 = THEME.text, Text = "←",
-		BorderSizePixel = 0, AutoButtonColor = false, ZIndex = 215, Parent = djHeader,
+	local djBackBtn, _backIcon = H.outlinedCircleBtn(djHeader, {
+		size = 36, icon = H.ICONS.BACK, theme = THEME,
+		position = UDim2.new(0, 8, 0.5, -18),
+		zIndex = 215, name = "BackBtn",
 	})
-	rounded(djBackBtn, 8)
 
 	local djHeaderName = make("TextLabel", {
 		Size = UDim2.new(1, -60, 0, 22), Position = UDim2.new(0, 52, 0, 6),
@@ -100,7 +97,7 @@ function DJTab.build(parent, THEME, state, R, H)
 	local djSearchBar, djSearchInput = SearchModern.new(djSongsView, {
 		placeholder = "Buscar Canción",
 		size = UDim2.new(1, 0, 0, 36),
-		bg = Color3.fromRGB(30, 30, 30),
+		bg = THEME.card,
 		corner = 0,
 		z = 213,
 		inputName = "DJSearchInput",
@@ -129,7 +126,7 @@ function DJTab.build(parent, THEME, state, R, H)
 		local card = Instance.new("CanvasGroup")
 		card.Name = "SongCard"
 		card.Size = UDim2.new(1, -12, 0, CARD_H)
-		card.BackgroundColor3 = Color3.fromRGB(26, 26, 26)
+		card.BackgroundColor3 = THEME.card
 		card.BackgroundTransparency = 0
 		card.BorderSizePixel = 0
 		card.GroupTransparency = 0
@@ -142,7 +139,7 @@ function DJTab.build(parent, THEME, state, R, H)
 		-- Cover full-height izquierda (CanvasGroup recorta bordes)
 		local coverBg = make("Frame", {
 			Size = UDim2.new(0, CARD_H, 1, 0),
-			BackgroundColor3 = Color3.fromRGB(35, 35, 35), BackgroundTransparency = 0,
+			BackgroundColor3 = THEME.elevated, BackgroundTransparency = 0,
 			BorderSizePixel = 0, ZIndex = 215, Name = "CoverBg", Parent = card,
 		})
 		make("ImageLabel", {
@@ -164,30 +161,22 @@ function DJTab.build(parent, THEME, state, R, H)
 		make("TextLabel", {
 			Size = UDim2.new(1, -(tx + 44), 0, 14), Position = UDim2.new(0, tx, 0, 32),
 			BackgroundTransparency = 1, Font = Enum.Font.GothamMedium, TextSize = 12,
-			TextColor3 = Color3.fromRGB(130, 130, 130), Text = "",
+			TextColor3 = THEME.dim, Text = "",
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextTruncate = Enum.TextTruncate.AtEnd,
 			ZIndex = 215, Name = "ArtistLabel", Parent = card,
 		})
 
-		-- Botón agregar (circular con icono moderno)
-		local addBtn = make("TextButton", {
-			Size = UDim2.new(0, 32, 0, 32), Position = UDim2.new(1, -38, 0.5, -16),
-			BackgroundColor3 = Color3.fromRGB(60, 60, 68),
-			Text = "", BorderSizePixel = 0, AutoButtonColor = false,
-			ZIndex = 216, Name = "AddButton", Parent = card,
-		})
-		rounded(addBtn, 16)
-		make("ImageLabel", {
-			Size = UDim2.new(0.7, 0, 0.7, 0), Position = UDim2.new(0.15, 0, 0.15, 0),
-			BackgroundTransparency = 1, Image = ICONS.PLAY_ADD,
-			ImageColor3 = THEME.text,
-			ZIndex = 217, Name = "IconImage", Parent = addBtn,
+		-- Botón agregar (outlined circle)
+		local addBtn, addIcon = H.outlinedCircleBtn(card, {
+			size = 36, icon = ICONS.PLAY_ADD, theme = THEME,
+			position = UDim2.new(1, -42, 0.5, -18),
+			zIndex = 216, name = "AddButton",
 		})
 		make("ImageLabel", {
-			Size = UDim2.new(0.7, 0, 0.7, 0), Position = UDim2.new(0.15, 0, 0.15, 0),
+			Size = UDim2.new(0.55, 0, 0.55, 0), Position = UDim2.new(0.225, 0, 0.225, 0),
 			BackgroundTransparency = 1, Image = ICONS.LOADING,
-			ImageColor3 = THEME.text, ZIndex = 218,
+			ImageColor3 = THEME.dim, ZIndex = 218,
 			Visible = false, Name = "LoadingIcon", Parent = addBtn,
 		})
 
@@ -212,7 +201,7 @@ function DJTab.build(parent, THEME, state, R, H)
 						if tw then tw:Cancel() end
 					end)
 				end
-				addBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
+				addBtn.BackgroundColor3 = THEME.elevated
 				addBtn.AutoButtonColor = false
 				if R.Add then pcall(function() R.Add:FireServer(songId) end) end
 			end
@@ -220,12 +209,12 @@ function DJTab.build(parent, THEME, state, R, H)
 
 		card.InputBegan:Connect(function(input)
 			if input.UserInputType == Enum.UserInputType.MouseMovement then
-				tween(card, 0.1, { BackgroundColor3 = Color3.fromRGB(36, 36, 36) })
+				tween(card, 0.1, { BackgroundColor3 = THEME.elevated })
 			end
 		end)
 		card.InputEnded:Connect(function(input)
 			if input.UserInputType == Enum.UserInputType.MouseMovement then
-				tween(card, 0.1, { BackgroundColor3 = Color3.fromRGB(26, 26, 26) })
+				tween(card, 0.1, { BackgroundColor3 = THEME.card })
 			end
 		end)
 
@@ -276,19 +265,26 @@ function DJTab.build(parent, THEME, state, R, H)
 			local pending = state.pendingCardSongIds[data.id]
 
 			if pending then
-				ab.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
+				ab.BackgroundTransparency = 1
 				ab.AutoButtonColor = false
+				local st = ab:FindFirstChildWhichIsA("UIStroke")
+				if st then st.Transparency = 0 end
 				if icon then icon.Visible = false end
 				if loadingIcon then loadingIcon.Visible = true end
 			elseif inQ then
-				ab.BackgroundColor3 = THEME.success or Color3.fromRGB(40, 180, 80)
+				ab.BackgroundTransparency = 0
+				ab.BackgroundColor3 = THEME.success
 				ab.AutoButtonColor = false
+				local st = ab:FindFirstChildWhichIsA("UIStroke")
+				if st then st.Transparency = 1 end
 				if icon then icon.Image = ICONS.CHECK; icon.ImageColor3 = Color3.new(1, 1, 1); icon.Visible = true end
 				if loadingIcon then loadingIcon.Visible = false end
 			else
-				ab.BackgroundColor3 = Color3.fromRGB(60, 60, 68)
-				ab.AutoButtonColor = true
-				if icon then icon.Image = ICONS.PLAY_ADD; icon.ImageColor3 = THEME.text; icon.Visible = true end
+				ab.BackgroundTransparency = 1
+				ab.AutoButtonColor = false
+				local st = ab:FindFirstChildWhichIsA("UIStroke")
+				if st then st.Transparency = 0 end
+				if icon then icon.Image = ICONS.PLAY_ADD; icon.ImageColor3 = THEME.dim; icon.Visible = true end
 				if loadingIcon then loadingIcon.Visible = false end
 			end
 		end
@@ -319,12 +315,15 @@ function DJTab.build(parent, THEME, state, R, H)
 
 					if isSuccess then
 						if icon then icon.Image = ICONS.CHECK; icon.ImageColor3 = Color3.new(1, 1, 1) end
-						addBtn.BackgroundColor3 = THEME.success or Color3.fromRGB(40, 180, 80)
-						addBtn.AutoButtonColor = false
-					else
-						if icon then icon.Image = ICONS.PLAY_ADD; icon.ImageColor3 = THEME.text end
-						addBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 68)
-						addBtn.AutoButtonColor = true
+					addBtn.BackgroundTransparency = 0
+					addBtn.BackgroundColor3 = THEME.success
+					local st = addBtn:FindFirstChildWhichIsA("UIStroke")
+					if st then st.Transparency = 1 end
+				else
+					if icon then icon.Image = ICONS.PLAY_ADD; icon.ImageColor3 = THEME.dim end
+					addBtn.BackgroundTransparency = 1
+					local st = addBtn:FindFirstChildWhichIsA("UIStroke")
+					if st then st.Transparency = 0 end
 					end
 					break
 				end
@@ -448,8 +447,8 @@ function DJTab.build(parent, THEME, state, R, H)
 		end)
 		state.selectedDJ = nil; state.selectedDJInfo = nil
 	end)
-	djBackBtn.MouseEnter:Connect(function() tween(djBackBtn, 0.1, { BackgroundColor3 = Color3.fromRGB(55, 55, 55) }) end)
-	djBackBtn.MouseLeave:Connect(function() tween(djBackBtn, 0.1, { BackgroundColor3 = Color3.fromRGB(40, 40, 40) }) end)
+	djBackBtn.MouseEnter:Connect(function() tween(djBackBtn, 0.1, { BackgroundTransparency = 0, BackgroundColor3 = THEME.elevated }) end)
+	djBackBtn.MouseLeave:Connect(function() tween(djBackBtn, 0.1, { BackgroundTransparency = 1 }) end)
 
 	function api.drawDJs()
 		for _, child in pairs(djListView:GetChildren()) do
@@ -460,7 +459,7 @@ function DJTab.build(parent, THEME, state, R, H)
 			make("TextLabel", {
 				Size = UDim2.new(1, 0, 0, 60), BackgroundTransparency = 1,
 				Font = Enum.Font.Gotham, TextSize = 14,
-				TextColor3 = Color3.fromRGB(100, 100, 100),
+				TextColor3 = THEME.muted,
 				Text = "Sin DJs disponibles", ZIndex = 213, Parent = djListView,
 			})
 			return
@@ -470,7 +469,7 @@ function DJTab.build(parent, THEME, state, R, H)
 			local DJ_CARD_H = 100
 			local djCard = make("Frame", {
 				Size = UDim2.new(1, 0, 0, DJ_CARD_H),
-				BackgroundColor3 = Color3.fromRGB(25, 25, 25),
+				BackgroundColor3 = THEME.card,
 				ClipsDescendants = true, ZIndex = 213,
 				LayoutOrder = idx, Parent = djListView,
 			})
@@ -517,8 +516,8 @@ function DJTab.build(parent, THEME, state, R, H)
 				ZIndex = 217, Parent = djCard,
 			})
 			clickBtn.MouseButton1Click:Connect(function() api.selectDJ(dj.name, dj) end)
-			clickBtn.MouseEnter:Connect(function() tween(djCard, 0.15, { BackgroundColor3 = Color3.fromRGB(35, 35, 35) }) end)
-			clickBtn.MouseLeave:Connect(function() tween(djCard, 0.15, { BackgroundColor3 = Color3.fromRGB(25, 25, 25) }) end)
+			clickBtn.MouseEnter:Connect(function() tween(djCard, 0.15, { BackgroundColor3 = THEME.elevated }) end)
+			clickBtn.MouseLeave:Connect(function() tween(djCard, 0.15, { BackgroundColor3 = THEME.card }) end)
 		end
 
 		if djListSB then task.defer(djListSB.update) end

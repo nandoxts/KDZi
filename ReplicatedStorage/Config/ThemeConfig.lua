@@ -1,62 +1,41 @@
 -- ════════════════════════════════════════════════════════════════
--- THEME CONFIGURATION v6.0 — BLACKOUT ORANGE (SLIM)
--- Solo lo necesario. Negro puro + naranja.
--- by ignxts — mejorado por George Bellota
+-- THEME v8.0 — FULL BLACK · SIN ALIASES
+-- by ignxts
 -- ════════════════════════════════════════════════════════════════
 
 local THEME = {
-	-- Backgrounds
-	deep         = Color3.fromRGB(0,   0,   0),
-	bg           = Color3.fromRGB(8,   8,   8),
-	panel        = Color3.fromRGB(14,  14,  14),
-	head         = Color3.fromRGB(10,  10,  10),
-	card         = Color3.fromRGB(22,  22,  22),
-	elevated     = Color3.fromRGB(38,  38,  38),
-	surface      = Color3.fromRGB(28,  28,  28),
+	-- ═══ FONDOS (3 niveles + subtle) ═══
+	bg       = Color3.fromRGB(6,   6,   6),   -- fondo base
+	card     = Color3.fromRGB(18,  18,  18),   -- tarjetas, contenedores
+	elevated = Color3.fromRGB(32,  32,  32),   -- hover, items activos
+	subtle   = Color3.fromRGB(55,  55,  55),   -- bordes suaves, placeholders
 
-	-- Pill tabs
-	pillActive   = Color3.fromRGB(38,  38,  38),
-	pillInactive = Color3.fromRGB(20,  20,  20),
+	-- ═══ TEXTO (3 niveles) ═══
+	text     = Color3.fromRGB(255, 255, 255),  -- blanco puro
+	dim      = Color3.fromRGB(160, 160, 160),  -- texto suave
+	muted    = Color3.fromRGB(90,  90,  90),   -- texto apagado
 
-	-- Text
-	text         = Color3.fromRGB(255, 255, 255),
-	textSoft     = Color3.fromRGB(210, 210, 210),
-	muted        = Color3.fromRGB(120, 120, 120),
-	subtle       = Color3.fromRGB(65,  65,  65),
+	-- ═══ BORDE ═══
+	stroke   = Color3.fromRGB(38,  38,  38),
 
-	-- Acento naranja
-	accent       = Color3.fromRGB(255, 140,  0),
-	accentHover  = Color3.fromRGB(255, 165, 40),
-	accentMuted  = Color3.fromRGB(80,  45,   0),
+	-- ═══ ACENTO ═══
+	accent   = Color3.fromRGB(255, 140,  0),   -- naranja (progreso, highlights)
 
-	-- Tab
-	tabActive    = Color3.fromRGB(255, 140,  0),
-	tabInactive  = Color3.fromRGB(66, 66, 66),
+	-- ═══ ESTADOS ═══
+	danger   = Color3.fromRGB(220, 50,  50),
+	success  = Color3.fromRGB(0, 211, 53),
+	warn     = Color3.fromRGB(255, 170, 50),
 
-	-- Botones / estados
-	btnDanger    = Color3.fromRGB(220, 50,  50),
-	success      = Color3.fromRGB(50, 200, 120),
-	warn         = Color3.fromRGB(255, 170, 50),
-
-	-- Bordes (uso interno de tabs)
-	stroke       = Color3.fromRGB(40,  40,  40),
-
-	-- Transparencies
+	-- ═══ ALPHA ═══
 	overlayAlpha = 0.6,
-	frameAlpha   = 0.08,
+	frameAlpha   = 0.06,
+	lightAlpha   = 0.2,
+	mediumAlpha  = 0.5,
+	subtleAlpha  = 0.85,
 
-	-- Panel
-	panelWidth   = 390,
-
-	-- Radius
-	radiusPill   = UDim.new(0, 8),
-	radiusMd     = UDim.new(0, 8),
-
-	-- Typography
-	fontTitle    = 18,
-	fontTab      = 13,
-	fontBody     = 14,
-	fontSmall    = 12,
+	-- ═══ LAYOUT ═══
+	panelWidth  = 390,
+	panelHeight = 500,
 }
 
 return THEME

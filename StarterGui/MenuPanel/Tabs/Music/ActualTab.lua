@@ -30,7 +30,7 @@ function ActualTab.build(parent, THEME, state, R, H)
 	local COVER_H = 520
 	local coverSection = make("Frame", {
 		Size = UDim2.new(1, 0, 0, COVER_H),
-		BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+		BackgroundColor3 = THEME.bg,
 		BackgroundTransparency = 0, BorderSizePixel = 0,
 		ClipsDescendants = true, LayoutOrder = 1, ZIndex = 211, Parent = panel,
 	})
@@ -49,7 +49,7 @@ function ActualTab.build(parent, THEME, state, R, H)
 	})
 
 	local gradientOverlay = make("Frame", {
-		Size = UDim2.new(1, 0, 0.55, 0), Position = UDim2.new(0, 0, 0.45, 0),
+		Size = UDim2.new(1, 0, 0.65, 0), Position = UDim2.new(0, 0, 0.35, 0),
 		BackgroundColor3 = Color3.new(0, 0, 0), ZIndex = 213, Parent = coverSection,
 	})
 	make("UIGradient", {
@@ -74,37 +74,37 @@ function ActualTab.build(parent, THEME, state, R, H)
 	local coverArtist = make("TextLabel", {
 		Size = UDim2.new(1, -24, 0, 18), Position = UDim2.new(0, 12, 1, -26),
 		BackgroundTransparency = 1, Font = Enum.Font.GothamMedium, TextSize = 13,
-		TextColor3 = Color3.fromRGB(200, 200, 200), Text = "",
+		TextColor3 = THEME.dim, Text = "",
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		ZIndex = 214, Parent = coverSection,
 	})
 
-	-- ── PROGRESO (inline: time · bar · time) ──
+	-- ── PROGRESO (barra full-width + tiempos abajo) ──
 	local progressSection = make("Frame", {
-		Size = UDim2.new(1, 0, 0, 36), BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 0, 56), BackgroundTransparency = 1,
 		LayoutOrder = 2, ZIndex = 211, Parent = panel,
 	})
 
 	local timeLeft = make("TextLabel", {
-		Size = UDim2.new(0, 38, 0, 20), Position = UDim2.new(0, 12, 0.5, -10),
-		BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 13,
+		Size = UDim2.new(0, 50, 0, 22), Position = UDim2.new(0, 12, 1, -24),
+		BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 16,
 		TextColor3 = THEME.accent, Text = "0:00",
 		TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 212, Parent = progressSection,
 	})
 
 	local timeRight = make("TextLabel", {
-		Size = UDim2.new(0, 38, 0, 20), Position = UDim2.new(1, -50, 0.5, -10),
-		BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 13,
-		TextColor3 = Color3.fromRGB(170, 170, 170), Text = "0:00",
+		Size = UDim2.new(0, 50, 0, 22), Position = UDim2.new(1, -62, 1, -24),
+		BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 16,
+		TextColor3 = THEME.dim, Text = "0:00",
 		TextXAlignment = Enum.TextXAlignment.Right, ZIndex = 212, Parent = progressSection,
 	})
 
 	local progressBar = make("Frame", {
-		Size = UDim2.new(1, -112, 0, 6), Position = UDim2.new(0, 56, 0.5, -3),
-		BackgroundColor3 = Color3.fromRGB(40, 40, 40), ZIndex = 212, Parent = progressSection,
+		Size = UDim2.new(1, -24, 0, 8), Position = UDim2.new(0, 12, 0, 6),
+		BackgroundColor3 = THEME.elevated, ZIndex = 212, Parent = progressSection,
 	})
-	rounded(progressBar, 3)
+	rounded(progressBar, 4)
 
 	local progressFill = make("Frame", {
 		Size = UDim2.new(0, 0, 1, 0), BackgroundColor3 = THEME.accent,
@@ -122,7 +122,7 @@ function ActualTab.build(parent, THEME, state, R, H)
 	make("TextLabel", {
 		Size = UDim2.new(1, -24, 0, 18), Position = UDim2.new(0, 12, 0, 4),
 		BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 13,
-		TextColor3 = Color3.fromRGB(140, 140, 140), Text = "REPRODUCCION",
+		TextColor3 = THEME.dim, Text = "REPRODUCCION",
 		TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 212, Parent = reproSection,
 	})
 
@@ -131,63 +131,70 @@ function ActualTab.build(parent, THEME, state, R, H)
 		BackgroundTransparency = 1, ZIndex = 212, Parent = reproSection,
 	})
 
-	-- Admin circular buttons (gothic style)
+	-- Admin buttons (outlined, matching input style)
 	local skipBtn, clearBtn
 	local inputLeftOff, inputRightOff = 0, 0
 
 	if state.isAdmin then
-		-- SKIP button (left) — dark + accent glow
+		-- SKIP button (left)
 		skipBtn = make("TextButton", {
 			Size = UDim2.new(0, ADMIN_BTN, 0, ADMIN_BTN),
 			Position = UDim2.new(0, 0, 0, 0),
-			BackgroundColor3 = Color3.fromRGB(15, 12, 10),
+			BackgroundColor3 = THEME.bg,
+			BackgroundTransparency = 1,
 			Text = "", BorderSizePixel = 0, AutoButtonColor = false,
 			ZIndex = 214, Parent = reproRow,
 		})
 		rounded(skipBtn, ADMIN_BTN / 2)
 		make("UIStroke", {
-			Color = THEME.accent, Thickness = 2.5, Transparency = 0.15,
-			Name = "SkipStroke", Parent = skipBtn,
+			Color = THEME.stroke, Thickness = 1.5,
+			ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = skipBtn,
 		})
 		make("ImageLabel", {
 			Size = UDim2.new(0.55, 0, 0.55, 0), Position = UDim2.new(0.225, 0, 0.225, 0),
 			BackgroundTransparency = 1, Image = ICONS.SKIP,
-			ImageColor3 = THEME.accent,
+			ImageColor3 = THEME.dim,
 			ZIndex = 215, Parent = skipBtn,
 		})
 
-		-- CLEAR button (right) — dark + red glow
+		-- CLEAR button (right)
 		clearBtn = make("TextButton", {
 			Size = UDim2.new(0, ADMIN_BTN, 0, ADMIN_BTN),
 			Position = UDim2.new(1, -ADMIN_BTN, 0, 0),
-			BackgroundColor3 = Color3.fromRGB(15, 12, 10),
+			BackgroundColor3 = THEME.bg,
+			BackgroundTransparency = 1,
 			Text = "", BorderSizePixel = 0, AutoButtonColor = false,
 			ZIndex = 214, Parent = reproRow,
 		})
 		rounded(clearBtn, ADMIN_BTN / 2)
 		make("UIStroke", {
-			Color = Color3.fromRGB(180, 50, 50), Thickness = 2.5, Transparency = 0.15,
-			Name = "ClearStroke", Parent = clearBtn,
+			Color = THEME.stroke, Thickness = 1.5,
+			ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = clearBtn,
 		})
 		make("ImageLabel", {
-			Size = UDim2.new(0.5, 0, 0.5, 0), Position = UDim2.new(0.25, 0, 0.25, 0),
+			Size = UDim2.new(0.55, 0, 0.55, 0), Position = UDim2.new(0.225, 0, 0.225, 0),
 			BackgroundTransparency = 1, Image = ICONS.DELETE,
-			ImageColor3 = Color3.fromRGB(180, 50, 50),
+			ImageColor3 = THEME.dim,
 			ZIndex = 215, Parent = clearBtn,
 		})
 
-		inputLeftOff = ADMIN_BTN + 8
-		inputRightOff = ADMIN_BTN + 8
+		inputLeftOff = ADMIN_BTN + 4
+		inputRightOff = ADMIN_BTN + 4
 	end
 
-	-- Combined input + add button (pill shape)
+	-- Combined input + add button (outlined pill)
 	local inputContainer = make("Frame", {
 		Size = UDim2.new(1, -(inputLeftOff + inputRightOff), 1, 0),
 		Position = UDim2.new(0, inputLeftOff, 0, 0),
-		BackgroundColor3 = Color3.fromRGB(28, 28, 28),
+		BackgroundColor3 = THEME.bg,
+		BackgroundTransparency = 1,
 		BorderSizePixel = 0, ZIndex = 213, Parent = reproRow,
 	})
 	rounded(inputContainer, 21)
+	make("UIStroke", {
+		Color = THEME.stroke, Thickness = 1.5,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = inputContainer,
+	})
 
 	local reproInput = make("TextBox", {
 		Size = UDim2.new(1, -46, 1, 0),
@@ -196,26 +203,34 @@ function ActualTab.build(parent, THEME, state, R, H)
 		Font = Enum.Font.GothamBold, TextSize = 15,
 		TextColor3 = THEME.text,
 		PlaceholderText = "ID de cancion...",
-		PlaceholderColor3 = Color3.fromRGB(90, 90, 90),
+		PlaceholderColor3 = THEME.muted,
 		ClearTextOnFocus = false, Text = "",
 		ZIndex = 214, Parent = inputContainer,
 	})
 	make("UIPadding", { PaddingLeft = UDim.new(0, 16), PaddingRight = UDim.new(0, 6), Parent = reproInput })
 
 	local addBtn = make("TextButton", {
-		Size = UDim2.new(0, 34, 0, 34),
-		Position = UDim2.new(1, -38, 0.5, -17),
-		BackgroundColor3 = THEME.accent,
+		Size = UDim2.new(0, 38, 0, 38),
+		Position = UDim2.new(1, -40, 0.5, -19),
+		BackgroundTransparency = 1,
 		Text = "", BorderSizePixel = 0, AutoButtonColor = false,
 		ZIndex = 215, Parent = inputContainer,
 	})
-	rounded(addBtn, 17)
-	make("ImageLabel", {
-		Size = UDim2.new(0.55, 0, 0.55, 0), Position = UDim2.new(0.225, 0, 0.225, 0),
+	local addIcon = make("ImageLabel", {
+		Size = UDim2.new(0.6, 0, 0.6, 0), Position = UDim2.new(0.2, 0, 0.2, 0),
 		BackgroundTransparency = 1, Image = ICONS.PLAY_ADD,
-		ImageColor3 = Color3.new(1, 1, 1),
-		ZIndex = 216, Parent = addBtn,
+		ImageColor3 = THEME.dim,
+		ZIndex = 216, Name = "IconImage", Parent = addBtn,
 	})
+	local addLoading = make("ImageLabel", {
+		Size = UDim2.new(0.55, 0, 0.55, 0), Position = UDim2.new(0.225, 0, 0.225, 0),
+		BackgroundTransparency = 1, Image = ICONS.LOADING,
+		ImageColor3 = THEME.dim, ZIndex = 216,
+		Visible = false, Name = "LoadingIcon", Parent = addBtn,
+	})
+
+	local inputStroke = inputContainer:FindFirstChildWhichIsA("UIStroke")
+	local pendingInputSongId = nil
 
 	reproInput:GetPropertyChangedSignal("Text"):Connect(function()
 		reproInput.Text = reproInput.Text:gsub("[^%d]", ""):sub(1, 15)
@@ -223,20 +238,31 @@ function ActualTab.build(parent, THEME, state, R, H)
 
 	local function doQuickAdd()
 		local songId = tonumber(reproInput.Text)
-		if not songId then return end
-		if R.Add then pcall(function() R.Add:FireServer(songId) end) end
+		if not songId or pendingInputSongId then return end
+		pendingInputSongId = songId
 		reproInput.Text = ""
+
+		-- Show loading
+		addIcon.Visible = false
+		addLoading.Visible = true
+		addLoading.Rotation = 0
+		task.spawn(function()
+			local tw = game:GetService("TweenService"):Create(
+				addLoading,
+				TweenInfo.new(1.2, Enum.EasingStyle.Linear, Enum.EasingDirection.In, -1),
+				{ Rotation = 360 }
+			)
+			tw:Play()
+			while addLoading.Visible do task.wait(0.1) end
+			if tw then tw:Cancel() end
+		end)
+
+		if R.Add then pcall(function() R.Add:FireServer(songId) end) end
 	end
 
 	addBtn.MouseButton1Click:Connect(doQuickAdd)
 	reproInput.FocusLost:Connect(function(enterPressed)
 		if enterPressed then doQuickAdd() end
-	end)
-	addBtn.MouseEnter:Connect(function()
-		tween(addBtn, 0.12, { BackgroundColor3 = Color3.fromRGB(255, 160, 30) })
-	end)
-	addBtn.MouseLeave:Connect(function()
-		tween(addBtn, 0.12, { BackgroundColor3 = THEME.accent })
 	end)
 
 	if state.isAdmin then
@@ -244,20 +270,20 @@ function ActualTab.build(parent, THEME, state, R, H)
 			if R.Next then pcall(function() R.Next:FireServer() end) end
 		end)
 		skipBtn.MouseEnter:Connect(function()
-			tween(skipBtn, 0.15, { BackgroundColor3 = Color3.fromRGB(30, 24, 18) })
+			tween(skipBtn, 0.15, { BackgroundTransparency = 0, BackgroundColor3 = THEME.elevated })
 		end)
 		skipBtn.MouseLeave:Connect(function()
-			tween(skipBtn, 0.15, { BackgroundColor3 = Color3.fromRGB(15, 12, 10) })
+			tween(skipBtn, 0.15, { BackgroundTransparency = 1 })
 		end)
 
 		clearBtn.MouseButton1Click:Connect(function()
 			if R.Clear then pcall(function() R.Clear:FireServer() end) end
 		end)
 		clearBtn.MouseEnter:Connect(function()
-			tween(clearBtn, 0.15, { BackgroundColor3 = Color3.fromRGB(30, 18, 18) })
+			tween(clearBtn, 0.15, { BackgroundTransparency = 0, BackgroundColor3 = THEME.elevated })
 		end)
 		clearBtn.MouseLeave:Connect(function()
-			tween(clearBtn, 0.15, { BackgroundColor3 = Color3.fromRGB(15, 12, 10) })
+			tween(clearBtn, 0.15, { BackgroundTransparency = 1 })
 		end)
 	end
 
@@ -270,7 +296,7 @@ function ActualTab.build(parent, THEME, state, R, H)
 	local listaLabel = make("TextLabel", {
 		Size = UDim2.new(1, -24, 0, 20), Position = UDim2.new(0, 12, 0, 2),
 		BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 13,
-		TextColor3 = Color3.fromRGB(140, 140, 140), Text = "LISTA · 0",
+		TextColor3 = THEME.dim, Text = "LISTA · 0",
 		TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 212, Parent = listaSection,
 	})
 
@@ -283,7 +309,7 @@ function ActualTab.build(parent, THEME, state, R, H)
 	local queueEmptyLbl = make("TextLabel", {
 		Size = UDim2.new(1, 0, 0, 40), BackgroundTransparency = 1,
 		Font = Enum.Font.Gotham, TextSize = 13,
-		TextColor3 = Color3.fromRGB(90, 90, 90), Text = "La cola está vacía",
+		TextColor3 = THEME.muted, Text = "La cola está vacía",
 		ZIndex = 212, Visible = true, Parent = queueContainer,
 	})
 
@@ -294,7 +320,7 @@ function ActualTab.build(parent, THEME, state, R, H)
 		local card = Instance.new("CanvasGroup")
 		card.Name = "QueueCard"
 		card.Size = UDim2.new(1, 0, 0, QC_H)
-		card.BackgroundColor3 = Color3.fromRGB(26, 26, 26)
+		card.BackgroundColor3 = THEME.card
 		card.BackgroundTransparency = 0
 		card.BorderSizePixel = 0
 		card.GroupTransparency = 0
@@ -303,14 +329,14 @@ function ActualTab.build(parent, THEME, state, R, H)
 		card.Parent = queueContainer
 		make("UICorner", { CornerRadius = UDim.new(0, 10), Parent = card })
 		make("UIStroke", {
-			Color = Color3.fromRGB(50, 50, 55), Thickness = 1, Transparency = 0.3,
+			Color = THEME.stroke, Thickness = 1, Transparency = 0.3,
 			ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Name = "CardStroke", Parent = card,
 		})
 
 		-- Cover full-height izquierda (CanvasGroup recorta los bordes)
 		local coverBg = make("Frame", {
 			Size = UDim2.new(0, QC_H, 1, 0),
-			BackgroundColor3 = Color3.fromRGB(35, 35, 35), BackgroundTransparency = 0,
+			BackgroundColor3 = THEME.elevated, BackgroundTransparency = 0,
 			BorderSizePixel = 0, ZIndex = 214, Name = "CoverBg", Parent = card,
 		})
 		make("ImageLabel", {
@@ -331,23 +357,16 @@ function ActualTab.build(parent, THEME, state, R, H)
 		make("TextLabel", {
 			Size = UDim2.new(1, -(tx + 8), 0, 14), Position = UDim2.new(0, tx, 0, 32),
 			BackgroundTransparency = 1, Font = Enum.Font.GothamMedium, TextSize = 12,
-			TextColor3 = Color3.fromRGB(130, 130, 130), Text = "",
+			TextColor3 = THEME.dim, Text = "",
 			TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd,
 			ZIndex = 214, Name = "ArtistLabel", Parent = card,
 		})
 
 		if state.isAdmin then
-			local rmBtn = make("TextButton", {
-				Size = UDim2.new(0, 28, 0, 28), Position = UDim2.new(1, -36, 0.5, -14),
-				BackgroundColor3 = Color3.fromRGB(180, 50, 50), BackgroundTransparency = 0.4,
-				Text = "", BorderSizePixel = 0, AutoButtonColor = false,
-				ZIndex = 216, Name = "RemoveBtn", Parent = card,
-			})
-			rounded(rmBtn, 8)
-			make("ImageLabel", {
-				Size = UDim2.new(0.65, 0, 0.65, 0), Position = UDim2.new(0.175, 0, 0.175, 0),
-				BackgroundTransparency = 1, Image = ICONS.DELETE, ImageColor3 = Color3.new(1, 1, 1),
-				ZIndex = 217, Parent = rmBtn,
+			local rmBtn, rmIcon = H.outlinedCircleBtn(card, {
+				size = 30, icon = ICONS.DELETE, theme = THEME,
+				position = UDim2.new(1, -38, 0.5, -15),
+				zIndex = 216, name = "RemoveBtn",
 			})
 			rmBtn.MouseButton1Click:Connect(function()
 				local idx = card:GetAttribute("QueueIndex")
@@ -377,6 +396,30 @@ function ActualTab.build(parent, THEME, state, R, H)
 	-- API
 	local api = { panel = panel }
 
+	function api.handleAddResponse(response, songId, isSuccess)
+		-- Stop loading
+		addLoading.Visible = false
+		addIcon.Visible = true
+		pendingInputSongId = nil
+
+		if inputStroke then
+			local color = isSuccess and THEME.success or THEME.danger
+			tween(inputStroke, 0.15, { Color = color })
+			task.delay(2, function()
+				if inputStroke then tween(inputStroke, 0.4, { Color = THEME.stroke }) end
+			end)
+		end
+
+		if isSuccess then
+			addIcon.Image = ICONS.CHECK
+			addIcon.ImageColor3 = THEME.success
+			task.delay(2, function()
+				addIcon.Image = ICONS.PLAY_ADD
+				addIcon.ImageColor3 = THEME.dim
+			end)
+		end
+	end
+
 	function api.drawQueue()
 		releaseAllQueueCards()
 		local queue = state.playQueue
@@ -399,12 +442,12 @@ function ActualTab.build(parent, THEME, state, R, H)
 			card.Visible = true
 			table.insert(activeQueueCards, card)
 
-			card.BackgroundColor3 = isActive and Color3.fromRGB(35, 30, 20) or Color3.fromRGB(26, 26, 26)
+			card.BackgroundColor3 = isActive and THEME.elevated or THEME.card
 
 			-- UIStroke activa
 			local stroke = card:FindFirstChild("CardStroke")
 			if stroke then
-				stroke.Color = isActive and THEME.accent or Color3.fromRGB(50, 50, 55)
+				stroke.Color = isActive and THEME.accent or THEME.stroke
 				stroke.Transparency = isActive and 0.4 or 0.3
 			end
 

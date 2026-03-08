@@ -230,6 +230,7 @@ function Music.build(parent, THEME, sharedState)
 				-- Actualizar iconos de song cards en DJTab directamente
 				dj.updatePendingCard(response, songId, isSuccess)
 				dj.updateVisibleCards()
+				actual.handleAddResponse(response, songId, isSuccess)
 				actual.drawQueue()
 			end)
 		end

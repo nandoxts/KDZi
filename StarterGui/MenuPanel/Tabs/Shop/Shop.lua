@@ -112,7 +112,7 @@ function Shop.build(parent, THEME, sharedState)
 		local sep = Instance.new("Frame")
 		sep.Size = UDim2.new(1, 0, 0, 1)
 		sep.Position = UDim2.new(0, 0, 1, -1)
-		sep.BackgroundColor3 = THEME.stroke or Color3.fromRGB(50, 50, 50)
+		sep.BackgroundColor3 = THEME.stroke
 		sep.BackgroundTransparency = 0.5
 		sep.BorderSizePixel = 0
 		sep.ZIndex = 215
@@ -203,7 +203,7 @@ function Shop.build(parent, THEME, sharedState)
 		descLbl.BackgroundTransparency = 1
 		descLbl.Font = Enum.Font.Gotham
 		descLbl.TextSize = 13
-		descLbl.TextColor3 = THEME.textSoft
+		descLbl.TextColor3 = THEME.dim
 		descLbl.TextXAlignment = Enum.TextXAlignment.Left
 		descLbl.TextWrapped = true
 		descLbl.RichText = true
@@ -233,7 +233,7 @@ function Shop.build(parent, THEME, sharedState)
 		local buyBtn = Instance.new("TextButton")
 		buyBtn.Name = "BuyBtn"
 		buyBtn.Size = UDim2.new(0, 170, 0, 40)
-		buyBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+		buyBtn.BackgroundColor3 = THEME.elevated
 		buyBtn.Font = Enum.Font.GothamBold
 		buyBtn.TextSize = 15
 		buyBtn.TextColor3 = Color3.new(1, 1, 1)
@@ -275,12 +275,12 @@ function Shop.build(parent, THEME, sharedState)
 		end)
 		buyBtn.MouseEnter:Connect(function()
 			if not gpCache[gp.gid] then
-				TweenService:Create(buyBtn, TW, {BackgroundColor3 = Color3.fromRGB(70, 70, 70)}):Play()
+				TweenService:Create(buyBtn, TW, {BackgroundColor3 = THEME.subtle}):Play()
 			end
 		end)
 		buyBtn.MouseLeave:Connect(function()
 			if not gpCache[gp.gid] then
-				TweenService:Create(buyBtn, TW, {BackgroundColor3 = Color3.fromRGB(50, 50, 50)}):Play()
+				TweenService:Create(buyBtn, TW, {BackgroundColor3 = THEME.elevated}):Play()
 			end
 		end)
 	end

@@ -416,13 +416,15 @@ local function getUserQueueLimit(player)
 end
 
 local function validateQueueAdd(player, audioId)
-	-- 1. Cooldown
-	local cooldown = MusicConfig.LIMITS.AddToQueueCooldown or 2
-	local last = playerCooldowns[player.UserId]
-	local now  = tick()
-	if last and (now - last) < cooldown then
-		local wait = math.ceil(cooldown - (now - last))
-		return nil, response(RC.COOLDOWN, "Espera " .. wait .. "s")
+	-- 1. Cooldown (admins bypass)
+	local now = tick()
+	if not MusicConfig:IsAdmin(player) then
+		local cooldown = MusicConfig.LIMITS.AddToQueueCooldown or 2
+		local last = playerCooldowns[player.UserId]
+		if last and (now - last) < cooldown then
+			local wait = math.ceil(cooldown - (now - last))
+			return nil, response(RC.COOLDOWN, "Espera " .. wait .. "s")
+		end
 	end
 
 	-- 2. ID format

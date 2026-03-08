@@ -78,7 +78,7 @@ function SubTabs.new(parent, THEME, config)
 		local btn = Instance.new("TextButton")
 		btn.Name = tabDef.id
 		btn.Size = UDim2.new(btnWidth, 0, 1, 0)
-		btn.BackgroundColor3 = THEME.card or Color3.fromRGB(35, 35, 35)
+		btn.BackgroundColor3 = THEME.card
 		btn.BackgroundTransparency = 0.2
 		btn.Font = Enum.Font.GothamBold
 		btn.TextSize = 13
@@ -138,7 +138,7 @@ function SubTabs:_setActive(tabId)
 			}):Play()
 		else
 			TweenService:Create(btn, TweenInfo.new(0.18), {
-				BackgroundColor3 = THEME.card or Color3.fromRGB(35, 35, 35),
+				BackgroundColor3 = THEME.card,
 				BackgroundTransparency = 0.2,
 				TextColor3 = THEME.muted,
 			}):Play()
