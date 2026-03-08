@@ -27,12 +27,14 @@ _G.CloseMenuPanel = function() end
 local PANEL_W   = THEME.panelWidth or 390
 local HEADER_H, TABBAR_H = 50, 38
 local CONTENT_Y = HEADER_H + TABBAR_H
+local ICON_SZ = 22
+local TAB_PAD = 20
+local ICON_GAP = 4
 
 local TW_SNAP   = TweenInfo.new(0.18, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 local TW_SMOOTH = TweenInfo.new(0.28, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 local TW_SLIDE  = TweenInfo.new(0.34, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-local TW_BOUNCE = TweenInfo.new(0.16, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-local TW_SETTLE = TweenInfo.new(0.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+
 
 local POS_OPEN   = UDim2.new(1, 0, 0, 0)
 local POS_CLOSED = UDim2.new(1, PANEL_W + 10, 0, 0)
@@ -171,10 +173,10 @@ local function resetPills()
 		tween(b, TW_SNAP, {BackgroundColor3 = THEME.pillInactive})
 		local lbl = b:FindFirstChild("Lbl", true)
 		local ico = b:FindFirstChild("Ico", true)
-		local sc = b:FindFirstChild("Scale")
+		local pad = b:FindFirstChild("Pad")
 		if lbl then tween(lbl, TW_SNAP, {TextColor3 = THEME.tabInactive}) end
 		if ico then tween(ico, TW_SNAP, {ImageColor3 = THEME.tabInactive}) end
-		if sc then tween(sc, TW_SNAP, {Scale = 1}) end
+		if pad then tween(pad, TW_SNAP, {PaddingLeft = UDim.new(0, TAB_PAD), PaddingRight = UDim.new(0, TAB_PAD)}) end
 	end
 end
 
@@ -235,7 +237,7 @@ local function selectTab(tabId)
 		local active = (id == tabId)
 		local lbl = b:FindFirstChild("Lbl", true)
 		local ico = b:FindFirstChild("Ico", true)
-		local sc = b:FindFirstChild("Scale")
+		local pad = b:FindFirstChild("Pad")
 		tween(b, TW_SMOOTH, {BackgroundColor3 = active and THEME.pillActive or THEME.pillInactive})
 		if lbl then
 			tween(lbl, TW_SMOOTH, {TextColor3 = active and THEME.accent or THEME.tabInactive})
@@ -243,16 +245,9 @@ local function selectTab(tabId)
 		if ico then
 			tween(ico, TW_SMOOTH, {ImageColor3 = active and THEME.accent or THEME.tabInactive})
 		end
-		if active then
-			if sc then
-				sc.Scale = 1
-				tween(sc, TW_BOUNCE, {Scale = 1.08})
-				task.delay(0.16, function()
-					if sc then tween(sc, TW_SETTLE, {Scale = 1}) end
-				end)
-			end
-		else
-			if sc then tween(sc, TW_SNAP, {Scale = 1}) end
+		if pad then
+			local p = active and TAB_PAD + 5 or TAB_PAD
+			tween(pad, TW_SMOOTH, {PaddingLeft = UDim.new(0, p), PaddingRight = UDim.new(0, p)})
 		end
 	end
 	scrollToTab(tabId)
@@ -295,9 +290,6 @@ local function selectTab(tabId)
 end
 
 -- Construir pills + frames
-local ICON_SZ = 22
-local TAB_PAD = 30
-local ICON_GAP = 4
 local TAB_COUNT = #TABS
 for idx, tabDef in ipairs(TABS) do
 	local hasIcon = tabDef.icon ~= ""
@@ -308,16 +300,17 @@ for idx, tabDef in ipairs(TABS) do
 	b.BackgroundColor3 = THEME.pillInactive; b.Text = ""
 	b.BorderSizePixel = 0; b.ZIndex = 205; b.LayoutOrder = idx
 
-	-- Scale para bounce
-	local scale = Instance.new("UIScale")
-	scale.Name = "Scale"; scale.Scale = 1
-	scale.Parent = b
+	-- UIPadding para ancho animado
+	local pad = Instance.new("UIPadding")
+	pad.Name = "Pad"
+	pad.PaddingLeft = UDim.new(0, TAB_PAD)
+	pad.PaddingRight = UDim.new(0, TAB_PAD)
+	pad.Parent = b
 
-	-- Contenedor interno centrado con icon + label
+	-- Contenedor interno con icon + label
 	local inner = Instance.new("Frame")
 	inner.Name = "Inner"; inner.BackgroundTransparency = 1
-	inner.Size = UDim2.new(1, -TAB_PAD * 2, 1, 0)
-	inner.Position = UDim2.new(0, TAB_PAD, 0, 0)
+	inner.Size = UDim2.fromScale(1, 1)
 	inner.ZIndex = 206; inner.Parent = b
 
 	local innerLayout = Instance.new("UIListLayout")
