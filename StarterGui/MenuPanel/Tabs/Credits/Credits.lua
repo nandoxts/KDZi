@@ -1,15 +1,17 @@
 --[[
-	CreditsTab.lua — ModuleScript
-	Tab de CRÉDITOS para el MenuPanel.
+	Credits/init.lua — ModuleScript
+	Tab de CREDITOS para el MenuPanel.
 	Muestra mensaje de agradecimiento + tarjetas del equipo.
 ]]
 
-local CreditsTab = {}
+local Credits = {}
 
-function CreditsTab.build(parent, THEME)
+function Credits.build(parent, THEME)
 	local ModernScrollbar = require(
 		game:GetService("ReplicatedStorage"):WaitForChild("UIComponents"):WaitForChild("ModernScrollbar")
 	)
+
+	local FRAME_ALPHA = THEME.frameAlpha or 0.08
 
 	local CREDITS = {
 		message = "Gracias por ser parte de Ritmo Latino! A cada persona que entra, participa, baila y comparte buena vibra: gracias de corazon. Su apoyo, sus ideas y su energia han sido clave para que este servidor crezca y se sienta como casa.",
@@ -45,7 +47,6 @@ function CreditsTab.build(parent, THEME)
 	pad.PaddingBottom = UDim.new(0, 20)
 	pad.Parent        = scroll
 
-	-- Barra decorativa superior
 	local topLine = Instance.new("Frame")
 	topLine.Size                   = UDim2.new(0.3, 0, 0, 3)
 	topLine.BackgroundColor3       = THEME.accent
@@ -56,7 +57,6 @@ function CreditsTab.build(parent, THEME)
 	topLine.Parent                 = scroll
 	local tlc = Instance.new("UICorner"); tlc.CornerRadius = UDim.new(1, 0); tlc.Parent = topLine
 
-	-- Título
 	local titleLbl = Instance.new("TextLabel")
 	titleLbl.Size                   = UDim2.new(1, 0, 0, 36)
 	titleLbl.BackgroundTransparency = 1
@@ -69,7 +69,6 @@ function CreditsTab.build(parent, THEME)
 	titleLbl.ZIndex                 = 205
 	titleLbl.Parent                 = scroll
 
-	-- Divider
 	local divider = Instance.new("Frame")
 	divider.Size                   = UDim2.new(0.12, 0, 0, 2)
 	divider.BackgroundColor3       = THEME.accent
@@ -80,12 +79,11 @@ function CreditsTab.build(parent, THEME)
 	divider.Parent                 = scroll
 	local dc = Instance.new("UICorner"); dc.CornerRadius = UDim.new(1, 0); dc.Parent = divider
 
-	-- Card de mensaje
 	local msgCard = Instance.new("Frame")
 	msgCard.Size                   = UDim2.new(1, 0, 0, 0)
 	msgCard.AutomaticSize          = Enum.AutomaticSize.Y
 	msgCard.BackgroundColor3       = THEME.card
-	msgCard.BackgroundTransparency = THEME.frameAlpha
+	msgCard.BackgroundTransparency = FRAME_ALPHA
 	msgCard.BorderSizePixel        = 0
 	msgCard.ZIndex                 = 205
 	msgCard.LayoutOrder            = 4
@@ -113,7 +111,6 @@ function CreditsTab.build(parent, THEME)
 	msgLbl.ZIndex                 = 206
 	msgLbl.Parent                 = msgCard
 
-	-- Sección equipo
 	local teamHeader = Instance.new("TextLabel")
 	teamHeader.Size                   = UDim2.new(1, 0, 0, 20)
 	teamHeader.BackgroundTransparency = 1
@@ -126,12 +123,11 @@ function CreditsTab.build(parent, THEME)
 	teamHeader.LayoutOrder            = 5
 	teamHeader.Parent                 = scroll
 
-	-- Cards del equipo
 	for i, member in ipairs(CREDITS.team) do
 		local devCard = Instance.new("Frame")
 		devCard.Size                   = UDim2.new(1, 0, 0, 58)
 		devCard.BackgroundColor3       = THEME.card
-		devCard.BackgroundTransparency = THEME.frameAlpha
+		devCard.BackgroundTransparency = FRAME_ALPHA
 		devCard.BorderSizePixel        = 0
 		devCard.ZIndex                 = 205
 		devCard.LayoutOrder            = 5 + i
@@ -139,7 +135,6 @@ function CreditsTab.build(parent, THEME)
 		local dcc = Instance.new("UICorner"); dcc.CornerRadius = UDim.new(0, 10); dcc.Parent = devCard
 		local dcs = Instance.new("UIStroke"); dcs.Color = THEME.stroke; dcs.Thickness = 1; dcs.Transparency = 0.5; dcs.Parent = devCard
 
-		-- Barra acento izquierda
 		local accentBar = Instance.new("Frame")
 		accentBar.Size                   = UDim2.new(0, 4, 0.65, 0)
 		accentBar.Position               = UDim2.new(0, 10, 0.175, 0)
@@ -149,7 +144,6 @@ function CreditsTab.build(parent, THEME)
 		accentBar.Parent                 = devCard
 		local abc = Instance.new("UICorner"); abc.CornerRadius = UDim.new(1, 0); abc.Parent = accentBar
 
-		-- Avatar placeholder
 		local avatarFrame = Instance.new("Frame")
 		avatarFrame.Size                   = UDim2.new(0, 36, 0, 36)
 		avatarFrame.Position               = UDim2.new(0, 22, 0.5, -18)
@@ -169,7 +163,6 @@ function CreditsTab.build(parent, THEME)
 		avatarLbl.ZIndex                 = 207
 		avatarLbl.Parent                 = avatarFrame
 
-		-- Nombre
 		local mName = Instance.new("TextLabel")
 		mName.Size                   = UDim2.new(1, -72, 0, 20)
 		mName.Position               = UDim2.new(0, 66, 0, 8)
@@ -182,7 +175,6 @@ function CreditsTab.build(parent, THEME)
 		mName.ZIndex                 = 206
 		mName.Parent                 = devCard
 
-		-- Rol
 		local mRole = Instance.new("TextLabel")
 		mRole.Size                   = UDim2.new(1, -72, 0, 16)
 		mRole.Position               = UDim2.new(0, 66, 0, 30)
@@ -197,4 +189,4 @@ function CreditsTab.build(parent, THEME)
 	end
 end
 
-return CreditsTab
+return Credits

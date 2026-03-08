@@ -1,12 +1,12 @@
 --[[
-	ShopTab.lua — ModuleScript
+	Shop/init.lua — ModuleScript
 	Tab de TIENDA para el MenuPanel.
-	Grid 2 columnas de gamepasses con check de propiedad y botón de compra.
+	Grid 2 columnas de gamepasses con check de propiedad y boton de compra.
 ]]
 
-local ShopTab = {}
+local Shop = {}
 
-function ShopTab.build(parent, THEME, sharedState)
+function Shop.build(parent, THEME, sharedState)
 	local Players            = game:GetService("Players")
 	local ReplicatedStorage  = game:GetService("ReplicatedStorage")
 	local TweenService       = game:GetService("TweenService")
@@ -101,7 +101,6 @@ function ShopTab.build(parent, THEME, sharedState)
 	gPad.PaddingBottom = UDim.new(0, 16)
 	gPad.Parent        = scroll
 
-	-- Guardar referencias de buy buttons (para actualizar tras compra)
 	sharedState.shopCards = sharedState.shopCards or {}
 
 	for i, gp in ipairs(GAMEPASSES) do
@@ -117,7 +116,6 @@ function ShopTab.build(parent, THEME, sharedState)
 		local cc = Instance.new("UICorner"); cc.CornerRadius = UDim.new(0, 12); cc.Parent = card
 		local cs = Instance.new("UIStroke"); cs.Color = THEME.stroke; cs.Thickness = 1; cs.Transparency = 0.5; cs.Parent = card
 
-		-- Fondo decorativo superior
 		local bgDeco = Instance.new("Frame")
 		bgDeco.Size                   = UDim2.new(1, 0, 0.55, 0)
 		bgDeco.BackgroundColor3       = THEME.elevated
@@ -127,7 +125,6 @@ function ShopTab.build(parent, THEME, sharedState)
 		bgDeco.Parent                 = card
 		local bgc = Instance.new("UICorner"); bgc.CornerRadius = UDim.new(0, 12); bgc.Parent = bgDeco
 
-		-- Icono
 		local img = Instance.new("ImageLabel")
 		img.Size                   = UDim2.new(0.75, 0, 0, 72)
 		img.Position               = UDim2.new(0.125, 0, 0, 8)
@@ -137,7 +134,6 @@ function ShopTab.build(parent, THEME, sharedState)
 		img.ZIndex                 = 206
 		img.Parent                 = card
 
-		-- Nombre
 		local nameLbl = Instance.new("TextLabel")
 		nameLbl.Size                   = UDim2.new(1, -8, 0, 18)
 		nameLbl.Position               = UDim2.new(0, 4, 0, 90)
@@ -150,7 +146,6 @@ function ShopTab.build(parent, THEME, sharedState)
 		nameLbl.ZIndex                 = 206
 		nameLbl.Parent                 = card
 
-		-- Precio
 		local priceLbl = Instance.new("TextLabel")
 		priceLbl.Size                   = UDim2.new(1, -8, 0, 16)
 		priceLbl.Position               = UDim2.new(0, 4, 0, 108)
@@ -163,7 +158,6 @@ function ShopTab.build(parent, THEME, sharedState)
 		priceLbl.ZIndex                 = 206
 		priceLbl.Parent                 = card
 
-		-- Botón comprar
 		local buyBtn = Instance.new("TextButton")
 		buyBtn.Name                  = "BuyBtn"
 		buyBtn.Size                  = UDim2.new(1, -16, 0, 26)
@@ -179,14 +173,11 @@ function ShopTab.build(parent, THEME, sharedState)
 		buyBtn.Parent                = card
 		local bc = Instance.new("UICorner"); bc.CornerRadius = UDim.new(0, 7); bc.Parent = buyBtn
 
-		-- Guardar referencia para actualizar tras compra
 		sharedState.shopCards[gp.gid] = buyBtn
-		-- Compatibilidad con código anterior
 		if _G._MenuPanelShopCards then
 			_G._MenuPanelShopCards[gp.gid] = buyBtn
 		end
 
-		-- Check ownership
 		fetchOwnership(gp.gid, function(owned)
 			if owned then
 				buyBtn.Text                  = "ACTIVADO"
@@ -196,7 +187,6 @@ function ShopTab.build(parent, THEME, sharedState)
 			end
 		end)
 
-		-- Hover effect
 		card.MouseEnter:Connect(function()
 			TweenService:Create(card, TW, {BackgroundTransparency = 0}):Play()
 		end)
@@ -204,7 +194,6 @@ function ShopTab.build(parent, THEME, sharedState)
 			TweenService:Create(card, TW, {BackgroundTransparency = 0.05}):Play()
 		end)
 
-		-- Comprar
 		buyBtn.MouseButton1Click:Connect(function()
 			if gpCache[gp.gid] then return end
 			pcall(function()
@@ -213,12 +202,10 @@ function ShopTab.build(parent, THEME, sharedState)
 		end)
 	end
 
-	-- Auto canvas size
 	grid:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
 		scroll.CanvasSize = UDim2.new(0, 0, 0, grid.AbsoluteContentSize.Y + 24)
 	end)
 
-	-- Listener de compra completada
 	MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(plr, passId, bought)
 		if plr ~= player or not bought then return end
 		gpCache[passId] = true
@@ -232,4 +219,4 @@ function ShopTab.build(parent, THEME, sharedState)
 	end)
 end
 
-return ShopTab
+return Shop
