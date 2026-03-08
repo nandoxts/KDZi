@@ -23,32 +23,17 @@ function Shop.build(parent, THEME, sharedState)
 	-- Colores del gradiente lateral por card (toque de color unico)
 	local GRAD_COLORS = {
 		Color3.fromRGB(90, 40, 140),  -- VIP: morado
-		Color3.fromRGB(40, 80, 160),  -- COMANDOS: azul
-		Color3.fromRGB(140, 50, 100), -- COLORES: rosa
-		Color3.fromRGB(30, 90, 140),  -- POLICIA: azul oscuro
-		Color3.fromRGB(50, 50, 50),   -- LADRON: gris
-		Color3.fromRGB(60, 40, 130),  -- SEGURIDAD: indigo
-		Color3.fromRGB(120, 60, 30),  -- ARMY BOOMS: bronce
-		Color3.fromRGB(100, 50, 120), -- LIGHTSTICK: violeta
+		Color3.fromRGB(40, 80, 160),  -- DJ: azul
+		Color3.fromRGB(140, 50, 100), -- COMANDOS: rosa
 	}
 
 	local GAMEPASSES = {
-		{ name = "VIP",        price = 200,  gid = Configuration.VIP,        icon = "76721656269888",
+		{ name = "VIP",        price = 200,  gid = Configuration.VIP,      icon = "110921217200423",
 			desc = "[ + ] Acceso VIP exclusivo!\n[ + ] Las mejores vistas y zonas!\n[ + ] Etiqueta VIP!" },
-		{ name = "COMANDOS",   price = 1500, gid = Configuration.COMMANDS,   icon = "128637341143304",
+		{ name = "DJ",         price = 500,  gid = Configuration.DJ,       icon = "71677531291290",
+			desc = "[ + ] Acceso DJ exclusivo!\n[ + ] Pon musica en el server!\n[ + ] Etiqueta DJ!" },
+		{ name = "COMANDOS",   price = 1500, gid = Configuration.COMMANDS,  icon = "97509052541003",
 			desc = "[ + ] Acceso ilimitado a una\nemocionante variedad de\ncomandos de chat!" },
-		{ name = "COLORES",    price = 50,   gid = Configuration.COLORS,     icon = "91877799240345",
-			desc = "[ + ] Colores personalizados!\n[ + ] Destaca con estilo unico!" },
-		{ name = "POLICIA",    price = 135,  gid = Configuration.TOMBO,      icon = "139661313218787",
-			desc = "[ + ] Tool Exclusiva: Policia!\n[ + ] Etiqueta POLICIA!" },
-		{ name = "LADRON",     price = 135,  gid = Configuration.CHORO,      icon = "84699864716808",
-			desc = "[ + ] Tool Exclusiva: Ladron!\n[ + ] Etiqueta LADRON!" },
-		{ name = "SEGURIDAD",  price = 135,  gid = Configuration.SERE,       icon = "85734290151599",
-			desc = "[ + ] Tool Exclusiva: Seguridad!\n[ + ] Etiqueta SEGURIDAD!" },
-		{ name = "ARMY BOOMS", price = 80,   gid = Configuration.ARMYBOOMS,  icon = "134501492548324",
-			desc = "[ + ] Armas exclusivas!\n[ + ] Efectos especiales!" },
-		{ name = "LIGHTSTICK", price = 80,   gid = Configuration.LIGHTSTICK, icon = "86122436659328",
-			desc = "[ + ] Lightstick exclusivo!\n[ + ] Brilla en el show!" },
 	}
 
 	-- Ownership cache
@@ -259,27 +244,7 @@ function Shop.build(parent, THEME, sharedState)
 		buyBtn.Parent = bottomRow
 		local bC = Instance.new("UICorner"); bC.CornerRadius = UDim.new(0, 20); bC.Parent = buyBtn
 
-		-- Gift icon (grande, colorido)
-		local giftImg = Instance.new("ImageLabel")
-		giftImg.Size = UDim2.new(0, 44, 0, 44)
-		giftImg.Position = UDim2.new(0, 180, 0, -2)
-		giftImg.BackgroundTransparency = 1
-		giftImg.Image = "rbxassetid://7733717447"
-		giftImg.ImageColor3 = THEME.accent
-		giftImg.ZIndex = 212
-		giftImg.Parent = bottomRow
-
-		-- Discount label (grande, rojo)
-		local discLblB = Instance.new("TextLabel")
-		discLblB.Size = UDim2.new(0, 50, 0, 28)
-		discLblB.Position = UDim2.new(0, 224, 0, 6)
-		discLblB.BackgroundTransparency = 1
-		discLblB.Font = Enum.Font.GothamBlack
-		discLblB.TextSize = 18
-		discLblB.TextColor3 = Color3.fromRGB(255, 60, 60)
-		discLblB.Text = "-10%"
-		discLblB.ZIndex = 212
-		discLblB.Parent = bottomRow
+		-- Gift icon y discount eliminados — solo boton de compra
 
 		sharedState.shopCards[gp.gid] = buyBtn
 		if _G._MenuPanelShopCards then _G._MenuPanelShopCards[gp.gid] = buyBtn end

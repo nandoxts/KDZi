@@ -5,6 +5,7 @@ local Players           = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService      = game:GetService("TweenService")
 local TextService       = game:GetService("TextService")
+local StarterGui        = game:GetService("StarterGui")
 
 local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
 local THEME     = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("ThemeConfig"))
@@ -24,7 +25,7 @@ _G.CloseMenuPanel = function() end
 
 -- Layout
 local PANEL_W   = THEME.panelWidth or 390
-local HEADER_H, TABBAR_H = 50, 48
+local HEADER_H, TABBAR_H = 50, 38
 local CONTENT_Y = HEADER_H + TABBAR_H
 
 local TW_SNAP   = TweenInfo.new(0.18, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
@@ -116,8 +117,8 @@ tabBar.BackgroundColor3 = THEME.bg; tabBar.BorderSizePixel = 0
 tabBar.ZIndex = 203; tabBar.Parent = canvas
 
 local pillContainer = Instance.new("ScrollingFrame")
-pillContainer.Size = UDim2.new(1, 0, 0, 38)
-pillContainer.Position = UDim2.new(0, 0, 0.5, -19)
+pillContainer.Size = UDim2.new(1, 0, 1, 0)
+pillContainer.Position = UDim2.new(0, 0, 0, 0)
 pillContainer.BackgroundTransparency = 1; pillContainer.BorderSizePixel = 0
 pillContainer.ScrollBarThickness = 0
 pillContainer.ScrollingDirection = Enum.ScrollingDirection.X
@@ -131,7 +132,7 @@ do
 	l.FillDirection = Enum.FillDirection.Horizontal
 	l.HorizontalAlignment = Enum.HorizontalAlignment.Left
 	l.VerticalAlignment = Enum.VerticalAlignment.Center
-	l.Padding = UDim.new(0, 8)
+	l.Padding = UDim.new(0, 0)
 	l.SortOrder = Enum.SortOrder.LayoutOrder
 	l.Parent = pillContainer
 end
@@ -148,11 +149,16 @@ local isOpen, activeTabId = false, nil
 local tabBtns, tabFrames, tabAPIs = {}, {}, {}
 local sharedState = { shopCards = {}, isMuted = false }
 _G._MenuPanelShopCards = sharedState.shopCards
+local _playerListWasOpen = false
 
 -- Abrir / Cerrar
 local function openPanel()
 	if isOpen then return end
 	isOpen = true
+	_playerListWasOpen = StarterGui:GetCoreGuiEnabled(Enum.CoreGuiType.PlayerList)
+	if _playerListWasOpen then
+		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
+	end
 	overlay.Visible = true; overlay.BackgroundTransparency = 1
 	tween(overlay, TW_SMOOTH, {BackgroundTransparency = THEME.overlayAlpha})
 	tween(panel, TW_SLIDE, {Position = POS_OPEN})
@@ -161,8 +167,8 @@ end
 local function resetPills()
 	for _, b in pairs(tabBtns) do
 		tween(b, TW_SNAP, {BackgroundColor3 = THEME.pillInactive})
-		local lbl = b:FindFirstChild("Lbl")
-		local ico = b:FindFirstChild("Ico")
+		local lbl = b:FindFirstChild("Lbl", true)
+		local ico = b:FindFirstChild("Ico", true)
 		if lbl then tween(lbl, TW_SNAP, {TextColor3 = THEME.tabInactive}) end
 		if ico then tween(ico, TW_SNAP, {ImageColor3 = THEME.tabInactive}) end
 	end
@@ -173,6 +179,10 @@ local _tabSwitching = false
 local function closePanel()
 	if not isOpen then return end
 	isOpen = false
+	if _playerListWasOpen then
+		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, true)
+		_playerListWasOpen = false
+	end
 	tween(overlay, TW_SNAP, {BackgroundTransparency = 1})
 	tween(panel, TW_SLIDE, {Position = POS_CLOSED})
 	task.delay(0.40, function()
@@ -219,8 +229,8 @@ local function selectTab(tabId)
 
 	for id, b in pairs(tabBtns) do
 		local active = (id == tabId)
-		local lbl = b:FindFirstChild("Lbl")
-		local ico = b:FindFirstChild("Ico")
+		local lbl = b:FindFirstChild("Lbl", true)
+		local ico = b:FindFirstChild("Ico", true)
 		tween(b, TW_SMOOTH, {BackgroundColor3 = active and THEME.pillActive or THEME.pillInactive})
 		if lbl then
 			tween(lbl, TW_SMOOTH, {TextColor3 = active and THEME.accent or THEME.tabInactive})
@@ -270,38 +280,50 @@ end
 
 -- Construir pills + frames
 local ICON_SZ = 22
-local PAD_L, PAD_R, GAP = 8, 10, 4
+local TAB_PAD = 30
+local ICON_GAP = 4
+local TAB_COUNT = #TABS
 for idx, tabDef in ipairs(TABS) do
 	local hasIcon = tabDef.icon ~= ""
-	local textW = TextService:GetTextSize(tabDef.label, THEME.fontTab, Enum.Font.GothamBold, Vector2.new(400, 36)).X
-	local pillW = (hasIcon and (PAD_L + ICON_SZ + GAP) or PAD_L) + textW + PAD_R
 
 	local b = Instance.new("TextButton")
-	b.Name = tabDef.id; b.Size = UDim2.new(0, pillW, 0, 36)
+	b.Name = tabDef.id; b.Size = UDim2.new(0, 0, 1, 0)
+	b.AutomaticSize = Enum.AutomaticSize.X
 	b.BackgroundColor3 = THEME.pillInactive; b.Text = ""
 	b.BorderSizePixel = 0; b.ZIndex = 205; b.LayoutOrder = idx
-	addCorner(b, THEME.radiusPill)
+
+	-- Contenedor interno centrado con icon + label
+	local inner = Instance.new("Frame")
+	inner.Name = "Inner"; inner.BackgroundTransparency = 1
+	inner.Size = UDim2.new(1, -TAB_PAD * 2, 1, 0)
+	inner.Position = UDim2.new(0, TAB_PAD, 0, 0)
+	inner.ZIndex = 206; inner.Parent = b
+
+	local innerLayout = Instance.new("UIListLayout")
+	innerLayout.FillDirection = Enum.FillDirection.Horizontal
+	innerLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	innerLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+	innerLayout.Padding = UDim.new(0, ICON_GAP)
+	innerLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	innerLayout.Parent = inner
 
 	if hasIcon then
 		local ico = Instance.new("ImageLabel")
 		ico.Name = "Ico"; ico.Size = UDim2.new(0, ICON_SZ, 0, ICON_SZ)
-		ico.Position = UDim2.new(0, PAD_L, 0.5, -ICON_SZ / 2)
 		ico.BackgroundTransparency = 1; ico.ScaleType = Enum.ScaleType.Fit
 		ico.ResampleMode = Enum.ResamplerMode.Default
 		ico.Image = tabDef.icon; ico.ImageColor3 = THEME.tabInactive
-		ico.ZIndex = 207; ico.Parent = b
+		ico.ZIndex = 207; ico.LayoutOrder = 1; ico.Parent = inner
 	end
 
-	local lblX = hasIcon and (PAD_L + ICON_SZ + GAP) or PAD_L
 	local lbl = Instance.new("TextLabel")
 	lbl.Name = "Lbl"
-	lbl.Size = UDim2.new(1, -lblX, 1, 0)
-	lbl.Position = UDim2.new(0, lblX, 0, 0)
+	lbl.Size = UDim2.new(0, 0, 0, ICON_SZ)
+	lbl.AutomaticSize = Enum.AutomaticSize.X
 	lbl.BackgroundTransparency = 1; lbl.Font = Enum.Font.GothamBold
-	lbl.TextSize = THEME.fontTab; lbl.TextColor3 = THEME.tabInactive
-	lbl.TextXAlignment = Enum.TextXAlignment.Left
-	lbl.Text = tabDef.label; lbl.ZIndex = 206
-	lbl.Parent = b
+	lbl.TextSize = 14; lbl.TextColor3 = THEME.tabInactive
+	lbl.Text = tabDef.label; lbl.ZIndex = 206; lbl.LayoutOrder = 2
+	lbl.Parent = inner
 
 	tabBtns[tabDef.id] = b
 	b.Parent = pillContainer
@@ -316,8 +338,8 @@ for idx, tabDef in ipairs(TABS) do
 	b.MouseEnter:Connect(function()
 		if activeTabId ~= tabDef.id then
 			tween(b, TW_SNAP, {BackgroundColor3 = THEME.elevated})
-			local l = b:FindFirstChild("Lbl")
-			local ic = b:FindFirstChild("Ico")
+			local l = b:FindFirstChild("Lbl", true)
+			local ic = b:FindFirstChild("Ico", true)
 			if l then tween(l, TW_SNAP, {TextColor3 = THEME.textSoft}) end
 			if ic then tween(ic, TW_SNAP, {ImageColor3 = THEME.textSoft}) end
 		end
@@ -325,8 +347,8 @@ for idx, tabDef in ipairs(TABS) do
 	b.MouseLeave:Connect(function()
 		if activeTabId ~= tabDef.id then
 			tween(b, TW_SNAP, {BackgroundColor3 = THEME.pillInactive})
-			local l = b:FindFirstChild("Lbl")
-			local ic = b:FindFirstChild("Ico")
+			local l = b:FindFirstChild("Lbl", true)
+			local ic = b:FindFirstChild("Ico", true)
 			if l then tween(l, TW_SNAP, {TextColor3 = THEME.tabInactive}) end
 			if ic then tween(ic, TW_SNAP, {ImageColor3 = THEME.tabInactive}) end
 		end

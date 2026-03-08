@@ -15,11 +15,9 @@ function Credits.build(parent, THEME)
 	local TW = TweenInfo.new(0.22, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 
 	local CREDITS = {
-		message = "Gracias por ser parte de Mambo Kings! A cada persona que entra, participa, baila y comparte buena vibra: gracias de corazon. Su apoyo, sus ideas y su energia han sido clave para que este servidor crezca y se sienta como casa.",
+		message = "Gracias por ser parte de Mambo Kings! A cada persona que entra, participa, baila y comparte buena vibra: gracias de corazon.",
 		team = {
-			{ name = "ignxts",        role = "DEV EXPERT", userId = nil, grad = Color3.fromRGB(90, 40, 140) },
-			{ name = "xlm_brem",      role = "DEVELOPER",  userId = nil, grad = Color3.fromRGB(40, 80, 160) },
-			{ name = "AngeloGarciia", role = "CREADOR",    userId = nil, grad = Color3.fromRGB(140, 60, 30) },
+			{ name = "ignxts",        role = "DEVELOPER", userId = nil, grad = Color3.fromRGB(90, 40, 140) },
 		},
 	}
 
@@ -82,13 +80,13 @@ function Credits.build(parent, THEME)
 	msgCard.ZIndex                 = 205
 	msgCard.LayoutOrder            = 2
 	msgCard.Parent                 = scroll
-	local mcc = Instance.new("UICorner"); mcc.CornerRadius = UDim.new(0, 12); mcc.Parent = msgCard
+	local mcc = Instance.new("UICorner"); mcc.CornerRadius = UDim.new(0, 8); mcc.Parent = msgCard
 
 	local msgPad = Instance.new("UIPadding")
-	msgPad.PaddingLeft   = UDim.new(0, 16)
-	msgPad.PaddingRight  = UDim.new(0, 16)
-	msgPad.PaddingTop    = UDim.new(0, 14)
-	msgPad.PaddingBottom = UDim.new(0, 14)
+	msgPad.PaddingLeft   = UDim.new(0, 20)
+	msgPad.PaddingRight  = UDim.new(0, 20)
+	msgPad.PaddingTop    = UDim.new(0, 16)
+	msgPad.PaddingBottom = UDim.new(0, 16)
 	msgPad.Parent        = msgCard
 
 	local msgLbl = Instance.new("TextLabel")
@@ -97,6 +95,7 @@ function Credits.build(parent, THEME)
 	msgLbl.BackgroundTransparency = 1
 	msgLbl.Font                   = Enum.Font.Gotham
 	msgLbl.TextSize               = 13
+	msgLbl.LineHeight             = 1.4
 	msgLbl.TextColor3             = THEME.textSoft
 	msgLbl.TextWrapped            = true
 	msgLbl.TextXAlignment         = Enum.TextXAlignment.Center
@@ -128,7 +127,7 @@ function Credits.build(parent, THEME)
 		devCard.ZIndex                 = 205
 		devCard.LayoutOrder            = 3 + i
 		devCard.Parent                 = scroll
-		local dcc = Instance.new("UICorner"); dcc.CornerRadius = UDim.new(0, 12); dcc.Parent = devCard
+		local dcc = Instance.new("UICorner"); dcc.CornerRadius = UDim.new(0, 8); dcc.Parent = devCard
 
 		-- Gradiente lateral
 		local gradOverlay = Instance.new("Frame")
@@ -239,20 +238,6 @@ function Credits.build(parent, THEME)
 			end
 		end)
 	end
-
-	-- Footer
-	local footer = Instance.new("TextLabel")
-	footer.Size                   = UDim2.new(1, 0, 0, 30)
-	footer.BackgroundTransparency = 1
-	footer.Font                   = Enum.Font.Gotham
-	footer.TextSize               = 10
-	footer.TextColor3             = THEME.textSoft
-	footer.TextTransparency       = 0.4
-	footer.TextXAlignment         = Enum.TextXAlignment.Center
-	footer.Text                   = "Mambo Kings " .. utf8.char(0x2764) .. " 2026"
-	footer.ZIndex                 = 205
-	footer.LayoutOrder            = 100
-	footer.Parent                 = scroll
 end
 
 return Credits

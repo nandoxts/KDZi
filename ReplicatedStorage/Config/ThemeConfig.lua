@@ -49,8 +49,8 @@ local THEME = {
 	panelWidth   = 390,
 
 	-- Radius
-	radiusPill   = UDim.new(0, 4),
-	radiusMd     = UDim.new(0, 6),
+	radiusPill   = UDim.new(0, 8),
+	radiusMd     = UDim.new(0, 8),
 
 	-- Typography
 	fontTitle    = 18,

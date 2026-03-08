@@ -58,8 +58,6 @@ local Modulo = require(RemotesSync:WaitForChild("Emotes_Modules"):WaitForChild("
 local NotificationSystem = require(ReplicatedStorage:WaitForChild("Systems"):WaitForChild("NotificationSystem"):WaitForChild("NotificationSystem"))
 local Icon = require(ReplicatedStorage:WaitForChild("Icon"))
 
-local VIPGamePassID = ConfigModule.VIP
-
 -- ════════════════════════════════════════════════════════════════════════════════
 -- VARIABLES
 -- ════════════════════════════════════════════════════════════════════════════════
@@ -67,17 +65,11 @@ local VIPGamePassID = ConfigModule.VIP
 local Jugador = Players.LocalPlayer
 local PlayerGui = Jugador:WaitForChild("PlayerGui")
 
--- Función para verificar VIP bajo demanda
-local function TieneVIP()
-	return Jugador:GetAttribute("HasVIP") or false
-end
-
 local IsMobile = UserInputService.TouchEnabled
 local EmotesFavs = {}
 local EmotesTrending = {}
 local DanceActivated = nil
 local ActiveCard = nil
-local tieneVIP = false
 local TabActual = "Todos"
 local IsSynced = false -- Estado de sincronización
 local currentLeaderUserId = nil -- UserId del jugador que sigo (nil si no sigo a nadie)
@@ -126,11 +118,11 @@ local function EncontrarDatos(BaileId)
 	for _, lista in ipairs({Modulo.Ids, Modulo.Vip, Modulo.Recomendado}) do
 		if lista then
 			for _, v in pairs(lista) do
-				if v.ID == BaileId then return v.Nombre, lista == Modulo.Vip end
+				if v.ID == BaileId then return v.Nombre end
 			end
 		end
 	end
-	return "Dance", false
+	return "Dance"
 end
 
 local function EstaEnFavoritos(id)
@@ -139,7 +131,7 @@ end
 
 local function ObtenerTipo(id)
 	if table.find(EmotesTrending or {}, id) then return "Trending" end
-	for _, v in ipairs(Modulo.Vip or {}) do if v.ID == id then return "VIP" end end
+	for _, v in ipairs(Modulo.Vip or {}) do if v.ID == id then return "Normal" end end
 	for _, v in ipairs(Modulo.Recomendado or {}) do if v.ID == id then return "Recommended" end end
 	return "Normal"
 end
@@ -835,7 +827,7 @@ local function CrearSeparador(texto, icono, color, orden)
 	return separator
 end
 
-local function CrearTarjeta(nombre, id, tipo, orden, esVIP)
+local function CrearTarjeta(nombre, id, tipo, orden)
 	local esFavorito = EstaEnFavoritos(id)
 	local cardHeight = GetCardHeight()
 
@@ -934,14 +926,6 @@ local function CrearTarjeta(nombre, id, tipo, orden, esVIP)
 
 		-- Bloquear si está sincronizado
 		if IsSynced then
-			return
-		end
-
-		-- Verificar VIP solo si el emote lo requiere
-		if esVIP and not TieneVIP() then
-			NotificationSystem:Warning("VIP", "Necesitas VIP para este baile", 3)
-			task.wait(0.3)
-			MarketplaceService:PromptGamePassPurchase(Jugador, VIPGamePassID)
 			return
 		end
 
@@ -1096,17 +1080,17 @@ local function CargarTodos(filtro)
 		for _, id in ipairs(EmotesTrending) do
 			local nombre = EncontrarDatos(id)
 			if pasaFiltro(nombre) then
-				CrearTarjeta(nombre, id, "Trending", orden, false)
+				CrearTarjeta(nombre, id, "Trending", orden)
 				orden = orden + 1
 			end
 		end
 	end
 
-	-- VIP
+	-- VIP (ahora libres)
 	if Modulo.Vip and #Modulo.Vip > 0 then
 		for _, v in ipairs(Modulo.Vip) do
 			if not table.find(EmotesTrending or {}, v.ID) and pasaFiltro(v.Nombre) then
-				CrearTarjeta(v.Nombre, v.ID, "VIP", orden, true)
+				CrearTarjeta(v.Nombre, v.ID, "Normal", orden)
 				orden = orden + 1
 			end
 		end
@@ -1116,7 +1100,7 @@ local function CargarTodos(filtro)
 	if Modulo.Recomendado and #Modulo.Recomendado > 0 then
 		for _, v in ipairs(Modulo.Recomendado) do
 			if not table.find(EmotesTrending or {}, v.ID) and pasaFiltro(v.Nombre) then
-				CrearTarjeta(v.Nombre, v.ID, "Recommended", orden, false)
+				CrearTarjeta(v.Nombre, v.ID, "Recommended", orden)
 				orden = orden + 1
 			end
 		end
@@ -1126,7 +1110,7 @@ local function CargarTodos(filtro)
 	if Modulo.Ids and #Modulo.Ids > 0 then
 		for _, v in ipairs(Modulo.Ids) do
 			if not table.find(EmotesTrending or {}, v.ID) and pasaFiltro(v.Nombre) then
-				CrearTarjeta(v.Nombre, v.ID, "Normal", orden, false)
+				CrearTarjeta(v.Nombre, v.ID, "Normal", orden)
 				orden = orden + 1
 			end
 		end
@@ -1148,10 +1132,10 @@ local function CargarFavoritos(filtro)
 	local hayVisibles = false
 
 	for _, id in ipairs(EmotesFavs) do
-		local nombre, esVIP = EncontrarDatos(id)
+		local nombre = EncontrarDatos(id)
 		if filtro == "" or nombre:lower():find(filtro, 1, true) then
 			local tipo = ObtenerTipo(id)
-			CrearTarjeta(nombre, id, tipo, orden, esVIP)
+			CrearTarjeta(nombre, id, tipo, orden)
 			orden = orden + 1
 			hayVisibles = true
 		end
