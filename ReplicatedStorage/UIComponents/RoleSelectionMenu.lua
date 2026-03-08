@@ -75,7 +75,7 @@ function RoleSelectionMenu:_build()
 	UI.frame({
 		size = UDim2.new(1, -20, 0, 1),
 		pos = UDim2.new(0, 10, 0, 58),
-		bg = THEME.surface,
+		bg = THEME.elevated,
 		z = 202,
 		parent = self.menu
 	})
@@ -85,7 +85,7 @@ function RoleSelectionMenu:_build()
 		local optionBtn = UI.button({
 			size = UDim2.new(1, -20, 0, 38),
 			pos = UDim2.new(0, 10, 0, 64 + (i-1) * 44),
-			bg = THEME.surface,
+			bg = THEME.elevated,
 			text = option.display,
 			color = option.color,
 			textSize = 13,

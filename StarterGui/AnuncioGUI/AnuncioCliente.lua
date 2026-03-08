@@ -15,7 +15,7 @@ local THEME = require(ReplicatedStorage.Config.ThemeConfig)
 
 local COLORS = {
 	Background = THEME.bg,
-	BackgroundDark = THEME.panel,
+	BackgroundDark = THEME.card,
 	TextPrimary = THEME.text,
 	TextSecondary = THEME.muted,
 	Accent = THEME.accent,

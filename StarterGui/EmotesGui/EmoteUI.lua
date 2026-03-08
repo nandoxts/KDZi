@@ -275,7 +275,7 @@ local TabsContainer = Instance.new("Frame")
 TabsContainer.Name = "TabsContainer"
 TabsContainer.Size = UDim2.new(1, -16, 0, IsMobile and 28 or 34)
 TabsContainer.Position = UDim2.new(0, 8, 0, 8)
-TabsContainer.BackgroundColor3 = THEME_CONFIG.panel
+TabsContainer.BackgroundColor3 = THEME_CONFIG.card
 TabsContainer.BackgroundTransparency = 0.85
 TabsContainer.BorderSizePixel = 0
 TabsContainer.Parent = MainFrame
@@ -328,7 +328,7 @@ if mostrarBusqueda then
 	SearchContainer.Name = "SearchContainer"
 	SearchContainer.Size = UDim2.new(1, -16, 0, IsMobile and 30 or 36)
 	SearchContainer.Position = UDim2.new(0, 8, 0, posY)
-	SearchContainer.BackgroundColor3 = THEME_CONFIG.panel
+	SearchContainer.BackgroundColor3 = THEME_CONFIG.card
 	SearchContainer.BackgroundTransparency = THEME_CONFIG.frameAlpha
 	SearchContainer.BorderSizePixel = 0
 	SearchContainer.ClipsDescendants = true
@@ -832,7 +832,7 @@ local function CrearTarjeta(nombre, id, tipo, orden)
 	local cardHeight = GetCardHeight()
 
 	-- Colores desde ThemeConfig
-	local cardColorNormal = THEME_CONFIG.panel
+	local cardColorNormal = THEME_CONFIG.card
 	local cardColorHover = THEME_CONFIG.elevated
 
 	local card = Instance.new("TextButton")

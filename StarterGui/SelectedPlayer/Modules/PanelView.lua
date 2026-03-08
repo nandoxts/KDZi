@@ -333,7 +333,7 @@ local function renderDynamicSection(viewType, items, targetName, playerColor)
 
 		local circle = Utils.createFrame({
 			Size = UDim2.new(0, L.cardSize, 0, L.cardSize), Position = UDim2.new(0.5, 0, 0.5, 0),
-			AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = THEME.panel, BackgroundTransparency = 0,
+			AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = THEME.card, BackgroundTransparency = 0,
 			ClipsDescendants = true, Parent = cardOuter
 		})
 		Utils.addCorner(circle, L.cardSize / 2)
