@@ -31,6 +31,8 @@ local CONTENT_Y = HEADER_H + TABBAR_H
 local TW_SNAP   = TweenInfo.new(0.18, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 local TW_SMOOTH = TweenInfo.new(0.28, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 local TW_SLIDE  = TweenInfo.new(0.34, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+local TW_BOUNCE = TweenInfo.new(0.16, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+local TW_SETTLE = TweenInfo.new(0.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 
 local POS_OPEN   = UDim2.new(1, 0, 0, 0)
 local POS_CLOSED = UDim2.new(1, PANEL_W + 10, 0, 0)
@@ -169,8 +171,10 @@ local function resetPills()
 		tween(b, TW_SNAP, {BackgroundColor3 = THEME.pillInactive})
 		local lbl = b:FindFirstChild("Lbl", true)
 		local ico = b:FindFirstChild("Ico", true)
+		local sc = b:FindFirstChild("Scale")
 		if lbl then tween(lbl, TW_SNAP, {TextColor3 = THEME.tabInactive}) end
 		if ico then tween(ico, TW_SNAP, {ImageColor3 = THEME.tabInactive}) end
+		if sc then tween(sc, TW_SNAP, {Scale = 1}) end
 	end
 end
 
@@ -231,12 +235,24 @@ local function selectTab(tabId)
 		local active = (id == tabId)
 		local lbl = b:FindFirstChild("Lbl", true)
 		local ico = b:FindFirstChild("Ico", true)
+		local sc = b:FindFirstChild("Scale")
 		tween(b, TW_SMOOTH, {BackgroundColor3 = active and THEME.pillActive or THEME.pillInactive})
 		if lbl then
 			tween(lbl, TW_SMOOTH, {TextColor3 = active and THEME.accent or THEME.tabInactive})
 		end
 		if ico then
 			tween(ico, TW_SMOOTH, {ImageColor3 = active and THEME.accent or THEME.tabInactive})
+		end
+		if active then
+			if sc then
+				sc.Scale = 1
+				tween(sc, TW_BOUNCE, {Scale = 1.08})
+				task.delay(0.16, function()
+					if sc then tween(sc, TW_SETTLE, {Scale = 1}) end
+				end)
+			end
+		else
+			if sc then tween(sc, TW_SNAP, {Scale = 1}) end
 		end
 	end
 	scrollToTab(tabId)
@@ -291,6 +307,11 @@ for idx, tabDef in ipairs(TABS) do
 	b.AutomaticSize = Enum.AutomaticSize.X
 	b.BackgroundColor3 = THEME.pillInactive; b.Text = ""
 	b.BorderSizePixel = 0; b.ZIndex = 205; b.LayoutOrder = idx
+
+	-- Scale para bounce
+	local scale = Instance.new("UIScale")
+	scale.Name = "Scale"; scale.Scale = 1
+	scale.Parent = b
 
 	-- Contenedor interno centrado con icon + label
 	local inner = Instance.new("Frame")
