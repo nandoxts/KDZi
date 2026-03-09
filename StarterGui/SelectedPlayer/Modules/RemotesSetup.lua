@@ -57,6 +57,7 @@ return function()
 	local Highlight = SelectedPlayerModule and SelectedPlayerModule:FindFirstChild("Highlight")
 	local ColorEffects = ReplicatedStorage:FindFirstChild("Config") and require(ReplicatedStorage.Config.ColorConfig) or nil
 
+
 	-- Configuration
 	local Configuration = {}
 	pcall(function()
