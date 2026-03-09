@@ -208,7 +208,7 @@ function ModalManager:_createPanel()
 	self.panel.Name = self.panelName
 	self.panel.AnchorPoint = Vector2.new(0.5, 0.5)
 	self.panel.Position = UDim2.new(0.5, 0, 1.5, 0)
-	self.panel.BackgroundColor3 = THEME.card
+	self.panel.BackgroundColor3 = THEME.panel or Color3.fromRGB(18, 18, 22)
 	self.panel.BackgroundTransparency = THEME.lightAlpha or 0.2
 	self.panel.BorderSizePixel = 0
 	self.panel.Visible = false

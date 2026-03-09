@@ -128,7 +128,7 @@ function UI.input(labelText, placeholder, yPos, parent, multiLine)
 	local input = Instance.new("TextBox")
 	input.Size = UDim2.new(1, 0, 0, multiLine and 55 or 36)
 	input.Position = UDim2.new(0, 0, 0, yPos + 18)
-	input.BackgroundColor3 = THEME.elevated
+	input.BackgroundColor3 = THEME.surface
 	input.BorderSizePixel = 0
 	input.Text = ""
 	input.TextColor3 = THEME.text
