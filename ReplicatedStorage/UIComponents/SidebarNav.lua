@@ -56,7 +56,7 @@ function SidebarNav.new(opts)
 	local sidebar = UI.frame({
 		name = "Sidebar",
 		size = UDim2.new(0, width, 1, 0),
-		bg   = THEME.deep, bgT = THEME.lightAlpha,
+		bg   = THEME.bg, bgT = THEME.lightAlpha,
 		z    = 200, parent = parent, clips = true,
 	})
 	self.frame = sidebar

@@ -429,7 +429,7 @@ bottomBarBg = makeImage({
 -- ════════════════════════════════════════════════════════════════
 local djColumn = makeFrame({
 	dim = UDim2.new(DJ_W, 0, 1, 0),
-	bg = THEME.deep, bgT = THEME.lightAlpha,
+	bg = THEME.bg, bgT = THEME.lightAlpha,
 	z = 100, name = "DJColumn", parent = contentArea,
 })
 
@@ -528,7 +528,7 @@ songsPlaceholder = makeLabel({
 -- ════════════════════════════════════════════════════════════════
 local queueColumn = makeFrame({
 	dim = UDim2.new(QUEUE_W, 0, 1, 0), pos = UDim2.new(DJ_W + SONGS_W, 0, 0, 0),
-	bg = THEME.deep, bgT = THEME.lightAlpha,
+	bg = THEME.bg, bgT = THEME.lightAlpha,
 	z = 100, name = "QueueColumn", parent = contentArea,
 })
 

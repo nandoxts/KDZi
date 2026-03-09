@@ -218,9 +218,8 @@ local function createButton(parent, text, layoutOrder, accentColor)
 	local L = getLayout()
 	local container = Utils.createFrame({ Size = UDim2.new(1, 0, 0, L.buttonHeight), LayoutOrder = layoutOrder, Parent = parent })
 
-	local darkBase = Color3.fromRGB(8, 8, 8)
 	local btn = Utils.create("TextButton", {
-		Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = darkBase, BackgroundTransparency = 0,
+		Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = THEME.card, BackgroundTransparency = THEME.frameAlpha,
 		BorderSizePixel = 0, AutoButtonColor = false, Text = "", Parent = container
 	})
 	Utils.addCorner(btn, 999)
@@ -238,13 +237,12 @@ local function createButton(parent, text, layoutOrder, accentColor)
 
 	local label = Utils.createLabel({ Size = UDim2.new(1, 0, 1, 0), Text = text, TextSize = L.fontSize.button, Font = Enum.Font.GothamBold, TextColor3 = THEME.text, Parent = btn })
 
-	local hoverBase = Color3.fromRGB(22, 22, 22)
 	Utils.addConnection(btn.MouseEnter:Connect(function()
-		safeTween(btn, { BackgroundColor3 = hoverBase }, Config.ANIM_FAST)
+		safeTween(btn, { BackgroundColor3 = THEME.elevated, BackgroundTransparency = THEME.lightAlpha }, Config.ANIM_FAST)
 		safeTween(stroke, { Transparency = 0.45, Thickness = 1 }, Config.ANIM_FAST)
 	end))
 	Utils.addConnection(btn.MouseLeave:Connect(function()
-		safeTween(btn, { BackgroundColor3 = darkBase }, Config.ANIM_FAST)
+		safeTween(btn, { BackgroundColor3 = THEME.card, BackgroundTransparency = THEME.frameAlpha }, Config.ANIM_FAST)
 		safeTween(stroke, { Transparency = 0.78, Thickness = 0.75 }, Config.ANIM_FAST)
 	end))
 	Utils.addConnection(btn.MouseButton1Click:Connect(function(x, y) Utils.createRipple(btn, rippleCont, x, y) end))
@@ -325,7 +323,7 @@ local function renderDynamicSection(viewType, items, targetName, playerColor)
 
 		local circle = Utils.createFrame({
 			Size = UDim2.new(0, L.cardSize, 0, L.cardSize), Position = UDim2.new(0.5, 0, 0.5, 0),
-			AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = THEME.panel, BackgroundTransparency = 0,
+			AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = THEME.card, BackgroundTransparency = 0,
 			ClipsDescendants = true, Parent = cardOuter
 		})
 		Utils.addCorner(circle, L.cardSize / 2)
@@ -426,21 +424,6 @@ local function createButtonsSection(panel, target, playerColor)
 	local numBtns = (State.userId ~= player.UserId) and 4 or 3
 	local btnsH = (L.buttonHeight * numBtns) + (L.buttonGap * (numBtns - 1))
 
-	-- Overlay
-	local overlayExt = 40
-	local overlayY = L.avatarHeight - overlayExt
-	local overlay = Utils.createFrame({ Size = UDim2.new(1, 0, 1, -overlayY), Position = UDim2.new(0, 0, 0, overlayY), BackgroundColor3 = Color3.fromRGB(6, 6, 10), BackgroundTransparency = 0.2, ZIndex = 2, ClipsDescendants = false, Parent = panel })
-	Utils.addCorner(overlay, L.cornerRadius)
-	State.buttonsOverlay = overlay
-
-	local fade = Instance.new("UIGradient")
-	fade.Parent = overlay; fade.Rotation = 90
-	fade.Transparency = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.15, 0.4),
-		NumberSequenceKeypoint.new(0.3, 0), NumberSequenceKeypoint.new(0.75, 0),
-		NumberSequenceKeypoint.new(0.9, 0.4), NumberSequenceKeypoint.new(1, 1),
-	})
-
 	State.buttonsFrame = Utils.createFrame({ Size = UDim2.new(1, -2 * L.panelPadding, 0, btnsH + 8), Position = UDim2.new(0, L.panelPadding, 0, startY), ZIndex = 5, Parent = panel })
 	Utils.create("UIListLayout", { FillDirection = Enum.FillDirection.Vertical, HorizontalAlignment = Enum.HorizontalAlignment.Center, SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, L.buttonGap), Parent = State.buttonsFrame })
 
@@ -534,17 +517,10 @@ local function createAvatarSection(panel, data, playerColor)
 	-- Stats sidebar
 	local statsBar = Utils.createFrame({
 		Size = UDim2.new(0, L.statsWidth, 1, 0), Position = UDim2.new(1, -L.statsWidth, 0, 0),
-		BackgroundColor3 = Color3.fromRGB(8, 8, 12), BackgroundTransparency = 0.3, ZIndex = 10,
+		BackgroundColor3 = Color3.fromRGB(8, 8, 12), BackgroundTransparency = 1, ZIndex = 10,
 		ClipsDescendants = true, Parent = avatarSection
 	})
 	Utils.addCorner(statsBar, L.cornerRadius)
-
-	local sg = Instance.new("UIGradient")
-	sg.Parent = statsBar; sg.Rotation = 180
-	sg.Transparency = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(0.5, 0.15),
-		NumberSequenceKeypoint.new(0.85, 0.6), NumberSequenceKeypoint.new(1, 1),
-	})
 
 	Utils.create("UIListLayout", { FillDirection = Enum.FillDirection.Vertical, HorizontalAlignment = Enum.HorizontalAlignment.Center, VerticalAlignment = Enum.VerticalAlignment.Center, Padding = UDim.new(0, 4), Parent = statsBar })
 
@@ -656,15 +632,34 @@ function PanelView.createPanel(data)
 
 	-- Panel container
 	local pY = L.dragHandleH + 4
-	local pBgT = 0.08
-	local panelContainer = Utils.create("CanvasGroup", { Size = UDim2.new(1, 0, 0, L.panelHeight), Position = UDim2.new(0, 0, 0, pY), BackgroundColor3 = Color3.fromRGB(14, 14, 20), BackgroundTransparency = pBgT, BorderSizePixel = 0, Parent = State.container })
+	local panelContainer = Utils.create("CanvasGroup", { Size = UDim2.new(1, 0, 0, L.panelHeight), Position = UDim2.new(0, 0, 0, pY), BackgroundColor3 = THEME.card, BackgroundTransparency = THEME.lightAlpha, BorderSizePixel = 0, Parent = State.container })
 	Utils.addCorner(panelContainer, L.cornerRadius)
 
 	local isUserAdmin = Admin.isAdmin(data.username)
 	applyGlass(panelContainer, playerColor, L, isUserAdmin)
 
-	local panelStroke = Utils.addStroke(panelContainer, playerColor, 0.75, 0.55)
+	local panelStroke = Utils.addStroke(panelContainer, THEME.stroke, 1, 0.6)
 	State.panelStroke = panelStroke
+
+	-- Vignette lateral izquierdo (igual que MenuPanel)
+	local edgeL = Utils.createFrame({ Size = UDim2.new(0, 30, 1, 0), Position = UDim2.new(0, 0, 0, 0), BackgroundColor3 = THEME.bg, BackgroundTransparency = 0, ZIndex = 10, Parent = panelContainer })
+	local gL = Instance.new("UIGradient")
+	gL.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.4),
+		NumberSequenceKeypoint.new(0.6, 0.85),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	gL.Parent = edgeL
+
+	-- Vignette lateral derecho
+	local edgeR = Utils.createFrame({ Size = UDim2.new(0, 30, 1, 0), Position = UDim2.new(1, -30, 0, 0), BackgroundColor3 = THEME.bg, BackgroundTransparency = 0, ZIndex = 10, Parent = panelContainer })
+	local gR = Instance.new("UIGradient")
+	gR.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 1),
+		NumberSequenceKeypoint.new(0.4, 0.85),
+		NumberSequenceKeypoint.new(1, 0.4),
+	})
+	gR.Parent = edgeR
 
 	local panelImage = Utils.create("ImageLabel", { Size = UDim2.new(1, 0, 0, 210), BackgroundTransparency = 1, Image = "", ImageTransparency = 0.6, ScaleType = Enum.ScaleType.Crop, ZIndex = 1, Parent = panelContainer })
 	State.panelBgImage = panelImage

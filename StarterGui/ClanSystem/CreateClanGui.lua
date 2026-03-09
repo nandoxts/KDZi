@@ -118,7 +118,7 @@ local contentArea = UI.frame({
 local contentHeader = UI.frame({
 	name   = "ContentHeader",
 	size   = UDim2.new(1, 0, 0, HEADER_H),
-	bg     = THEME.deep, bgT = THEME.lightAlpha,
+	bg     = THEME.bg, bgT = THEME.lightAlpha,
 	z      = 150, parent = contentArea,
 })
 
