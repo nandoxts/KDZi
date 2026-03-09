@@ -45,7 +45,6 @@ local RemotesSync = Replicado:WaitForChild("Emotes_Sync")
 
 local ObtenerFavs = Remotos:WaitForChild("ObtenerFavs")
 local AnadirFav = Remotos:WaitForChild("AnadirFav")
-local ObtenerTrending = Remotos:WaitForChild("ObtenerTrending")
 local PlayAnimationRemote = RemotesSync:FindFirstChild("PlayAnimation")
 local StopAnimationRemote = RemotesSync:FindFirstChild("StopAnimation")
 local SyncRemote = RemotesSync:FindFirstChild("Sync")
@@ -54,7 +53,7 @@ local SyncRemote = RemotesSync:FindFirstChild("Sync")
 
 local THEME_CONFIG = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("ThemeConfig"))
 local ConfigModule = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("Configuration"))
-local Modulo = require(RemotesSync:WaitForChild("Emotes_Modules"):WaitForChild("Animaciones"))
+local Modulo = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("Animaciones"))
 local NotificationSystem = require(ReplicatedStorage:WaitForChild("Systems"):WaitForChild("NotificationSystem"):WaitForChild("NotificationSystem"))
 local Icon = require(ReplicatedStorage:WaitForChild("Icon"))
 
@@ -67,7 +66,6 @@ local PlayerGui = Jugador:WaitForChild("PlayerGui")
 
 local IsMobile = UserInputService.TouchEnabled
 local EmotesFavs = {}
-local EmotesTrending = {}
 local DanceActivated = nil
 local ActiveCard = nil
 local TabActual = "Todos"
@@ -115,12 +113,8 @@ local function GetCardHeight()
 end
 
 local function EncontrarDatos(BaileId)
-	for _, lista in ipairs({Modulo.Ids, Modulo.Vip, Modulo.Recomendado}) do
-		if lista then
-			for _, v in pairs(lista) do
-				if v.ID == BaileId then return v.Nombre end
-			end
-		end
+	for _, v in pairs(Modulo.Lista) do
+		if v.ID == BaileId then return v.Nombre end
 	end
 	return "Dance"
 end
@@ -130,9 +124,6 @@ local function EstaEnFavoritos(id)
 end
 
 local function ObtenerTipo(id)
-	if table.find(EmotesTrending or {}, id) then return "Trending" end
-	for _, v in ipairs(Modulo.Vip or {}) do if v.ID == id then return "Normal" end end
-	for _, v in ipairs(Modulo.Recomendado or {}) do if v.ID == id then return "Recommended" end end
 	return "Normal"
 end
 
@@ -1075,44 +1066,10 @@ local function CargarTodos(filtro)
 		return filtro == "" or nombre:lower():find(filtro, 1, true)
 	end
 
-	-- TRENDING
-	if EmotesTrending and #EmotesTrending > 0 then
-		for _, id in ipairs(EmotesTrending) do
-			local nombre = EncontrarDatos(id)
-			if pasaFiltro(nombre) then
-				CrearTarjeta(nombre, id, "Trending", orden)
-				orden = orden + 1
-			end
-		end
-	end
-
-	-- VIP (ahora libres)
-	if Modulo.Vip and #Modulo.Vip > 0 then
-		for _, v in ipairs(Modulo.Vip) do
-			if not table.find(EmotesTrending or {}, v.ID) and pasaFiltro(v.Nombre) then
-				CrearTarjeta(v.Nombre, v.ID, "Normal", orden)
-				orden = orden + 1
-			end
-		end
-	end
-
-	-- RECOMENDADOS
-	if Modulo.Recomendado and #Modulo.Recomendado > 0 then
-		for _, v in ipairs(Modulo.Recomendado) do
-			if not table.find(EmotesTrending or {}, v.ID) and pasaFiltro(v.Nombre) then
-				CrearTarjeta(v.Nombre, v.ID, "Recommended", orden)
-				orden = orden + 1
-			end
-		end
-	end
-
-	-- TODOS
-	if Modulo.Ids and #Modulo.Ids > 0 then
-		for _, v in ipairs(Modulo.Ids) do
-			if not table.find(EmotesTrending or {}, v.ID) and pasaFiltro(v.Nombre) then
-				CrearTarjeta(v.Nombre, v.ID, "Normal", orden)
-				orden = orden + 1
-			end
+	for _, v in ipairs(Modulo.Lista) do
+		if pasaFiltro(v.Nombre) then
+			CrearTarjeta(v.Nombre, v.ID, "Normal", orden)
+			orden = orden + 1
 		end
 	end
 
@@ -1250,5 +1207,4 @@ _G.CloseEmotesUI = function() ToggleGUI(false) end
 -- ════════════════════════════════════════════════════════════════════════════════
 
 EmotesFavs = ObtenerFavs:InvokeServer() or {}
-EmotesTrending = ObtenerTrending:InvokeServer() or {}
 CargarTodos()

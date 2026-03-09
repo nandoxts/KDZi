@@ -1,0 +1,114 @@
+local Animaciones = {}
+
+Animaciones.Lista = {
+	{ID = 138316142522795, Nombre = 'Menea I'},
+	{ID = 134594513356628, Nombre = 'Deadpool'},
+
+	{ID = 129764254213842, Nombre = 'Gangnam Style'},
+	{ID = 119473524290403, Nombre = 'Russian Dance'},
+
+	{ID = 91219524625419, Nombre = 'RADIANT I'},
+	{ID = 101198938520629, Nombre = 'RADIANT II'},
+	{ID = 139006878190245, Nombre = 'RADIANT III'},
+
+	{ID = 101780256353339, Nombre = 'Ghost Siqui'},
+
+	{ID = 72067682558080, Nombre = 'Rebote I'},
+	{ID = 108771267044771, Nombre = 'Rebote II'},
+	{ID = 75256518776176, Nombre = 'Rebote III'},
+	{ID = 117743822724223, Nombre = 'Rebote IV'},
+
+	{ID = 104685509336391, Nombre = 'Jump I'},
+	{ID = 131751661872100, Nombre = 'Jump II'},
+	{ID = 75835894773315, Nombre = 'Jump III'},
+	{ID = 125178785524122, Nombre = 'Jump IV'},
+
+	{ID = 80962650363654, Nombre = 'SMOOTH I'},
+	{ID = 113057522886646, Nombre = 'SMOOTH II'},
+	{ID = 106876962974091, Nombre = 'SMOOTH III'},
+	{ID = 131829783462785, Nombre = 'SMOOTH IV'},
+	{ID = 125649626570657, Nombre = 'SMOOTH V'},
+
+	{ID = 96072539308174, Nombre = 'FLOW I'},
+	{ID = 115310253361374, Nombre = 'FLOW II'},
+	{ID = 121418461728575, Nombre = 'FLOW III'},
+	{ID = 84450135363865, Nombre = 'FLOW IV'},
+	{ID = 133899388553773, Nombre = 'FLOW V'},
+
+	{ID = 96649139759245, Nombre = 'STURDY I'},
+	{ID = 115988057886214, Nombre = 'STURDY II'},
+	{ID = 112773902133223, Nombre = 'STURDY III'},
+	{ID = 132555082396072, Nombre = 'STURDY IV'},
+
+	{ID = 81377469599060, Nombre = 'LATIN I'},
+	{ID = 121540036206716, Nombre = 'LATIN II'},
+	{ID = 74407321445762, Nombre = 'LATIN III'},
+
+	{ID = 109863843469159, Nombre = 'Zapateo I'},
+	{ID = 79209803496762, Nombre = 'Zapateo II'},
+	{ID = 129013038044362, Nombre = 'Zapateo III'},
+
+	{ID = 78487446167065, Nombre = 'Sapito Ghost'},
+	{ID = 114047726239264, Nombre = 'Andy V Ghost'},
+
+	{ID = 117717879866825, Nombre = 'Nene Malo I Ghost'},
+	{ID = 104764044091264, Nombre = 'Nene Malo II Ghost'},
+
+	{ID = 95598009785895, Nombre = 'Wachiturros I Ghost'},
+	{ID = 127092810179206, Nombre = 'Wachiturros II Ghost'},
+
+	{ID = 129615131982878, Nombre = 'Maquina I Jose Jeri'},
+	{ID = 98406276692762, Nombre = 'Maquina II Jose Jeri'},
+	{ID = 123606278208422, Nombre = 'Maquina III Jose Jeri'},
+	{ID = 108873777157620, Nombre = 'Lady I'},
+	{ID = 111799322743206, Nombre = 'Lady II'},
+	{ID = 92689671662713, Nombre = 'Lady III'},
+	{ID = 114912639422575, Nombre = 'Lady IV'},
+
+	{ID = 129991743366120, Nombre = 'Locura I'},
+	{ID = 102571052202995, Nombre = 'Locura II'},
+	{ID = 107098873662122, Nombre = 'Locura III'},
+	{ID = 95690194214852, Nombre = 'Locura IV'},
+
+	{ID = 122599479076921, Nombre = 'Electro I'},
+	{ID = 138785676658772, Nombre = 'Electro II'},
+	{ID = 135213895809415, Nombre = 'Electro III'},
+	{ID = 118468821959324, Nombre = 'Electro IV'},
+	{ID = 117991470645633, Nombre = 'Electro V'},
+
+	{ID = 75141049180386, Nombre = 'Sit I'},
+	{ID = 82658426526777, Nombre = 'Sit II'},
+	{ID = 92144056688923, Nombre = 'Sit III'},
+	{ID = 119788722787041, Nombre = 'Sit IV'},
+
+	{ID = 109025112478192, Nombre = 'Golpe I'},
+	{ID = 119734573196374, Nombre = 'Golpe II'},
+	{ID = 102779295838500, Nombre = 'Golpe III'},
+	{ID = 126780665379004, Nombre = 'Golpe IV'},
+	{ID = 139562990018724, Nombre = 'Golpe V'},
+	{ID = 70665953537371, Nombre = 'Golpe VI'},
+
+	{ID = 84625712269835, Nombre = 'DEMBOW I'},
+	{ID = 127381931754839, Nombre = 'DEMBOW II'},
+	{ID = 78486929565005, Nombre = 'DEMBOW III'},
+	{ID = 70369475554387, Nombre = 'DEMBOW IV'},
+	{ID = 71367193255332, Nombre = 'DEMBOW V'},
+
+	{ID = 84112287597268, Nombre = 'Huaska I'},
+	{ID = 84623954062978, Nombre = 'Huaska II'},
+	{ID = 94847143626311, Nombre = 'Huaska III'},
+
+	{ID = 72248021897603, Nombre = 'Bob Esponja'},
+
+	{ID = 110121575064039, Nombre = 'BTS DYNAMITE'},
+	{ID = 103149041437995, Nombre = 'BTS RUN'},
+
+	{ID = 101758039233408, Nombre = 'Diva I'},
+	{ID = 79464831560180, Nombre = 'Diva II'},
+	{ID = 136073073685621, Nombre = 'Diva III'},
+	{ID = 111664314706389, Nombre = 'Diva V'},
+	{ID = 118896295981144, Nombre = 'Diva VI'},
+	{ID = 97239153753142, Nombre = 'Diva VII'},
+}
+
+return Animaciones

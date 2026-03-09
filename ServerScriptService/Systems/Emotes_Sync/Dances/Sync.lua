@@ -19,7 +19,7 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage"):WaitForChild("RemotesGlobal")
-local Animaciones = require(ReplicatedStorage:WaitForChild("Emotes_Sync"):WaitForChild("Emotes_Modules"):WaitForChild("Animaciones"))
+local Animaciones = require(game:GetService("ReplicatedStorage"):WaitForChild("Config"):WaitForChild("Animaciones"))
 
 -- Configuración inline
 local Settings = {
@@ -82,11 +82,8 @@ local DanceCache = {}
 
 -- Inicializar cache de bailes (una sola vez)
 local function InitializeDanceCache()
-	local sources = {Animaciones.Ids, Animaciones.Recomendado, Animaciones.Vip}
-	for _, source in ipairs(sources) do
-		for _, anim in pairs(source) do
-			DanceCache[anim.Nombre] = "rbxassetid://" .. tostring(anim.ID)
-		end
+	for _, anim in pairs(Animaciones.Lista) do
+		DanceCache[anim.Nombre] = "rbxassetid://" .. tostring(anim.ID)
 	end
 end
 InitializeDanceCache()
