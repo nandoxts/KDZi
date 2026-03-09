@@ -36,7 +36,7 @@ Utils.init(Config, State)
 SyncSystem.init(Remotes, State)
 LikesSystem.init(Remotes, State, Config)
 EventListeners.init(Remotes)
-PanelView.init(Config, State, Utils, GroupRoles, Remotes)
+PanelView.init(Config, State, Utils, Remotes)
 
 -- ═══════════════════════════════════════════════════════════════
 -- CERRAR PANEL
@@ -53,41 +53,57 @@ local function closePanel()
 		end
 	end)
 
+	-- Capturar referencias locales para la animación
+	local closingUi = State.ui
+	local closingContainer = State.container
 	local L = PanelView.getLayout()
 
-	-- PASO 1: Quitar highlight INMEDIATAMENTE (fade-out 0.25s simultáneo)
+	-- INMEDIATAMENTE desactivar interactividad del panel que se cierra
+	-- Esto evita que gameProcessed=true bloquee el siguiente clic del usuario
+	pcall(function()
+		for _, desc in ipairs(closingUi:GetDescendants()) do
+			if desc:IsA("GuiButton") or desc:IsA("ScrollingFrame") then
+				desc.Active = false
+			end
+		end
+	end)
+
+	-- Quitar highlight
 	Utils.detachHighlight(State)
 
-	-- PASO 2: Cerrar panel SIMULTÁNEAMENTE
-	if State.container then
-		PanelView.safeTween(State.container, {
+	-- Limpiar conexiones y tweens
+	PanelView.cleanupTweens()
+	Utils.clearConnections()
+
+	-- RESETEAR TODO EL STATE INMEDIATAMENTE (no esperar animación)
+	State.ui = nil
+	State.userId = nil
+	State.target = nil
+	State.container = nil
+	State.panel = nil
+	State.buttonsFrame = nil
+	State.buttonsOverlay = nil
+	State.dynamicSection = nil
+	State.statsLabels = {}
+	State.currentView = "buttons"
+	State.isLoadingDynamic = false
+	State.dragging = false
+	State.closing = false
+	State.isPanelOpening = false
+	State.playerColor = nil
+	State.panelBgImage = nil
+	State.panelStroke = nil
+
+	-- Animar cierre visualmente (sobre las referencias capturadas)
+	if closingContainer and closingContainer.Parent then
+		PanelView.safeTween(closingContainer, {
 			Position = UDim2.new(0.5, -L.panelWidth / 2, 1, 50)
 		}, 1, Enum.EasingStyle.Quint, Enum.EasingDirection.InOut)
 	end
 
-	task.delay(1, function()
-		PanelView.cleanupTweens()
-		Utils.clearConnections()
-
-		if State.ui then State.ui:Destroy() end
-
-		State.ui = nil
-		State.userId = nil
-		State.target = nil
-		State.container = nil
-		State.panel = nil
-		State.buttonsFrame = nil
-		State.buttonsOverlay = nil
-		State.dynamicSection = nil
-		State.statsLabels = {}
-		State.currentView = "buttons"
-		State.isLoadingDynamic = false
-		State.dragging = false
-		State.closing = false
-		State.isPanelOpening = false
-		State.playerColor = nil
-		State.panelBgImage = nil
-		State.panelStroke = nil
+	-- Destruir después de que termine la animación
+	task.delay(1.05, function()
+		pcall(function() closingUi:Destroy() end)
 	end)
 end
 
@@ -99,9 +115,8 @@ end
 -- caché aún, el server fetchea con paralelo (~250ms).
 -- ═══════════════════════════════════════════════════════════════
 local function openPanel(target)
-	if State.isPanelOpening or State.closing or not target then return end
+	if State.isPanelOpening or not target then return end
 	State.isPanelOpening = true
-	State.closing = false  -- Cancelar cierre anterior si está en progreso
 
 	if State.refreshThread then task.cancel(State.refreshThread) end
 
@@ -110,7 +125,7 @@ local function openPanel(target)
 	Utils.clearConnections()
 	PanelView.cleanupTweens()
 
-	if State.ui then State.ui:Destroy() end
+	if State.ui then State.ui:Destroy(); State.ui = nil end
 
 	State.userId = target.UserId
 	State.target = target

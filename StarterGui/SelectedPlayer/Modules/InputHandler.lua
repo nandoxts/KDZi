@@ -29,24 +29,36 @@ function InputHandler.setupListeners(openPanelFunc, closePanelFunc, State)
 		State.lastClickTime = now
 
 		if State.ui then
-			-- Verificar si el clic fue en CUALQUIER GUI
+			-- Verificar si el clic fue en la GUI del panel
 			local guiObjects = playerGui:GetGuiObjectsAtPosition(position.X, position.Y)
 
 			if #guiObjects > 0 then
-				local isUserPanel = false
 				for _, obj in ipairs(guiObjects) do
 					if obj:IsDescendantOf(State.ui) then
-						isUserPanel = true
-						break
+						return -- Clic dentro del panel, ignorar
 					end
 				end
-
-				if isUserPanel then return end
-
-				closePanelFunc()
-				return
 			end
 
+			-- Clic FUERA del panel → verificar si se clickeó otro jugador
+			local unitRay = camera:ScreenPointToRay(position.X, position.Y)
+			local raycast = workspace:Raycast(unitRay.Origin, unitRay.Direction * Config.MAX_RAYCAST_DISTANCE)
+
+			if raycast and raycast.Instance then
+				local clickedPlayer = Utils.getPlayerFromPart(raycast.Instance)
+				if clickedPlayer and clickedPlayer ~= player then
+					if clickedPlayer == State.target then
+						-- Mismo jugador → cerrar
+						closePanelFunc()
+					else
+						-- Otro jugador → abrir directamente (openPanel limpia el anterior)
+						openPanelFunc(clickedPlayer)
+					end
+					return
+				end
+			end
+
+			-- No se clickeó ningún jugador → solo cerrar
 			closePanelFunc()
 			return
 		end
@@ -65,11 +77,6 @@ function InputHandler.setupListeners(openPanelFunc, closePanelFunc, State)
 						local head = char:FindFirstChild("Head")
 						if head and head.LocalTransparencyModifier == 1 then return end
 					end
-				end
-
-				if State.ui and State.target and clickedPlayer == State.target then
-					closePanelFunc()
-					return
 				end
 
 				openPanelFunc(clickedPlayer)

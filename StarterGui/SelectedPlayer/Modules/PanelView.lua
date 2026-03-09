@@ -15,7 +15,7 @@ local PanelView = {}
 -- ═══════════════════════════════════════════════════════════════
 -- DEPENDENCIAS (inyectadas via init)
 -- ═══════════════════════════════════════════════════════════════
-local Config, State, Utils, GroupRoles, Remotes
+local Config, State, Utils, Remotes
 local Services, NotificationSystem, ColorEffects, Gifting, THEME
 local player, playerGui
 
@@ -24,11 +24,10 @@ local cachedLayout = nil
 local activeTweens = {}
 local adminRotationConns = {}
 
-function PanelView.init(config, state, utils, groupRoles, remotes)
+function PanelView.init(config, state, utils, remotes)
 	Config = config
 	State = state
 	Utils = utils
-	GroupRoles = groupRoles
 	Remotes = remotes
 	Services = remotes.Services
 	NotificationSystem = remotes.Systems.NotificationSystem
