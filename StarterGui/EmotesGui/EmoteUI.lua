@@ -1239,15 +1239,16 @@ ScreenGui.Destroying:Connect(function()
 end)
 
 -- ════════════════════════════════════════════════════════════════════════════════
+-- GLOBAL FUNCTIONS (Para TOPBAR.lua / GlobalModalManager)
+-- Registrar ANTES de InvokeServer para que estén disponibles de inmediato
+-- ════════════════════════════════════════════════════════════════════════════════
+_G.OpenEmotesUI = function() ToggleGUI(true) end
+_G.CloseEmotesUI = function() ToggleGUI(false) end
+
+-- ════════════════════════════════════════════════════════════════════════════════
 -- INICIALIZACIÓN
 -- ════════════════════════════════════════════════════════════════════════════════
 
 EmotesFavs = ObtenerFavs:InvokeServer() or {}
 EmotesTrending = ObtenerTrending:InvokeServer() or {}
 CargarTodos()
-
--- ════════════════════════════════════════════════════════════════════════════════
--- GLOBAL FUNCTIONS (Para TOPBAR.lua)
--- ════════════════════════════════════════════════════════════════════════════════
-_G.OpenEmotesUI = function() ToggleGUI(true) end
-_G.CloseEmotesUI = function() ToggleGUI(false) end
