@@ -56,21 +56,7 @@ end
 -- ICONOS DEL TOPBAR
 -- ════════════════════════════════════════════════════════════════
 
--- ════════════════════════════════════════════════════════════════
--- ICONO: EMOTES
--- ════════════════════════════════════════════════════════════════
-_G.EmotesIcon = Icon.new()
-	:setOrder(2)
-	:setImage("127784597936941")
-	:autoDeselect(false)
-
-_G.EmotesIcon:bindEvent("selected", function(icon)
-	GlobalModalManager:openModal("Emotes")
-end)
-
-_G.EmotesIcon:bindEvent("deselected", function(icon)
-	GlobalModalManager:closeModal("Emotes")
-end)
+-- EMOTES: El botón de emotes ahora está integrado en EmoteUI.lua
 
 -- ════════════════════════════════════════════════════════════════
 -- ICONO: MENÚ (abre panel lateral unificado)

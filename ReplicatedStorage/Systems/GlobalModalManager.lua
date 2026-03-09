@@ -51,7 +51,7 @@ local modals = {
 				if not ok then warn("[GMM] Error cerrando Emotes: " .. tostring(err)) end
 			end
 		end,
-		icon = function() return _G.EmotesIcon end,
+		icon = function() return nil end,
 		category = "independent"
 	},
 	

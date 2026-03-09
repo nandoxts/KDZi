@@ -240,23 +240,65 @@ MainFrame.Name = "MainFrame"
 MainFrame.BackgroundColor3 = THEME_CONFIG.bg
 MainFrame.BackgroundTransparency = THEME_CONFIG.frameAlpha
 MainFrame.BorderSizePixel = 0
-MainFrame.Visible = false
+MainFrame.Visible = true
 MainFrame.AnchorPoint = Vector2.new(0, 0.5)
+MainFrame.ClipsDescendants = false
 MainFrame.Parent = ScreenGui
+
+local emotesPanelOpen = false
 
 local function ActualizarTamanoFrame()
 	if IsMobile then
 		MainFrame.Size = UDim2.new(0, Config.Movil_Ancho, 0, Config.Movil_Alto)
-		MainFrame.Position = UDim2.new(0, Config.Movil_MargenIzquierdo, 0.5, Config.Movil_OffsetVertical)
+		MainFrame.Position = UDim2.new(0, -Config.Movil_Ancho, 0.5, Config.Movil_OffsetVertical)
 	else
 		MainFrame.Size = UDim2.new(0, Config.PC_Ancho, 0, Config.PC_Alto)
-		MainFrame.Position = UDim2.new(0, Config.PC_MargenIzquierdo, 0.5, Config.PC_OffsetVertical)
+		MainFrame.Position = UDim2.new(0, -Config.PC_Ancho, 0.5, Config.PC_OffsetVertical)
 	end
 end
 ActualizarTamanoFrame()
 
 CreateCorner(MainFrame, 12)
 CreateStroke(MainFrame, THEME_CONFIG.stroke, 1, 0.5)
+
+-- ════════════════════════════════════════════════════════════════════════════════
+-- BOTÓN TOGGLE (pegado al borde derecho del panel)
+-- ════════════════════════════════════════════════════════════════════════════════
+
+local btnSize = IsMobile and 36 or 40
+
+local ToggleBtn = Instance.new("ImageButton")
+ToggleBtn.Name = "EmoteToggle"
+ToggleBtn.Size = UDim2.new(0, btnSize, 0, btnSize)
+ToggleBtn.Position = UDim2.new(1, 4, 0.5, 0)
+ToggleBtn.AnchorPoint = Vector2.new(0, 0.5)
+ToggleBtn.BackgroundColor3 = THEME_CONFIG.bg
+ToggleBtn.BackgroundTransparency = THEME_CONFIG.frameAlpha
+ToggleBtn.Image = ""
+ToggleBtn.AutoButtonColor = false
+ToggleBtn.ZIndex = 10
+ToggleBtn.Parent = MainFrame
+CreateCorner(ToggleBtn, btnSize / 2)
+CreateStroke(ToggleBtn, THEME_CONFIG.stroke, 1, 0.5)
+
+local ToggleIcon = Instance.new("ImageLabel")
+ToggleIcon.Name = "Icon"
+ToggleIcon.Image = "rbxassetid://127784597936941"
+ToggleIcon.ImageColor3 = THEME_CONFIG.text
+ToggleIcon.BackgroundTransparency = 1
+ToggleIcon.Size = UDim2.new(1, -12, 1, -12)
+ToggleIcon.Position = UDim2.new(0.5, 0, 0.5, 0)
+ToggleIcon.AnchorPoint = Vector2.new(0.5, 0.5)
+ToggleIcon.ScaleType = Enum.ScaleType.Fit
+ToggleIcon.ZIndex = 11
+ToggleIcon.Parent = ToggleBtn
+
+ToggleBtn.MouseEnter:Connect(function()
+	Tween(ToggleBtn, 0.15, {BackgroundColor3 = THEME_CONFIG.elevated})
+end)
+ToggleBtn.MouseLeave:Connect(function()
+	Tween(ToggleBtn, 0.15, {BackgroundColor3 = THEME_CONFIG.bg})
+end)
 
 -- ════════════════════════════════════════════════════════════════════════════════
 -- TABS
@@ -1156,31 +1198,30 @@ end
 -- ════════════════════════════════════════════════════════════════════════════════
 
 local function ToggleGUI(visible)
-	-- Evitar animaciones innecesarias si ya está en el estado deseado
-	if visible == MainFrame.Visible then
+	if visible == emotesPanelOpen then
 		return
 	end
+	emotesPanelOpen = visible
 
 	local posicionFinal = IsMobile 
 		and UDim2.new(0, Config.Movil_MargenIzquierdo, 0.5, Config.Movil_OffsetVertical)
 		or UDim2.new(0, Config.PC_MargenIzquierdo, 0.5, Config.PC_OffsetVertical)
 
 	local posicionOculta = IsMobile
-		and UDim2.new(0, -(Config.Movil_Ancho + 10), 0.5, Config.Movil_OffsetVertical)
-		or UDim2.new(0, -(Config.PC_Ancho + 10), 0.5, Config.PC_OffsetVertical)
+		and UDim2.new(0, -Config.Movil_Ancho, 0.5, Config.Movil_OffsetVertical)
+		or UDim2.new(0, -Config.PC_Ancho, 0.5, Config.PC_OffsetVertical)
 
 	if visible then
-		MainFrame.Position = posicionOculta
-		MainFrame.Visible = true
 		Tween(MainFrame, 0.3, {Position = posicionFinal}, Enum.EasingStyle.Back)
 	else
-		local t = Tween(MainFrame, 0.25, {Position = posicionOculta}, Enum.EasingStyle.Quint)
-		if t then
-			t.Completed:Wait()
-		end
-		MainFrame.Visible = false
+		Tween(MainFrame, 0.25, {Position = posicionOculta}, Enum.EasingStyle.Quint)
 	end
 end
+
+-- Conectar botón toggle
+ToggleBtn.MouseButton1Click:Connect(function()
+	ToggleGUI(not emotesPanelOpen)
+end)
 
 -- ════════════════════════════════════════════════════════════════════════════════
 -- LIMPIEZA AL DESTRUIR
