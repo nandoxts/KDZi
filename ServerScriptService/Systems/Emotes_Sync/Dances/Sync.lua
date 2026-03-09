@@ -18,6 +18,7 @@
 ]]
 
 local Players = game:GetService("Players")
+local ContentProvider = game:GetService("ContentProvider")
 local ReplicatedStorage = game:GetService("ReplicatedStorage"):WaitForChild("RemotesGlobal")
 local Animaciones = require(game:GetService("ReplicatedStorage"):WaitForChild("Config"):WaitForChild("Animaciones"))
 
@@ -80,10 +81,17 @@ local PlayerData = {}
 -- Cache de animaciones: nombre -> assetId
 local DanceCache = {}
 
+-- Assets para precargar (se construye una vez)
+local PreloadAssets = {}
+
 -- Inicializar cache de bailes (una sola vez)
 local function InitializeDanceCache()
 	for _, anim in pairs(Animaciones.Lista) do
-		DanceCache[anim.Nombre] = "rbxassetid://" .. tostring(anim.ID)
+		local assetId = "rbxassetid://" .. tostring(anim.ID)
+		DanceCache[anim.Nombre] = assetId
+		local obj = Instance.new("Animation")
+		obj.AnimationId = assetId
+		table.insert(PreloadAssets, obj)
 	end
 end
 InitializeDanceCache()
@@ -828,6 +836,13 @@ local function OnCharacterAdded(character)
 	local animation = Instance.new("Animation")
 	animation.Name = "Baile"
 	animation.Parent = character
+
+	-- Precargar todas las animaciones para este jugador (en background)
+	task.spawn(function()
+		pcall(function()
+			ContentProvider:PreloadAsync(PreloadAssets)
+		end)
+	end)
 
 	task.spawn(function()
 		local humanoid = character:FindFirstChild("Humanoid")

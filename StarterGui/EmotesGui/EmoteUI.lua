@@ -265,7 +265,7 @@ CreateStroke(MainFrame, THEME_CONFIG.stroke, 1, 0.5)
 -- BOTÓN TOGGLE (pegado al borde derecho del panel)
 -- ════════════════════════════════════════════════════════════════════════════════
 
-local btnSize = IsMobile and 36 or 40
+local btnSize = IsMobile and 40 or 45
 
 local ToggleBtn = Instance.new("ImageButton")
 ToggleBtn.Name = "EmoteToggle"
