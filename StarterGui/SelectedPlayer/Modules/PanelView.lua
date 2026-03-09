@@ -194,8 +194,8 @@ PanelView.Admin = Admin
 -- GLASSMORPHISM
 -- ═══════════════════════════════════════════════════════════════
 local function applyGlass(container, playerColor, L, isAdmin)
-	local baseT = isAdmin and 0.65 or 0.35
-	local colorT = isAdmin and 0.95 or 0.88
+	local baseT = isAdmin and 0.72 or 0.18
+	local colorT = isAdmin and 0.97 or 0.94
 
 	local base = Utils.createFrame({ Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = Color3.fromRGB(12, 12, 18), BackgroundTransparency = baseT, ZIndex = 0, Parent = container })
 
@@ -218,26 +218,35 @@ local function createButton(parent, text, layoutOrder, accentColor)
 	local L = getLayout()
 	local container = Utils.createFrame({ Size = UDim2.new(1, 0, 0, L.buttonHeight), LayoutOrder = layoutOrder, Parent = parent })
 
-	local btnColor = THEME.elevated:Lerp(accentColor or THEME.accent, 0.08)
+	local darkBase = Color3.fromRGB(8, 8, 8)
 	local btn = Utils.create("TextButton", {
-		Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = btnColor, BackgroundTransparency = 0.15,
+		Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = darkBase, BackgroundTransparency = 0,
 		BorderSizePixel = 0, AutoButtonColor = false, Text = "", Parent = container
 	})
-	Utils.addCorner(btn, 10)
-	Utils.addStroke(btn, accentColor or THEME.accent, 1, 0.75)
+	Utils.addCorner(btn, 999)
 
-	local g = Instance.new("UIGradient")
-	g.Parent = btn; g.Rotation = 90
-	g.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(1, 0.25) })
+	local stroke = Utils.create("UIStroke", {
+		Color = accentColor or THEME.accent,
+		Thickness = 0.75,
+		Transparency = 0.78,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		Parent = btn,
+	})
 
 	local rippleCont = Utils.createFrame({ Size = UDim2.new(1, 0, 1, 0), ClipsDescendants = true, Parent = btn })
-	Utils.addCorner(rippleCont, 10)
+	Utils.addCorner(rippleCont, 999)
 
 	local label = Utils.createLabel({ Size = UDim2.new(1, 0, 1, 0), Text = text, TextSize = L.fontSize.button, Font = Enum.Font.GothamBold, TextColor3 = THEME.text, Parent = btn })
 
-	local hoverColor = Utils.darkenColor(accentColor or THEME.accent, 0.25)
-	Utils.addConnection(btn.MouseEnter:Connect(function() safeTween(btn, { BackgroundColor3 = hoverColor, BackgroundTransparency = 0.05 }, Config.ANIM_FAST) end))
-	Utils.addConnection(btn.MouseLeave:Connect(function() safeTween(btn, { BackgroundColor3 = btnColor, BackgroundTransparency = 0.15 }, Config.ANIM_FAST) end))
+	local hoverBase = Color3.fromRGB(22, 22, 22)
+	Utils.addConnection(btn.MouseEnter:Connect(function()
+		safeTween(btn, { BackgroundColor3 = hoverBase }, Config.ANIM_FAST)
+		safeTween(stroke, { Transparency = 0.45, Thickness = 1 }, Config.ANIM_FAST)
+	end))
+	Utils.addConnection(btn.MouseLeave:Connect(function()
+		safeTween(btn, { BackgroundColor3 = darkBase }, Config.ANIM_FAST)
+		safeTween(stroke, { Transparency = 0.78, Thickness = 0.75 }, Config.ANIM_FAST)
+	end))
 	Utils.addConnection(btn.MouseButton1Click:Connect(function(x, y) Utils.createRipple(btn, rippleCont, x, y) end))
 
 	return btn, label
@@ -256,7 +265,7 @@ local function renderDynamicSection(viewType, items, targetName, playerColor)
 	local header = Utils.createFrame({ Size = UDim2.new(1, 0, 0, L.fontSize.title + 14), Parent = State.dynamicSection })
 	Utils.addCorner(header, 8)
 
-	local backBase = THEME.elevated:Lerp(playerColor or THEME.accent, 0.15)
+	local backBase = THEME.elevated:Lerp(playerColor or THEME.accent, 0.05)
 	local backBtn = Utils.create("TextButton", {
 		Size = UDim2.new(0, 28, 0, 28), BackgroundColor3 = backBase, BackgroundTransparency = 0.1,
 		Text = "‹", TextColor3 = THEME.text, TextSize = 16, Font = Enum.Font.GothamBold,
@@ -647,14 +656,14 @@ function PanelView.createPanel(data)
 
 	-- Panel container
 	local pY = L.dragHandleH + 4
-	local pBgT = 0.25
+	local pBgT = 0.08
 	local panelContainer = Utils.create("CanvasGroup", { Size = UDim2.new(1, 0, 0, L.panelHeight), Position = UDim2.new(0, 0, 0, pY), BackgroundColor3 = Color3.fromRGB(14, 14, 20), BackgroundTransparency = pBgT, BorderSizePixel = 0, Parent = State.container })
 	Utils.addCorner(panelContainer, L.cornerRadius)
 
 	local isUserAdmin = Admin.isAdmin(data.username)
 	applyGlass(panelContainer, playerColor, L, isUserAdmin)
 
-	local panelStroke = Utils.addStroke(panelContainer, playerColor, 1.5, 0.3)
+	local panelStroke = Utils.addStroke(panelContainer, playerColor, 0.75, 0.55)
 	State.panelStroke = panelStroke
 
 	local panelImage = Utils.create("ImageLabel", { Size = UDim2.new(1, 0, 0, 210), BackgroundTransparency = 1, Image = "", ImageTransparency = 0.6, ScaleType = Enum.ScaleType.Crop, ZIndex = 1, Parent = panelContainer })
