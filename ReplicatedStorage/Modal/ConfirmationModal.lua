@@ -89,7 +89,7 @@ function ConfirmationModal:_createModal()
 	self.modal = Instance.new("Frame")
 	self.modal.Size = UDim2.new(0, 380, 0, 180)
 	self.modal.Position = UDim2.new(0.5, -190, 0.5, -120)
-	self.modal.BackgroundColor3 = self.theme.panel
+	self.modal.BackgroundColor3 = self.theme.card
 	self.modal.BorderSizePixel = 0
 	self.modal.ZIndex = 301
 	self.modal.Parent = self.modalOverlay

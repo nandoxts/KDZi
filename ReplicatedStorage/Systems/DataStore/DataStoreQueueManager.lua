@@ -26,12 +26,12 @@ end
 function DataStoreQueueManager:processQueue()
 	if self.isProcessing then return end
 	self.isProcessing = true
-
+	
 	while #self.queue > 0 do
 		local request = table.remove(self.queue, 1)
 		local success = false
 		local result = nil
-
+		
 		-- Reintentos automáticos
 		for attempt = 1, CONFIG.MAX_RETRIES do
 			success, result = pcall(function()
@@ -42,24 +42,24 @@ function DataStoreQueueManager:processQueue()
 					return true
 				end
 			end)
-
+			
 			if success then break end
 			if attempt < CONFIG.MAX_RETRIES then
 				task.wait(CONFIG.RETRY_DELAY)
 			end
 		end
-
+		
 		-- Ejecutar callback
 		if request.callback then
 			task.spawn(function() request.callback(success, result) end)
 		end
-
+		
 		-- Control de rate limit
 		if #self.queue > 0 then
 			task.wait(self.delay)
 		end
 	end
-
+	
 	self.isProcessing = false
 end
 

@@ -35,7 +35,7 @@ local modals = {
 		icon = function() return _G.ClanSystemIcon end,
 		category = "main"
 	},
-
+	
 	Emotes = {
 		open = function() 
 			if _G.OpenEmotesUI then 
@@ -51,10 +51,10 @@ local modals = {
 				if not ok then warn("[GMM] Error cerrando Emotes: " .. tostring(err)) end
 			end
 		end,
-		icon = function() return _G.EmotesIcon end,
+		icon = function() return nil end,
 		category = "independent"
 	},
-
+	
 	Music = {
 		open = function() 
 			if _G.OpenMusicUI then 
@@ -73,7 +73,7 @@ local modals = {
 		icon = function() return _G.MusicDashboardIcon end,
 		category = "main"
 	},
-
+	
 	Shop = {
 		open = function() 
 			if _G.OpenShopUI then 
@@ -92,7 +92,7 @@ local modals = {
 		icon = function() return _G.ShopIcon end,
 		category = "main"
 	},
-
+	
 	UserPanel = {
 		open = function() end,  -- UserPanel se abre al hacer clic en jugadores
 		close = function() 
@@ -103,6 +103,25 @@ local modals = {
 		end,
 		icon = function() return nil end,  -- No tiene icono en topbar
 		category = "independent"  -- Puede coexistir con otros modales
+	},
+
+	Menu = {
+		open = function()
+			if _G.OpenMenuPanel then
+				local ok, err = pcall(function() _G.OpenMenuPanel() end)
+				if not ok then warn("[GMM] Error abriendo Menu: " .. tostring(err)) end
+			else
+				warn("[GMM] _G.OpenMenuPanel no está disponible")
+			end
+		end,
+		close = function()
+			if _G.CloseMenuPanel then
+				local ok, err = pcall(function() _G.CloseMenuPanel() end)
+				if not ok then warn("[GMM] Error cerrando Menu: " .. tostring(err)) end
+			end
+		end,
+		icon = function() return _G.MenuIcon end,
+		category = "main"  -- Exclusivo: cierra Clan/Music al abrir
 	},
 }
 
@@ -116,16 +135,16 @@ function GlobalModalManager:openModal(modalName)
 		warn("[GlobalModalManager] Modal desconocido: " .. modalName)
 		return
 	end
-
+	
 	local modalConfig = modals[modalName]
-
+	
 	-- MODALES PRINCIPALES (Clan/Music): Solo uno puede estar abierto
 	if modalConfig.category == "main" then
 		-- Si ya está abierto, no hacer nada
 		if self.currentMainModal == modalName then
 			return
 		end
-
+		
 		-- Cerrar el modal principal anterior si existe
 		if self.currentMainModal then
 			local prevModal = modals[self.currentMainModal]
@@ -135,7 +154,7 @@ function GlobalModalManager:openModal(modalName)
 				pcall(function() prevIcon:deselect() end)
 			end
 		end
-
+		
 		-- ✅ Cerrar UserPanel si está abierto (modal independiente)
 		if self.isUserPanelOpen then
 			local userPanelModal = modals["UserPanel"]
@@ -144,18 +163,18 @@ function GlobalModalManager:openModal(modalName)
 				self.isUserPanelOpen = false
 			end
 		end
-
+		
 		-- Abrir el nuevo modal principal
 		self.currentMainModal = modalName
 		modalConfig.open()
-
-		-- MODALES INDEPENDIENTES (Emotes): Pueden coexistir con main
+		
+	-- MODALES INDEPENDIENTES (Emotes): Pueden coexistir con main
 	elseif modalConfig.category == "independent" then
 		-- Si ya está abierto, no hacer nada
 		if self.isEmoteOpen then
 			return
 		end
-
+		
 		-- Abrir EmoteUI
 		self.isEmoteOpen = true
 		modalConfig.open()
@@ -166,9 +185,9 @@ function GlobalModalManager:closeModal(modalName)
 	if not modals[modalName] then
 		return
 	end
-
+	
 	local modalConfig = modals[modalName]
-
+	
 	-- Cerrar modal principal
 	if modalConfig.category == "main" then
 		if self.currentMainModal == modalName then
@@ -179,8 +198,8 @@ function GlobalModalManager:closeModal(modalName)
 			end
 			self.currentMainModal = nil
 		end
-
-		-- Cerrar modal independiente
+		
+	-- Cerrar modal independiente
 	elseif modalConfig.category == "independent" then
 		if modalName == "Emotes" and self.isEmoteOpen then
 			modalConfig.close()
@@ -205,7 +224,7 @@ function GlobalModalManager:isModalOpen(modalName)
 	if not modals[modalName] then
 		return false
 	end
-
+	
 	local modalConfig = modals[modalName]
 	if modalConfig.category == "main" then
 		return self.currentMainModal == modalName
@@ -227,11 +246,11 @@ function GlobalModalManager:ShowSettings(createFn)
 	if self.isSettingsOpen then
 		return
 	end
-
+	
 	local Players = game:GetService("Players")
 	local player = Players.LocalPlayer
 	local playerGui = player:WaitForChild("PlayerGui")
-
+	
 	-- Cerrar modal principal si está abierto
 	if self.currentMainModal then
 		local prevModal = modals[self.currentMainModal]
@@ -242,19 +261,19 @@ function GlobalModalManager:ShowSettings(createFn)
 		end
 		self.currentMainModal = nil
 	end
-
+	
 	-- Crear ScreenGui contenedor
 	local screenGui = Instance.new("ScreenGui")
 	screenGui.Name = "SettingsScreenGui"
 	screenGui.ResetOnSpawn = false
 	screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	screenGui.Parent = playerGui
-
+	
 	-- Crear modal usando la función proporcionada
 	self.settingsModalMgr = createFn(screenGui)
-
-	-- Abrir modal
-	self.settingsModalMgr:Show()
+	
+	-- Abrir modal (usar open() no Show())
+	self.settingsModalMgr:open()
 	self.isSettingsOpen = true
 end
 
@@ -262,14 +281,14 @@ function GlobalModalManager:CloseSettings()
 	if not self.isSettingsOpen or not self.settingsModalMgr then
 		return
 	end
-
-	self.settingsModalMgr:Close()
-
+	
+	self.settingsModalMgr:close()
+	
 	local screenGui = self.settingsModalMgr.screenGui
 	if screenGui and screenGui.Parent then
 		screenGui:Destroy()
 	end
-
+	
 	self.settingsModalMgr = nil
 	self.isSettingsOpen = false
 end

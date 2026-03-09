@@ -279,16 +279,6 @@ ClanSystemConfig.VALIDATION = {
 -- FUNCIONES AUXILIARES
 -- ═══════════════════════════════════════════════════════════
 
--- Verificar si un usuario es admin
-function ClanSystemConfig:IsAdmin(userId)
-	for _, adminId in ipairs(self.ADMINS.AdminUserIds) do
-		if userId == adminId then 
-			return true 
-		end
-	end
-	return false
-end
-
 -- Obtener límite de rate para una acción
 function ClanSystemConfig:GetRateLimit(action)
 	return self.RATE_LIMITS[action] or 1
