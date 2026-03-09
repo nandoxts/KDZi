@@ -125,6 +125,7 @@ PanelView.safeTween = safeTween
 local Admin = {}
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local AdminConfig = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("AdminConfig"))
+local ModernScrollbar = require(ReplicatedStorage:WaitForChild("UIComponents"):WaitForChild("ModernScrollbar"))
 
 function Admin.isAdmin(userName)
 	-- Acepta nombre de usuario (string)
@@ -187,21 +188,6 @@ function Admin.createBadge(parent, badgeInfo, L)
 	return badge
 end
 
-function Admin.applyPanelBackground(panelImage, _, badgeInfo)
-	panelImage.Image = badgeInfo.icon
-	panelImage.ScaleType = Enum.ScaleType.Crop
-	panelImage.ImageTransparency = 0.35
-	panelImage.BackgroundTransparency = 1
-	local g = Instance.new("UIGradient")
-	g.Parent = panelImage
-	g.Rotation = 90
-	g.Transparency = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, 0.1),
-		NumberSequenceKeypoint.new(0.6, 0.3),
-		NumberSequenceKeypoint.new(1, 0.75),
-	})
-end
-
 PanelView.Admin = Admin
 
 -- ═══════════════════════════════════════════════════════════════
@@ -212,10 +198,8 @@ local function applyGlass(container, playerColor, L, isAdmin)
 	local colorT = isAdmin and 0.95 or 0.88
 
 	local base = Utils.createFrame({ Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = Color3.fromRGB(12, 12, 18), BackgroundTransparency = baseT, ZIndex = 0, Parent = container })
-	Utils.addCorner(base, L.cornerRadius)
 
 	local cLayer = Utils.createFrame({ Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = playerColor, BackgroundTransparency = colorT, ZIndex = 0, Parent = container })
-	Utils.addCorner(cLayer, L.cornerRadius)
 
 	local g = Instance.new("UIGradient")
 	g.Parent = cLayer
@@ -664,7 +648,7 @@ function PanelView.createPanel(data)
 	-- Panel container
 	local pY = L.dragHandleH + 4
 	local pBgT = 0.25
-	local panelContainer = Utils.createFrame({ Size = UDim2.new(1, 0, 0, L.panelHeight), Position = UDim2.new(0, 0, 0, pY), BackgroundColor3 = Color3.fromRGB(14, 14, 20), BackgroundTransparency = pBgT, ClipsDescendants = true, Parent = State.container })
+	local panelContainer = Utils.create("CanvasGroup", { Size = UDim2.new(1, 0, 0, L.panelHeight), Position = UDim2.new(0, 0, 0, pY), BackgroundColor3 = Color3.fromRGB(14, 14, 20), BackgroundTransparency = pBgT, BorderSizePixel = 0, Parent = State.container })
 	Utils.addCorner(panelContainer, L.cornerRadius)
 
 	local isUserAdmin = Admin.isAdmin(data.username)
@@ -673,25 +657,16 @@ function PanelView.createPanel(data)
 	local panelStroke = Utils.addStroke(panelContainer, playerColor, 1.5, 0.3)
 	State.panelStroke = panelStroke
 
-	local panelImage = Utils.create("ImageLabel", { Size = UDim2.new(1, 0, 0, 210), BackgroundColor3 = Color3.fromRGB(0, 0, 0), BackgroundTransparency = 1, Image = "", ImageTransparency = 0.6, ScaleType = Enum.ScaleType.Crop, ZIndex = 1, ClipsDescendants = true, Parent = panelContainer })
-	Utils.addCorner(panelImage, L.cornerRadius)
+	local panelImage = Utils.create("ImageLabel", { Size = UDim2.new(1, 0, 0, 210), BackgroundTransparency = 1, Image = "", ImageTransparency = 0.6, ScaleType = Enum.ScaleType.Crop, ZIndex = 1, Parent = panelContainer })
 	State.panelBgImage = panelImage
 
-	-- Shadow (defer - no crítico para primer frame)
-	task.defer(function()
-		if not panelContainer.Parent then return end
-		Utils.create("ImageLabel", { Size = UDim2.new(1, 30, 1, 30), Position = UDim2.new(0, -15, 0, -15), BackgroundTransparency = 1, Image = "rbxassetid://5554236805", ImageColor3 = Color3.new(0, 0, 0), ImageTransparency = 0.5, ScaleType = Enum.ScaleType.Slice, SliceCenter = Rect.new(23, 23, 277, 277), ZIndex = -1, Parent = panelContainer })
-	end)
-
-	-- ScrollingFrame
 	local panel = Utils.create("ScrollingFrame", {
-		Size = UDim2.new(1, -2, 1, -2), Position = UDim2.new(0, 1, 0, 1), BackgroundTransparency = 1,
-		BorderSizePixel = 0, ScrollBarThickness = 3, ScrollBarImageColor3 = playerColor,
-		ScrollBarImageTransparency = 0.5, AutomaticCanvasSize = Enum.AutomaticSize.Y,
-		CanvasSize = UDim2.new(0, 0, 0, 0), ClipsDescendants = true, ScrollingEnabled = true,
+		Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1,
+		BorderSizePixel = 0, ScrollBarThickness = 0, AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		CanvasSize = UDim2.new(0, 0, 0, 0), ScrollingEnabled = true,
 		Active = true, ZIndex = 5, Parent = panelContainer
 	})
-	Utils.create("UIPadding", { PaddingTop = UDim.new(0, 0), PaddingBottom = UDim.new(0, 0), PaddingLeft = UDim.new(0, 0), PaddingRight = UDim.new(0, 0), Parent = panel })
+	ModernScrollbar.setup(panel, panelContainer, THEME, { color = playerColor, offset = -6 })
 
 	createAvatarSection(panel, data, playerColor)
 
