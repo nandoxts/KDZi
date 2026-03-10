@@ -75,13 +75,14 @@ overlay.ZIndex = 200; overlay.Visible = false; overlay.AutoButtonColor = false; 
 local panel = Instance.new("TextButton")
 panel.Name = "MenuPanel"; panel.Size = UDim2.new(0, PANEL_W, 1, -TOPBAR_H)
 panel.Position = POS_CLOSED; panel.AnchorPoint = Vector2.new(1, 0)
-panel.BackgroundColor3 = THEME.bg; panel.BorderSizePixel = 0; panel.ZIndex = 201
+panel.BackgroundColor3 = THEME.bg; panel.BackgroundTransparency = THEME.frameAlpha; panel.BorderSizePixel = 0; panel.ZIndex = 201
 panel.Active = true; panel.AutoButtonColor = false; panel.Text = ""
 panel.ClipsDescendants = true
 panel.Parent = screenGui
 addCorner(panel, BORDER_R)
 local panelStroke = Instance.new("UIStroke")
-panelStroke.Color = THEME.stroke; panelStroke.Thickness = 1.5
+panelStroke.Color = THEME.stroke; panelStroke.Thickness = 1
+panelStroke.Transparency = 0.5
 panelStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 panelStroke.Parent = panel
 
@@ -90,6 +91,24 @@ canvas.Size = UDim2.fromScale(1, 1)
 canvas.BackgroundTransparency = 1
 canvas.BorderSizePixel = 0; canvas.ZIndex = 202; canvas.Parent = panel
 addCorner(canvas, BORDER_R)
+
+-- Glass layer (color accent, mismo estilo PanelView)
+local glassColor = Instance.new("Frame")
+glassColor.Size = UDim2.fromScale(1, 1)
+glassColor.BackgroundColor3 = THEME.accent
+glassColor.BackgroundTransparency = THEME.frameAlpha + 0.22
+glassColor.BorderSizePixel = 0
+glassColor.ZIndex = 200
+glassColor.Parent = panel
+addCorner(glassColor, BORDER_R)
+local glassGrad = Instance.new("UIGradient")
+glassGrad.Rotation = 160
+glassGrad.Transparency = NumberSequence.new({
+	NumberSequenceKeypoint.new(0, 0.7),
+	NumberSequenceKeypoint.new(0.5, 0.95),
+	NumberSequenceKeypoint.new(1, 0.85),
+})
+glassGrad.Parent = glassColor
 
 -- Inner edge vignette (left) — dark fade from edge inward
 local edgeL = Instance.new("Frame")
@@ -120,13 +139,13 @@ gR.Parent = edgeR
 
 -- Header (hidden)
 local header = Instance.new("Frame")
-header.Size = UDim2.new(1, 0, 0, HEADER_H); header.BackgroundColor3 = THEME.bg
+header.Size = UDim2.new(1, 0, 0, HEADER_H); header.BackgroundColor3 = THEME.bg; header.BackgroundTransparency = 1
 header.BorderSizePixel = 0; header.ZIndex = 203; header.Visible = false; header.Parent = canvas
 
 local headerPill = Instance.new("Frame")
 headerPill.Size = UDim2.new(0, 140, 0, 40)
 headerPill.Position = UDim2.new(1, -152, 0.5, -20)
-headerPill.BackgroundColor3 = THEME.elevated; headerPill.BorderSizePixel = 0
+headerPill.BackgroundColor3 = THEME.elevated; headerPill.BackgroundTransparency = THEME.frameAlpha; headerPill.BorderSizePixel = 0
 headerPill.ZIndex = 204; headerPill.Parent = header
 addCorner(headerPill, UDim.new(0, 8))
 
@@ -154,7 +173,7 @@ headerPillBtn.Text = ""; headerPillBtn.ZIndex = 206; headerPillBtn.Parent = head
 local tabBar = Instance.new("Frame")
 tabBar.Size = UDim2.new(1, 0, 0, TABBAR_H)
 tabBar.Position = UDim2.new(0, 0, 0, HEADER_H)
-tabBar.BackgroundColor3 = THEME.bg; tabBar.BorderSizePixel = 0
+tabBar.BackgroundColor3 = THEME.bg; tabBar.BackgroundTransparency = 1; tabBar.BorderSizePixel = 0
 tabBar.ZIndex = 203; tabBar.Parent = canvas
 
 local pillContainer = Instance.new("ScrollingFrame")
@@ -182,7 +201,7 @@ end
 local contentArea = Instance.new("Frame")
 contentArea.Size = UDim2.new(1, 0, 1, -CONTENT_Y)
 contentArea.Position = UDim2.new(0, 0, 0, CONTENT_Y)
-contentArea.BackgroundColor3 = THEME.bg; contentArea.ClipsDescendants = true
+contentArea.BackgroundColor3 = THEME.bg; contentArea.BackgroundTransparency = 1; contentArea.ClipsDescendants = true
 contentArea.ZIndex = 202; contentArea.Parent = canvas
 
 -- Estado
@@ -201,13 +220,13 @@ local function openPanel()
 		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
 	end
 	overlay.Visible = true; overlay.BackgroundTransparency = 1
-	tween(overlay, TW_SMOOTH, {BackgroundTransparency = THEME.overlayAlpha})
+	tween(overlay, TW_SMOOTH, {BackgroundTransparency = THEME.mediumAlpha})
 	tween(panel, TW_SLIDE, {Position = POS_OPEN})
 end
 
 local function resetPills()
 	for _, b in pairs(tabBtns) do
-		tween(b, TW_SNAP, {BackgroundColor3 = THEME.card})
+		tween(b, TW_SNAP, {BackgroundColor3 = THEME.card, BackgroundTransparency = THEME.frameAlpha})
 		local lbl = b:FindFirstChild("Lbl", true)
 		local ico = b:FindFirstChild("Ico", true)
 		local pad = b:FindFirstChild("Pad")
@@ -275,7 +294,7 @@ local function selectTab(tabId)
 		local lbl = b:FindFirstChild("Lbl", true)
 		local ico = b:FindFirstChild("Ico", true)
 		local pad = b:FindFirstChild("Pad")
-		tween(b, TW_SMOOTH, {BackgroundColor3 = active and THEME.elevated or THEME.card})
+		tween(b, TW_SMOOTH, {BackgroundColor3 = active and THEME.elevated or THEME.card, BackgroundTransparency = active and THEME.subtleAlpha or THEME.frameAlpha})
 		if lbl then
 			tween(lbl, TW_SMOOTH, {TextColor3 = active and THEME.accent or THEME.muted})
 		end
@@ -334,7 +353,7 @@ for idx, tabDef in ipairs(TABS) do
 	local b = Instance.new("TextButton")
 	b.Name = tabDef.id; b.Size = UDim2.new(0, 0, 1, 0)
 	b.AutomaticSize = Enum.AutomaticSize.X
-	b.BackgroundColor3 = THEME.card; b.Text = ""
+	b.BackgroundColor3 = THEME.card; b.BackgroundTransparency = THEME.frameAlpha; b.Text = ""
 	b.BorderSizePixel = 0; b.ZIndex = 205; b.LayoutOrder = idx
 
 	-- UIPadding para ancho animado
@@ -388,7 +407,7 @@ for idx, tabDef in ipairs(TABS) do
 	b.MouseButton1Click:Connect(function() selectTab(tabDef.id) end)
 	b.MouseEnter:Connect(function()
 		if activeTabId ~= tabDef.id then
-			tween(b, TW_SNAP, {BackgroundColor3 = THEME.elevated})
+			tween(b, TW_SNAP, {BackgroundColor3 = THEME.elevated, BackgroundTransparency = THEME.lightAlpha})
 			local l = b:FindFirstChild("Lbl", true)
 			local ic = b:FindFirstChild("Ico", true)
 			if l then tween(l, TW_SNAP, {TextColor3 = THEME.dim}) end
@@ -397,7 +416,7 @@ for idx, tabDef in ipairs(TABS) do
 	end)
 	b.MouseLeave:Connect(function()
 		if activeTabId ~= tabDef.id then
-			tween(b, TW_SNAP, {BackgroundColor3 = THEME.card})
+			tween(b, TW_SNAP, {BackgroundColor3 = THEME.card, BackgroundTransparency = THEME.frameAlpha})
 			local l = b:FindFirstChild("Lbl", true)
 			local ic = b:FindFirstChild("Ico", true)
 			if l then tween(l, TW_SNAP, {TextColor3 = THEME.muted}) end

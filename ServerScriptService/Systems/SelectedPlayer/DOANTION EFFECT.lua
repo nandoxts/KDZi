@@ -13,13 +13,13 @@ local DataStoreService = game:GetService("DataStoreService")
 local Workspace = game:GetService("Workspace")
 
 local Configuration  = require(game.ReplicatedStorage.Config.Configuration)
+local AdminConfig    = require(game.ReplicatedStorage.Config.AdminConfig)
 local ColorEffects = require(game.ReplicatedStorage.Config.ColorConfig)
 
 --==================================================
 --                    CONSTANTES
 --==================================================
 local GROUP_ID = Configuration.GroupID
-local ALLOWED_RANKS = Configuration.ALLOWED_RANKS_OWS
 local HTTP_RETRY_LIMIT = 3
 local HTTP_RETRY_DELAY = 1
 local DATASTORE_RETRY_LIMIT = 3
@@ -520,7 +520,7 @@ end
 --==================================================
 function handleCommand(player, message)
 	if not message or message:sub(1, 1) ~= ";" then return end
-	if not ColorEffects.hasPermission(player, GROUP_ID, ALLOWED_RANKS) then return end
+	if not AdminConfig:IsAdmin(player) then return end
 
 	local args = message:split(" ")
 	local command = args[1]:lower()

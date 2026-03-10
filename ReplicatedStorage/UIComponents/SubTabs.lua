@@ -58,6 +58,7 @@ function SubTabs.new(parent, THEME, config)
 	bar.Name = "SubTabBar"
 	bar.Size = UDim2.new(1, 0, 0, height)
 	bar.BackgroundColor3 = THEME.bg
+	bar.BackgroundTransparency = 1
 	bar.BorderSizePixel = 0
 	bar.ZIndex = z
 	bar.Parent = parent
@@ -79,7 +80,7 @@ function SubTabs.new(parent, THEME, config)
 		btn.Name = tabDef.id
 		btn.Size = UDim2.new(btnWidth, 0, 1, 0)
 		btn.BackgroundColor3 = THEME.card
-		btn.BackgroundTransparency = 0.2
+		btn.BackgroundTransparency = THEME.lightAlpha
 		btn.Font = Enum.Font.GothamBold
 		btn.TextSize = 13
 		btn.TextColor3 = THEME.muted
@@ -98,12 +99,12 @@ function SubTabs.new(parent, THEME, config)
 
 		btn.MouseEnter:Connect(function()
 			if self.activeId ~= tabDef.id then
-				TweenService:Create(btn, TweenInfo.new(0.12), { BackgroundTransparency = 0.15 }):Play()
+				TweenService:Create(btn, TweenInfo.new(0.12), { BackgroundTransparency = THEME.subtleAlpha }):Play()
 			end
 		end)
 		btn.MouseLeave:Connect(function()
 			if self.activeId ~= tabDef.id then
-				TweenService:Create(btn, TweenInfo.new(0.12), { BackgroundTransparency = 0.2 }):Play()
+				TweenService:Create(btn, TweenInfo.new(0.12), { BackgroundTransparency = THEME.lightAlpha }):Play()
 			end
 		end)
 	end
@@ -133,13 +134,13 @@ function SubTabs:_setActive(tabId)
 		if id == tabId then
 			TweenService:Create(btn, TweenInfo.new(0.18), {
 				BackgroundColor3 = THEME.accent,
-				BackgroundTransparency = 0.1,
+				BackgroundTransparency = THEME.subtleAlpha,
 				TextColor3 = THEME.text,
 			}):Play()
 		else
 			TweenService:Create(btn, TweenInfo.new(0.18), {
 				BackgroundColor3 = THEME.card,
-				BackgroundTransparency = 0.2,
+				BackgroundTransparency = THEME.lightAlpha,
 				TextColor3 = THEME.muted,
 			}):Play()
 		end

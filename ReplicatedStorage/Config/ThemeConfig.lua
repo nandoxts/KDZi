@@ -6,10 +6,10 @@
 
 local THEME = {
 	-- Modern dark background palette (Neutro oscuro, sin tinte morado)
-	bg       = Color3.fromRGB(18, 18, 21),      -- Fondo principal / profundo
-	card     = Color3.fromRGB(28, 28, 32),      -- Cards / paneles
-	surface  = Color3.fromRGB(30, 30, 35),      -- Superficies interactivas
-	elevated = Color3.fromRGB(35, 35, 40),      -- Elementos elevados (hover)
+	bg       = Color3.fromRGB(0, 0, 0),      -- Fondo principal / profundo
+	card     = Color3.fromRGB(20, 20, 20),      -- Cards / paneles
+	surface  = Color3.fromRGB(37, 37, 37),      -- Superficies interactivas
+	elevated = Color3.fromRGB(37, 37, 37),      -- Elementos elevados (hover)
 
 	-- Text colors
 	text     = Color3.fromRGB(236, 240, 241),   -- Texto principal (casi blanco)
@@ -28,18 +28,17 @@ local THEME = {
 	success    = Color3.fromRGB(76, 175, 80),    -- Verde suave (Spotify-like)
 
 	-- UI elements
-	stroke = Color3.fromRGB(40, 44, 52),
-	hover  = Color3.fromRGB(45, 50, 58),
+	stroke = Color3.fromRGB(0, 0, 0),
 
 	-- Transparencies
-	subtleAlpha = 0.1,  -- Muy poco transparente
+	subtleAlpha = 0.18, -- Elementos sutiles
 	lightAlpha  = 0.3,  -- Ligeramente transparente
-	frameAlpha  = 0.4,  -- Frames principales
+	frameAlpha  = 0.72, -- Glass principal (paneles)
 	mediumAlpha = 0.6,  -- Medio transparente
 
 	-- Panel sizes
-	panelWidth  = 780,
-	panelHeight = 650,
+	panelWidth  = 390,
+	panelHeight = 500,
 }
 
 return THEME

@@ -8,6 +8,7 @@ local ServerScriptService = game:GetService("ServerScriptService"):WaitForChild(
 -- Módulos
 local CentralPurchaseHandler = require(ServerScriptService["Gamepass Gifting"].GiftGamepass.ManagerProcess)
 local Configuration = require(game.ReplicatedStorage.Config.Configuration)
+local AdminConfig   = require(game.ReplicatedStorage.Config.AdminConfig)
 local DataStoreQueueManager = require(game.ReplicatedStorage:WaitForChild("Systems"):WaitForChild("DataStore"):WaitForChild("DataStoreQueueManager"))
 
 -- Datastore
@@ -35,7 +36,6 @@ local LIKE_COOLDOWN = Configuration.LIKE_COOLDOWN
 local SUPER_LIKE_VALUE = Configuration.SUPER_LIKE_VALUE 
 local AUTOSAVE_INTERVAL = Configuration.AUTOSAVE_INTERVAL
 local GROUP_ID = Configuration.GroupID
-local ALLOWED_RANKS_OWS = Configuration.ALLOWED_RANKS_OWS
 
 -- 🛡️ LÍMITES DE DATASTORE (Roblox permite ~60 peticiones/minuto por servidor)
 local MAX_SAVES_PER_BATCH = 10 -- Guardar máximo 10 jugadores por ciclo
@@ -378,20 +378,7 @@ end
 
 local function hasPermission(player)
 	if not player then return false end
-
-	local success, rank = pcall(function()
-		return player:GetRankInGroup(GROUP_ID)
-	end)
-
-	if not success then return false end
-
-	for _, allowedRank in ipairs(ALLOWED_RANKS_OWS) do
-		if rank >= allowedRank then
-			return true
-		end
-	end
-
-	return false
+	return AdminConfig:IsAdmin(player)
 end
 
 local function handleAdminCommand(player, message)

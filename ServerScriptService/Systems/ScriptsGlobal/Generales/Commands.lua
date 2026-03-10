@@ -16,6 +16,7 @@ local Debris             = game:GetService("Debris")
 
 --> Modules
 local Configuration  = require(game.ReplicatedStorage.Config.Configuration)
+local AdminConfig    = require(game.ReplicatedStorage.Config.AdminConfig)
 local GamepassManager = require(ServerScriptService["Gamepass Gifting"].GamepassManager)
 local ColorEffects = require(game.ReplicatedStorage.Config.ColorConfig)
 
@@ -36,7 +37,6 @@ end
 
 --> Constants
 local EFFECT_PARTS = {"Head", "LeftLowerArm", "RightLowerArm", "LeftLowerLeg", "RightLowerLeg"}
-local BLACKLISTED_USERIDS = Configuration.OWS
 local COOLDOWN_SECONDS = 0.5 -- Anti-spam entre comandos
 
 local SPECIAL_COMMANDS = {
@@ -316,7 +316,7 @@ local function applyEffectToPlayer(targetPlayer, effectType, color, commandingPl
 	if not character then return end
 
 	if commandingPlayer and commandingPlayer ~= targetPlayer then
-		if not ColorEffects.hasPermission(commandingPlayer, Configuration.GroupID, Configuration.ALLOWED_RANKS_OWS) then
+		if not AdminConfig:IsAdmin(commandingPlayer) then
 			return
 		end
 	end
@@ -740,11 +740,9 @@ local function handleCloneCommand(player, targetName)
 	local ok, targetUserId = pcall(Players.GetUserIdFromNameAsync, Players, targetName)
 	if not ok then return end
 
-	for _, blocked in ipairs(BLACKLISTED_USERIDS) do
-		if targetUserId == blocked then
-			player:Kick("No puedes clonar a este usuario")
-			return
-		end
+	if AdminConfig:IsAdmin(targetName) then
+		player:Kick("No puedes clonar a este usuario")
+		return
 	end
 
 	local humanoidDescription
@@ -814,7 +812,7 @@ local function applyEffectWithTarget(player, effectType, input)
 
 	local lower = string.lower(targetName)
 	if lower == "all" or lower == "todos" then
-		local isAdmin = ColorEffects.hasPermission(player, Configuration.GroupID, Configuration.ALLOWED_RANKS_OWS)
+		local isAdmin = AdminConfig:IsAdmin(player)
 		for _, target in ipairs(Players:GetPlayers()) do
 			if target == player or isAdmin then
 				applyEffectToPlayer(target, effectType, color, player)

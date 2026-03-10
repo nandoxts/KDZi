@@ -194,10 +194,10 @@ PanelView.Admin = Admin
 -- GLASSMORPHISM
 -- ═══════════════════════════════════════════════════════════════
 local function applyGlass(container, playerColor, L, isAdmin)
-	local baseT = isAdmin and 0.72 or 0.18
-	local colorT = isAdmin and 0.97 or 0.94
+	local baseT = THEME.frameAlpha
+	local colorT = THEME.frameAlpha + 0.22
 
-	local base = Utils.createFrame({ Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = Color3.fromRGB(12, 12, 18), BackgroundTransparency = baseT, ZIndex = 0, Parent = container })
+	local base = Utils.createFrame({ Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = THEME.bg, BackgroundTransparency = baseT, ZIndex = 0, Parent = container })
 
 	local cLayer = Utils.createFrame({ Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = playerColor, BackgroundTransparency = colorT, ZIndex = 0, Parent = container })
 

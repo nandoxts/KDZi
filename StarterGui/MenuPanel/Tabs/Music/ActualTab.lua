@@ -31,14 +31,14 @@ function ActualTab.build(parent, THEME, state, R, H)
 	local coverSection = make("Frame", {
 		Size = UDim2.new(1, 0, 0, COVER_H),
 		BackgroundColor3 = THEME.bg,
-		BackgroundTransparency = 0, BorderSizePixel = 0,
+		BackgroundTransparency = 1, BorderSizePixel = 0,
 		ClipsDescendants = true, LayoutOrder = 1, ZIndex = 211, Parent = panel,
 	})
 
 	local coverImage = make("ImageLabel", {
 		Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1,
 		ScaleType = Enum.ScaleType.Crop, Image = "",
-		ImageTransparency = 0, ZIndex = 212, Parent = coverSection,
+		ImageTransparency = THEME.frameAlpha, ZIndex = 212, Parent = coverSection,
 	})
 
 	local coverPlaceholder = make("TextLabel", {
@@ -50,13 +50,14 @@ function ActualTab.build(parent, THEME, state, R, H)
 
 	local gradientOverlay = make("Frame", {
 		Size = UDim2.new(1, 0, 0.65, 0), Position = UDim2.new(0, 0, 0.35, 0),
-		BackgroundColor3 = Color3.new(0, 0, 0), ZIndex = 213, Parent = coverSection,
+		BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = THEME.frameAlpha,
+		ZIndex = 213, Parent = coverSection,
 	})
 	make("UIGradient", {
 		Transparency = NumberSequence.new({
 			NumberSequenceKeypoint.new(0, 1),
-			NumberSequenceKeypoint.new(0.35, 0.6),
-			NumberSequenceKeypoint.new(0.7, 0.15),
+			NumberSequenceKeypoint.new(0.35, 0.7),
+			NumberSequenceKeypoint.new(0.7, 0.3),
 			NumberSequenceKeypoint.new(1, 0),
 		}),
 		Rotation = 90, Parent = gradientOverlay,
@@ -102,7 +103,8 @@ function ActualTab.build(parent, THEME, state, R, H)
 
 	local progressBar = make("Frame", {
 		Size = UDim2.new(1, -24, 0, 8), Position = UDim2.new(0, 12, 0, 6),
-		BackgroundColor3 = THEME.elevated, ZIndex = 212, Parent = progressSection,
+		BackgroundColor3 = THEME.elevated, BackgroundTransparency = THEME.subtleAlpha,
+		ZIndex = 212, Parent = progressSection,
 	})
 	rounded(progressBar, 4)
 
@@ -321,7 +323,7 @@ function ActualTab.build(parent, THEME, state, R, H)
 		card.Name = "QueueCard"
 		card.Size = UDim2.new(1, 0, 0, QC_H)
 		card.BackgroundColor3 = THEME.card
-		card.BackgroundTransparency = 0
+		card.BackgroundTransparency = THEME.frameAlpha
 		card.BorderSizePixel = 0
 		card.GroupTransparency = 0
 		card.ZIndex = 213
@@ -336,7 +338,7 @@ function ActualTab.build(parent, THEME, state, R, H)
 		-- Cover full-height izquierda (CanvasGroup recorta los bordes)
 		local coverBg = make("Frame", {
 			Size = UDim2.new(0, QC_H, 1, 0),
-			BackgroundColor3 = THEME.elevated, BackgroundTransparency = 0,
+			BackgroundColor3 = THEME.elevated, BackgroundTransparency = THEME.lightAlpha,
 			BorderSizePixel = 0, ZIndex = 214, Name = "CoverBg", Parent = card,
 		})
 		make("ImageLabel", {
@@ -504,7 +506,7 @@ function ActualTab.build(parent, THEME, state, R, H)
 			task.delay(0.15, function()
 				if coverImage.Parent then
 					coverImage.Image = cover
-					tween(coverImage, 0.3, { ImageTransparency = 0 })
+					tween(coverImage, 0.3, { ImageTransparency = THEME.frameAlpha })
 				end
 			end)
 		end
