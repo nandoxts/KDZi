@@ -79,14 +79,13 @@ function Helpers.outlinedCircleBtn(parent, opts)
 	local btn = Helpers.make("TextButton", {
 		Size = UDim2.new(0, size, 0, size),
 		Position = pos,
-		BackgroundColor3 = theme.card,
-		BackgroundTransparency = theme.frameAlpha,
+		BackgroundTransparency = 1,
 		Text = "", BorderSizePixel = 0, AutoButtonColor = false,
 		ZIndex = z, Name = name, Parent = parent,
 	})
 	Helpers.rounded(btn, size / 2)
 	Helpers.make("UIStroke", {
-		Color = theme.stroke, Thickness = 0.5,
+		Color = theme.stroke, Thickness = 1.5,
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = btn,
 	})
 	local iconLabel = Helpers.make("ImageLabel", {

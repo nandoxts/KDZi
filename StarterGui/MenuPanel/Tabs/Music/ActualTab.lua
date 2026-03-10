@@ -31,7 +31,7 @@ function ActualTab.build(parent, THEME, state, R, H)
 	local coverSection = make("Frame", {
 		Size = UDim2.new(1, 0, 0, COVER_H),
 		BackgroundColor3 = THEME.bg,
-		BackgroundTransparency = 1, BorderSizePixel = 0,
+		BackgroundTransparency = 0, BorderSizePixel = 0,
 		ClipsDescendants = true, LayoutOrder = 1, ZIndex = 211, Parent = panel,
 	})
 
@@ -49,16 +49,14 @@ function ActualTab.build(parent, THEME, state, R, H)
 	})
 
 	local gradientOverlay = make("Frame", {
-		Size = UDim2.new(1, 0, 0.75, 0), Position = UDim2.new(0, 0, 0.25, 0),
-		BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 0,
-		ZIndex = 213, Parent = coverSection,
+		Size = UDim2.new(1, 0, 0.65, 0), Position = UDim2.new(0, 0, 0.35, 0),
+		BackgroundColor3 = Color3.new(0, 0, 0), ZIndex = 213, Parent = coverSection,
 	})
 	make("UIGradient", {
 		Transparency = NumberSequence.new({
 			NumberSequenceKeypoint.new(0, 1),
-			NumberSequenceKeypoint.new(0.3, 0.9),
-			NumberSequenceKeypoint.new(0.6, 0.5),
-			NumberSequenceKeypoint.new(0.85, 0.1),
+			NumberSequenceKeypoint.new(0.35, 0.6),
+			NumberSequenceKeypoint.new(0.7, 0.15),
 			NumberSequenceKeypoint.new(1, 0),
 		}),
 		Rotation = 90, Parent = gradientOverlay,
@@ -104,8 +102,7 @@ function ActualTab.build(parent, THEME, state, R, H)
 
 	local progressBar = make("Frame", {
 		Size = UDim2.new(1, -24, 0, 8), Position = UDim2.new(0, 12, 0, 6),
-		BackgroundColor3 = THEME.elevated, BackgroundTransparency = THEME.subtleAlpha,
-		ZIndex = 212, Parent = progressSection,
+		BackgroundColor3 = THEME.elevated, ZIndex = 212, Parent = progressSection,
 	})
 	rounded(progressBar, 4)
 
@@ -143,14 +140,14 @@ function ActualTab.build(parent, THEME, state, R, H)
 		skipBtn = make("TextButton", {
 			Size = UDim2.new(0, ADMIN_BTN, 0, ADMIN_BTN),
 			Position = UDim2.new(0, 0, 0, 0),
-			BackgroundColor3 = THEME.card,
-			BackgroundTransparency = THEME.frameAlpha,
+			BackgroundColor3 = THEME.bg,
+			BackgroundTransparency = 1,
 			Text = "", BorderSizePixel = 0, AutoButtonColor = false,
 			ZIndex = 214, Parent = reproRow,
 		})
 		rounded(skipBtn, ADMIN_BTN / 2)
 		make("UIStroke", {
-			Color = THEME.stroke, Thickness = 0.5,
+			Color = THEME.stroke, Thickness = 1.5,
 			ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = skipBtn,
 		})
 		make("ImageLabel", {
@@ -164,14 +161,14 @@ function ActualTab.build(parent, THEME, state, R, H)
 		clearBtn = make("TextButton", {
 			Size = UDim2.new(0, ADMIN_BTN, 0, ADMIN_BTN),
 			Position = UDim2.new(1, -ADMIN_BTN, 0, 0),
-			BackgroundColor3 = THEME.card,
-			BackgroundTransparency = THEME.frameAlpha,
+			BackgroundColor3 = THEME.bg,
+			BackgroundTransparency = 1,
 			Text = "", BorderSizePixel = 0, AutoButtonColor = false,
 			ZIndex = 214, Parent = reproRow,
 		})
 		rounded(clearBtn, ADMIN_BTN / 2)
 		make("UIStroke", {
-			Color = THEME.stroke, Thickness = 0.5,
+			Color = THEME.stroke, Thickness = 1.5,
 			ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = clearBtn,
 		})
 		make("ImageLabel", {
@@ -189,13 +186,13 @@ function ActualTab.build(parent, THEME, state, R, H)
 	local inputContainer = make("Frame", {
 		Size = UDim2.new(1, -(inputLeftOff + inputRightOff), 1, 0),
 		Position = UDim2.new(0, inputLeftOff, 0, 0),
-		BackgroundColor3 = THEME.card,
-		BackgroundTransparency = THEME.frameAlpha,
+		BackgroundColor3 = THEME.bg,
+		BackgroundTransparency = 1,
 		BorderSizePixel = 0, ZIndex = 213, Parent = reproRow,
 	})
 	rounded(inputContainer, 21)
 	make("UIStroke", {
-		Color = THEME.stroke, Thickness = 0.5,
+		Color = THEME.stroke, Thickness = 1.5,
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = inputContainer,
 	})
 
@@ -273,20 +270,20 @@ function ActualTab.build(parent, THEME, state, R, H)
 			if R.Next then pcall(function() R.Next:FireServer() end) end
 		end)
 		skipBtn.MouseEnter:Connect(function()
-			tween(skipBtn, 0.15, { BackgroundTransparency = THEME.lightAlpha, BackgroundColor3 = THEME.elevated })
+			tween(skipBtn, 0.15, { BackgroundTransparency = 0, BackgroundColor3 = THEME.elevated })
 		end)
 		skipBtn.MouseLeave:Connect(function()
-			tween(skipBtn, 0.15, { BackgroundTransparency = THEME.frameAlpha })
+			tween(skipBtn, 0.15, { BackgroundTransparency = 1 })
 		end)
 
 		clearBtn.MouseButton1Click:Connect(function()
 			if R.Clear then pcall(function() R.Clear:FireServer() end) end
 		end)
 		clearBtn.MouseEnter:Connect(function()
-			tween(clearBtn, 0.15, { BackgroundTransparency = THEME.lightAlpha, BackgroundColor3 = THEME.elevated })
+			tween(clearBtn, 0.15, { BackgroundTransparency = 0, BackgroundColor3 = THEME.elevated })
 		end)
 		clearBtn.MouseLeave:Connect(function()
-			tween(clearBtn, 0.15, { BackgroundTransparency = THEME.frameAlpha })
+			tween(clearBtn, 0.15, { BackgroundTransparency = 1 })
 		end)
 	end
 
@@ -307,7 +304,7 @@ function ActualTab.build(parent, THEME, state, R, H)
 		Size = UDim2.new(1, -24, 0, 0), Position = UDim2.new(0, 12, 0, 28),
 		BackgroundTransparency = 1, ZIndex = 212, Parent = listaSection,
 	})
-	make("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder, Parent = queueContainer })
+	make("UIListLayout", { Padding = UDim.new(0, 3), SortOrder = Enum.SortOrder.LayoutOrder, Parent = queueContainer })
 
 	local queueEmptyLbl = make("TextLabel", {
 		Size = UDim2.new(1, 0, 0, 40), BackgroundTransparency = 1,
@@ -332,14 +329,14 @@ function ActualTab.build(parent, THEME, state, R, H)
 		card.Parent = queueContainer
 		make("UICorner", { CornerRadius = UDim.new(0, 10), Parent = card })
 		make("UIStroke", {
-			Color = THEME.stroke, Thickness = 0.5, Transparency = 0.5,
+			Color = THEME.stroke, Thickness = 1, Transparency = 0.3,
 			ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Name = "CardStroke", Parent = card,
 		})
 
 		-- Cover full-height izquierda (CanvasGroup recorta los bordes)
 		local coverBg = make("Frame", {
 			Size = UDim2.new(0, QC_H, 1, 0),
-			BackgroundColor3 = THEME.elevated, BackgroundTransparency = THEME.lightAlpha,
+			BackgroundColor3 = THEME.elevated, BackgroundTransparency = 0,
 			BorderSizePixel = 0, ZIndex = 214, Name = "CoverBg", Parent = card,
 		})
 		make("ImageLabel", {

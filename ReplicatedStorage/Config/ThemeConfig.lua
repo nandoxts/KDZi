@@ -1,42 +1,39 @@
 -- ════════════════════════════════════════════════════════════════
--- THEME CONFIGURATION v2.0 - PROFESSIONAL DARK
--- Paleta madura estilo Discord/Spotify
+-- THEME v8.0 — FULL BLACK · SIN ALIASES
 -- by ignxts
 -- ════════════════════════════════════════════════════════════════
 
 local THEME = {
-	-- Pure black palette
-	bg          = Color3.fromRGB(0, 0, 0),
-	card        = Color3.fromRGB(0, 0, 0),
-	surface     = Color3.fromRGB(0, 0, 0),
-	elevated    = Color3.fromRGB(0, 0, 0),
+	-- ═══ FONDOS (3 niveles + subtle) ═══
+	bg       = Color3.fromRGB(6,   6,   6),   -- fondo base
+	card     = Color3.fromRGB(18,  18,  18),   -- tarjetas, contenedores
+	elevated = Color3.fromRGB(32,  32,  32),   -- hover, items activos
+	subtle   = Color3.fromRGB(55,  55,  55),   -- bordes suaves, placeholders
 
-	-- Text colors
-	text        = Color3.fromRGB(236, 240, 241),
-	muted       = Color3.fromRGB(132, 142, 151),
-	subtle      = Color3.fromRGB(95, 100, 110),
-	dim         = Color3.fromRGB(95, 100, 110),
+	-- ═══ TEXTO (3 niveles) ═══
+	text     = Color3.fromRGB(255, 255, 255),  -- blanco puro
+	dim      = Color3.fromRGB(160, 160, 160),  -- texto suave
+	muted    = Color3.fromRGB(90,  90,  90),   -- texto apagado
 
-	-- Accent
-	accent      = Color3.fromRGB(147, 76, 255),
-	accentHover = Color3.fromRGB(186, 129, 255),
+	-- ═══ BORDE ═══
+	stroke   = Color3.fromRGB(38,  38,  38),
 
-	-- Buttons
-	warn        = Color3.fromRGB(251, 140, 0),
-	warnMuted   = Color3.fromRGB(88, 56, 20),
-	btnDanger   = Color3.fromRGB(229, 57, 53),
-	success     = Color3.fromRGB(76, 175, 80),
+	-- ═══ ACENTO ═══
+	accent   = Color3.fromRGB(255, 208, 0),   -- naranja (progreso, highlights)
 
-	-- UI elements
-	stroke      = Color3.fromRGB(80, 85, 95),
+	-- ═══ ESTADOS ═══
+	danger   = Color3.fromRGB(220, 50,  50),
+	success  = Color3.fromRGB(0, 211, 53),
+	warn     = Color3.fromRGB(255, 170, 50),
 
-	-- Transparencies
-	subtleAlpha = 0.12,
-	lightAlpha  = 0.2,
-	frameAlpha  = 0.45,
-	mediumAlpha = 0.4,
+	-- ═══ ALPHA ═══
+	overlayAlpha = 0.6,
+	frameAlpha   = 0.06,
+	lightAlpha   = 0.2,
+	mediumAlpha  = 0.5,
+	subtleAlpha  = 0.85,
 
-	-- Panel sizes
+	-- ═══ LAYOUT ═══
 	panelWidth  = 390,
 	panelHeight = 500,
 }

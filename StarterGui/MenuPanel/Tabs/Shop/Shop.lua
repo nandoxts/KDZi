@@ -120,7 +120,7 @@ function Shop.build(parent, THEME, sharedState)
 		card.Size                   = UDim2.new(1, 0, 0, 0)
 		card.AutomaticSize          = Enum.AutomaticSize.Y
 		card.BackgroundColor3       = THEME.card
-		card.BackgroundTransparency = THEME.lightAlpha
+		card.BackgroundTransparency = 0
 		card.BorderSizePixel        = 0
 		card.ZIndex                 = 205
 		card.LayoutOrder            = i
@@ -141,7 +141,7 @@ function Shop.build(parent, THEME, sharedState)
 		gradOverlay.Size = UDim2.new(0.45, 0, 1, 0)
 		gradOverlay.Position = UDim2.fromScale(0, 0)
 		gradOverlay.BackgroundColor3 = gradColor
-		gradOverlay.BackgroundTransparency = THEME.subtleAlpha
+		gradOverlay.BackgroundTransparency = 0
 		gradOverlay.BorderSizePixel = 0
 		gradOverlay.ZIndex = 206
 		gradOverlay.Parent = card
@@ -278,12 +278,12 @@ function Shop.build(parent, THEME, sharedState)
 		-- Hover en el card
 		card.InputBegan:Connect(function(input)
 			if input.UserInputType == Enum.UserInputType.MouseMovement then
-				TweenService:Create(card, TW, {BackgroundColor3 = THEME.elevated, BackgroundTransparency = THEME.subtleAlpha}):Play()
+				TweenService:Create(card, TW, {BackgroundColor3 = THEME.elevated}):Play()
 			end
 		end)
 		card.InputEnded:Connect(function(input)
 			if input.UserInputType == Enum.UserInputType.MouseMovement then
-				TweenService:Create(card, TW, {BackgroundColor3 = THEME.card, BackgroundTransparency = THEME.lightAlpha}):Play()
+				TweenService:Create(card, TW, {BackgroundColor3 = THEME.card}):Play()
 			end
 		end)
 

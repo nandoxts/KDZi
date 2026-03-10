@@ -10,7 +10,7 @@ function DJTab.build(parent, THEME, state, R, H)
 	local make, tween, rounded = H.make, H.tween, H.rounded
 
 	local CARD_H      = 58
-	local CARD_PAD    = 6
+	local CARD_PAD    = 2
 	local VISIBLE_BUF = 3
 	local MAX_POOL    = 30
 	local SCROLL_DEB  = 0.05
@@ -25,7 +25,7 @@ function DJTab.build(parent, THEME, state, R, H)
 	local panel = make("Frame", {
 		Size = UDim2.new(1, 0, 1, -CONTENT_TOP),
 		Position = UDim2.new(0, 0, 0, CONTENT_TOP),
-		BackgroundColor3 = THEME.bg, BackgroundTransparency = 1,
+		BackgroundColor3 = THEME.bg, BackgroundTransparency = 0,
 		ClipsDescendants = true,
 		ZIndex = 210, Visible = false, Parent = parent,
 	})
@@ -58,14 +58,13 @@ function DJTab.build(parent, THEME, state, R, H)
 	local djHeader = make("Frame", {
 		Size = UDim2.new(1, 0, 0, djHeaderH),
 		BackgroundColor3 = THEME.card,
-		BackgroundTransparency = 1,
 		ClipsDescendants = true, ZIndex = 213, Parent = djSongsView,
 	})
 
 	local djHeaderBg = make("ImageLabel", {
 		Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1,
 		ScaleType = Enum.ScaleType.Crop, Image = "",
-		ImageTransparency = 0, ZIndex = 213, Name = "HeaderBg", Parent = djHeader,
+		ImageTransparency = 0.2, ZIndex = 213, Name = "HeaderBg", Parent = djHeader,
 	})
 	make("Frame", {
 		Size = UDim2.fromScale(1, 1),
@@ -136,12 +135,12 @@ function DJTab.build(parent, THEME, state, R, H)
 		card.Visible = false
 		card.Parent = djSongsContainer
 		make("UICorner", { CornerRadius = UDim.new(0, 10), Parent = card })
-		H.stroked(card, 0.5)
+		H.stroked(card, 0.3)
 
 		-- Cover full-height izquierda (CanvasGroup recorta bordes)
 		local coverBg = make("Frame", {
 			Size = UDim2.new(0, CARD_H, 1, 0),
-			BackgroundColor3 = THEME.elevated, BackgroundTransparency = THEME.lightAlpha,
+			BackgroundColor3 = THEME.elevated, BackgroundTransparency = 0,
 			BorderSizePixel = 0, ZIndex = 215, Name = "CoverBg", Parent = card,
 		})
 		make("ImageLabel", {
@@ -317,15 +316,15 @@ function DJTab.build(parent, THEME, state, R, H)
 
 					if isSuccess then
 						if icon then icon.Image = ICONS.CHECK; icon.ImageColor3 = Color3.new(1, 1, 1) end
-					addBtn.BackgroundTransparency = 0
-					addBtn.BackgroundColor3 = THEME.success
-					local st = addBtn:FindFirstChildWhichIsA("UIStroke")
-					if st then st.Transparency = 1 end
-				else
-					if icon then icon.Image = ICONS.PLAY_ADD; icon.ImageColor3 = THEME.dim end
-					addBtn.BackgroundTransparency = 1
-					local st = addBtn:FindFirstChildWhichIsA("UIStroke")
-					if st then st.Transparency = 0 end
+						addBtn.BackgroundTransparency = 0
+						addBtn.BackgroundColor3 = THEME.success
+						local st = addBtn:FindFirstChildWhichIsA("UIStroke")
+						if st then st.Transparency = 1 end
+					else
+						if icon then icon.Image = ICONS.PLAY_ADD; icon.ImageColor3 = THEME.dim end
+						addBtn.BackgroundTransparency = 1
+						local st = addBtn:FindFirstChildWhichIsA("UIStroke")
+						if st then st.Transparency = 0 end
 					end
 					break
 				end
@@ -449,8 +448,8 @@ function DJTab.build(parent, THEME, state, R, H)
 		end)
 		state.selectedDJ = nil; state.selectedDJInfo = nil
 	end)
-	djBackBtn.MouseEnter:Connect(function() tween(djBackBtn, 0.1, { BackgroundTransparency = THEME.lightAlpha, BackgroundColor3 = THEME.elevated }) end)
-	djBackBtn.MouseLeave:Connect(function() tween(djBackBtn, 0.1, { BackgroundTransparency = THEME.frameAlpha }) end)
+	djBackBtn.MouseEnter:Connect(function() tween(djBackBtn, 0.1, { BackgroundTransparency = 0, BackgroundColor3 = THEME.elevated }) end)
+	djBackBtn.MouseLeave:Connect(function() tween(djBackBtn, 0.1, { BackgroundTransparency = 1 }) end)
 
 	function api.drawDJs()
 		for _, child in pairs(djListView:GetChildren()) do
@@ -472,7 +471,6 @@ function DJTab.build(parent, THEME, state, R, H)
 			local djCard = make("Frame", {
 				Size = UDim2.new(1, 0, 0, DJ_CARD_H),
 				BackgroundColor3 = THEME.card,
-				BackgroundTransparency = 0,
 				ClipsDescendants = true, ZIndex = 213,
 				LayoutOrder = idx, Parent = djListView,
 			})
@@ -481,21 +479,20 @@ function DJTab.build(parent, THEME, state, R, H)
 				make("ImageLabel", {
 					Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1,
 					ScaleType = Enum.ScaleType.Crop,
-					Image = dj.cover, ImageTransparency = 0,
+					Image = dj.cover, ImageTransparency = 0.25,
 					ZIndex = 214, Parent = djCard,
 				})
 			end
 
 			local djGrad = make("Frame", {
 				Size = UDim2.new(1, 0, 0.6, 0), Position = UDim2.new(0, 0, 0.4, 0),
-				BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 0,
-				ZIndex = 215, Parent = djCard,
+				BackgroundColor3 = Color3.new(0, 0, 0), ZIndex = 215, Parent = djCard,
 			})
 			make("UIGradient", {
 				Transparency = NumberSequence.new({
 					NumberSequenceKeypoint.new(0, 1),
-					NumberSequenceKeypoint.new(0.4, 0.6),
-					NumberSequenceKeypoint.new(1, 0.15),
+					NumberSequenceKeypoint.new(0.4, 0.5),
+					NumberSequenceKeypoint.new(1, 0.1),
 				}),
 				Rotation = 90, Parent = djGrad,
 			})
@@ -509,7 +506,7 @@ function DJTab.build(parent, THEME, state, R, H)
 
 			make("TextLabel", {
 				Size = UDim2.new(1, -20, 0, 16), Position = UDim2.new(0, 10, 1, -22),
-			BackgroundTransparency = 1, Font = Enum.Font.GothamMedium, TextSize = 13,
+				BackgroundTransparency = 1, Font = Enum.Font.GothamMedium, TextSize = 13,
 				TextColor3 = THEME.accent,
 				Text = (dj.songCount or 0) .. " canciones",
 				TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 216, Parent = djCard,
