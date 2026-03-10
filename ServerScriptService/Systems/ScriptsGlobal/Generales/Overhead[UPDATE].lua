@@ -65,7 +65,6 @@ local function getOverheadComponents(char)
 	if not frame then return nil end
 
 	return {
-		overhead = overhead,
 		frame = frame,
 		clanFrame = frame:FindFirstChild("ClanFrame"),
 		roleFrame = frame:FindFirstChild("RoleFrame"),
@@ -162,7 +161,6 @@ local function resolveCountryForPlayer(player)
 
 		else
 			player:SetAttribute("CountryCode", "")
-			player:SetAttribute("CountryEmoji", "")
 		end
 	end)
 end
@@ -195,7 +193,7 @@ local function renderCountryFlag(player)
 
 	code = string.upper(code)
 
-	local flagLabel = paisFrame:FindFirstChildWhichIsA("TextLabel")
+	local flagLabel = paisFrame:FindFirstChild("Pais")
 	if flagLabel then
 		if CountryFlags and CountryFlags[code] then
 			local data = CountryFlags[code]
@@ -521,10 +519,10 @@ function OverheadManager:setupOverhead(char, player)
 	overheadClone.Name = "Overhead"
 	overheadClone.Parent = char:WaitForChild("Head")
 
-	self:configureOverhead(overheadClone, player, char)
+	self:configureOverhead(overheadClone, player)
 end
 
-function OverheadManager:configureOverhead(overhead, player, char)
+function OverheadManager:configureOverhead(overhead, player)
 	local frame = overhead:FindFirstChild("Frame")
 	if not frame then return end
 

@@ -233,30 +233,63 @@ end
 
 local fadeOutTween = nil
 local fadeInTween = nil
+local highlightTransitionId = 0
+
+local function cancelHighlightTweens()
+	if fadeOutTween then pcall(function() fadeOutTween:Cancel() end) fadeOutTween = nil end
+	if fadeInTween then pcall(function() fadeInTween:Cancel() end) fadeInTween = nil end
+end
+
+local function getHighlightColor(targetPlayer, ColorEffects)
+	if not ColorEffects or not targetPlayer then
+		return Color3.fromRGB(255, 255, 255)
+	end
+
+	return ColorEffects.colors[targetPlayer:GetAttribute("SelectedColor") or "default"]
+		or ColorEffects.defaultSelectedColor
+		or Color3.fromRGB(0, 255, 0)
+end
 
 -- ═══════════════════════════════════════════════════════════════
 -- HIGHLIGHT (SUAVE CON BORDECITO)
--- Reemplazar las funciones attachHighlight y detachHighlight en Utils.lua
 -- ═══════════════════════════════════════════════════════════════
 
-function Utils.attachHighlight(targetPlayer, state, ColorEffects)
-	if not state.highlight or not targetPlayer or not targetPlayer.Character then return end
+function Utils.setHighlightTarget(targetPlayer, state, ColorEffects)
+	if not state or not state.highlight then return end
 
-	if fadeOutTween then pcall(function() fadeOutTween:Cancel() end) fadeOutTween = nil end
+	highlightTransitionId = highlightTransitionId + 1
+	local myTransitionId = highlightTransitionId
+	cancelHighlightTweens()
 
 	if _G.ShowSelectedHighlight == false then
 		state.highlight.Enabled = false
+		state.highlight.Adornee = nil
 		return
 	end
 
-	local color
-	if ColorEffects then
-		color = ColorEffects.colors[targetPlayer:GetAttribute("SelectedColor") or "default"]
-			or ColorEffects.defaultSelectedColor
-			or Color3.fromRGB(0, 255, 0)
-	else
-		color = Color3.fromRGB(255, 255, 255)
+	if not targetPlayer or not targetPlayer.Character then
+		if not state.highlight.Enabled then return end
+
+		local fadeInfo = TweenInfo.new(0.15, Enum.EasingStyle.Sine, Enum.EasingDirection.In)
+		fadeOutTween = TweenService:Create(state.highlight, fadeInfo, {
+			FillTransparency = 1,
+			OutlineTransparency = 1,
+		})
+		fadeOutTween:Play()
+		fadeOutTween.Completed:Once(function()
+			if myTransitionId ~= highlightTransitionId then
+				return
+			end
+			if state.highlight then
+				state.highlight.Adornee = nil
+				state.highlight.Enabled = false
+			end
+			fadeOutTween = nil
+		end)
+		return
 	end
+
+	local color = getHighlightColor(targetPlayer, ColorEffects)
 
 	-- Configurar colores y empezar invisible
 	state.highlight.FillColor = color
@@ -275,24 +308,12 @@ function Utils.attachHighlight(targetPlayer, state, ColorEffects)
 	fadeInTween:Play()
 end
 
-function Utils.detachHighlight(state)
-	if not state or not state.highlight then return end
-	if not state.highlight.Enabled then return end
+function Utils.attachHighlight(targetPlayer, state, ColorEffects)
+	Utils.setHighlightTarget(targetPlayer, state, ColorEffects)
+end
 
-	-- Fade-out suave antes de desactivar
-	local fadeInfo = TweenInfo.new(0.15, Enum.EasingStyle.Sine, Enum.EasingDirection.In)
-	fadeOutTween = TweenService:Create(state.highlight, fadeInfo, {
-		FillTransparency = 1,
-		OutlineTransparency = 1,
-	})
-	fadeOutTween:Play()
-	fadeOutTween.Completed:Once(function()
-		if state.highlight then
-			state.highlight.Adornee = nil
-			state.highlight.Enabled = false
-		end
-		fadeOutTween = nil
-	end)
+function Utils.detachHighlight(state)
+	Utils.setHighlightTarget(nil, state)
 end
 
 return Utils

@@ -69,7 +69,7 @@ local function closePanel()
 	end)
 
 	-- Quitar highlight
-	Utils.detachHighlight(State)
+	Utils.setHighlightTarget(nil, State, ColorEffects)
 
 	-- Limpiar conexiones y tweens
 	PanelView.cleanupTweens()
@@ -121,7 +121,6 @@ local function openPanel(target)
 	if State.refreshThread then task.cancel(State.refreshThread) end
 
 	-- Cleanup previo
-	Utils.detachHighlight(State)
 	Utils.clearConnections()
 	PanelView.cleanupTweens()
 
@@ -142,7 +141,7 @@ local function openPanel(target)
 	}
 
 	-- PASO 1: MOSTRAR HIGHLIGHT PRIMERO
-	Utils.attachHighlight(target, State, ColorEffects)
+	Utils.setHighlightTarget(target, State, ColorEffects)
 
 	-- PASO 2: CREAR PANEL con datos básicos (aparece rápido)
 	local success, result = pcall(PanelView.createPanel, initialData)
