@@ -15,6 +15,7 @@ local THEME = {
 	text     = Color3.fromRGB(236, 240, 241),   -- Texto principal (casi blanco)
 	muted    = Color3.fromRGB(132, 142, 151),   -- Texto secundario
 	subtle   = Color3.fromRGB(95, 100, 110),    -- Texto muy sutil
+	dim      = Color3.fromRGB(95, 100, 110),    -- Alias de subtle (iconos/texto apagado)
 
 	-- Accent (purple)
 	accent      = Color3.fromRGB(147, 76, 255),  -- Morado vibrante

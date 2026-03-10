@@ -22,18 +22,36 @@ function Shop.build(parent, THEME, sharedState)
 
 	-- Colores del gradiente lateral por card (toque de color unico)
 	local GRAD_COLORS = {
-		Color3.fromRGB(90, 40, 140),  -- VIP: morado
-		Color3.fromRGB(40, 80, 160),  -- DJ: azul
-		Color3.fromRGB(140, 50, 100), -- COMANDOS: rosa
+		Color3.fromRGB(90,  40, 140),  -- VIP:        morado
+		Color3.fromRGB(40,  80, 160),  -- COMANDOS:   azul
+		Color3.fromRGB(50, 130,  80),  -- COLORES:    verde
+		Color3.fromRGB(30,  80, 160),  -- POLICIA:    azul oscuro
+		Color3.fromRGB(160, 50,  50),  -- LADRON:     rojo
+		Color3.fromRGB(60, 100, 160),  -- SEGURIDAD:  azul gris
+		Color3.fromRGB(180, 90,  20),  -- ARMY BOOMS: naranja
+		Color3.fromRGB(20, 140, 160),  -- LIGHTSTICK: cyan
+		Color3.fromRGB(120, 40, 180),  -- AURA PACK:  violeta
 	}
 
 	local GAMEPASSES = {
-		{ name = "VIP",        price = 30,  gid = Configuration.Gamepasses.VIP.id,      icon = "110921217200423",
+		{ name = "VIP",        price = 200,  gid = Configuration.Gamepasses.VIP.id,        icon = "76721656269888",
 			desc = "[ + ] Acceso VIP exclusivo!\n[ + ] Las mejores vistas y zonas!\n[ + ] Etiqueta VIP!" },
-		{ name = "DJ",         price = 35,  gid = Configuration.Gamepasses.DJ.id,       icon = "71677531291290",
-			desc = "[ + ] Acceso DJ exclusivo!\n[ + ] Pon musica en el server!\n[ + ] Etiqueta DJ!" },
-		{ name = "COMANDOS",   price = 60, gid = Configuration.Gamepasses.COMMANDS.id,  icon = "97509052541003",
+		{ name = "COMANDOS",   price = 1500, gid = Configuration.Gamepasses.COMMANDS.id,   icon = "128637341143304",
 			desc = "[ + ] Acceso ilimitado a una\nemocionante variedad de\ncomandos de chat!" },
+		{ name = "COLORES",    price = 50,   gid = Configuration.Gamepasses.COLORS.id,     icon = "91877799240345",
+			desc = "[ + ] Personaliza tu nombre!\n[ + ] Usa ;cl [color] en el chat!\n[ + ] Múltiples colores!" },
+		{ name = "POLICIA",    price = 135,  gid = Configuration.Gamepasses.TOMBO.id,      icon = "139661313218787",
+			desc = "[ + ] Traje de policía!\n[ + ] Usa ;tombo en el chat!\n[ + ] Look exclusivo!" },
+		{ name = "LADRON",     price = 135,  gid = Configuration.Gamepasses.CHORO.id,      icon = "84699864716808",
+			desc = "[ + ] Traje de ladrón!\n[ + ] Usa ;choro en el chat!\n[ + ] Look exclusivo!" },
+		{ name = "SEGURIDAD",  price = 135,  gid = Configuration.Gamepasses.SERE.id,       icon = "85734290151599",
+			desc = "[ + ] Traje de seguridad!\n[ + ] Usa ;sere en el chat!\n[ + ] Look exclusivo!" },
+		{ name = "ARMY BOOMS", price = 80,   gid = Configuration.Gamepasses.ARMYBOOMS.id,  icon = "134501492548324",
+			desc = "[ + ] Efectos Army Booms!\n[ + ] Actívalo en el chat!\n[ + ] Efecto exclusivo!" },
+		{ name = "LIGHTSTICK", price = 80,   gid = Configuration.Gamepasses.LIGHTSTICK.id, icon = "86122436659328",
+			desc = "[ + ] ¡Lightstick brillante!\n[ + ] Actívalo en el chat!\n[ + ] Efecto exclusivo!" },
+		{ name = "AURA PACK",  price = 2500, gid = Configuration.Gamepasses.AURA_PACK.id,  icon = "129517460766852",
+			desc = "[ + ] Pack de 6 auras únicas!\n[ + ] Dragon, Atomic, Blazing...\n[ + ] Usa ;aura [nombre]!" },
 	}
 
 	-- Ownership cache

@@ -157,7 +157,7 @@ end
 MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(who, passId, bought)
 	if who ~= player or not bought then return end
 	gpCache[passId] = true
-	if passId == Configuration.VIP then
+	if passId == Configuration.Gamepasses.VIP.id then
 		player:SetAttribute("HasVIP", true)
 	end
 	if purchaseCbs[passId] then
@@ -180,18 +180,18 @@ local AURA_THUMBNAILS = {
 }
 
 local ALL_PRODUCTS = {
-	{ name = "VIP",        price = 200,  gamepassId = Configuration.VIP,        icon = "76721656269888",  fondo = "76721656269888",  cmd = "",            accent = C.accentPases },
-	{ name = "COMANDOS",   price = 1500, gamepassId = Configuration.COMMANDS,   icon = "128637341143304", fondo = "122601403333222", cmd = "",            accent = C.accentPases },
-	{ name = "COLORES",    price = 50,   gamepassId = Configuration.COLORS,     icon = "91877799240345",  fondo = "91877799240345",  cmd = ";cl [color]", accent = C.accentPases },
-	{ name = "POLICIA",    price = 135,  gamepassId = Configuration.TOMBO,      icon = "139661313218787", fondo = "139661313218787", cmd = ";tombo",      accent = C.accentPases },
-	{ name = "LADRON",     price = 135,  gamepassId = Configuration.CHORO,      icon = "84699864716808",  fondo = "84699864716808",  cmd = ";choro",      accent = C.accentPases },
-	{ name = "SEGURIDAD",  price = 135,  gamepassId = Configuration.SERE,       icon = "85734290151599",  fondo = "85734290151599",  cmd = ";sere",       accent = C.accentPases },
-	{ name = "ARMY BOOMS", price = 80,   gamepassId = Configuration.ARMYBOOMS,  icon = "134501492548324", fondo = "134501492548324", cmd = "",            accent = C.accentPases },
-	{ name = "LIGHTSTICK", price = 80,   gamepassId = Configuration.LIGHTSTICK, icon = "86122436659328",  fondo = "86122436659328",  cmd = "",            accent = C.accentPases },
+	{ name = "VIP",        price = 200,  gamepassId = Configuration.Gamepasses.VIP.id,        icon = "76721656269888",  fondo = "76721656269888",  cmd = "",            accent = C.accentPases },
+	{ name = "COMANDOS",   price = 1500, gamepassId = Configuration.Gamepasses.COMMANDS.id,   icon = "128637341143304", fondo = "122601403333222", cmd = "",            accent = C.accentPases },
+	{ name = "COLORES",    price = 50,   gamepassId = Configuration.Gamepasses.COLORS.id,     icon = "91877799240345",  fondo = "91877799240345",  cmd = ";cl [color]", accent = C.accentPases },
+	{ name = "POLICIA",    price = 135,  gamepassId = Configuration.Gamepasses.TOMBO.id,      icon = "139661313218787", fondo = "139661313218787", cmd = ";tombo",      accent = C.accentPases },
+	{ name = "LADRON",     price = 135,  gamepassId = Configuration.Gamepasses.CHORO.id,      icon = "84699864716808",  fondo = "84699864716808",  cmd = ";choro",      accent = C.accentPases },
+	{ name = "SEGURIDAD",  price = 135,  gamepassId = Configuration.Gamepasses.SERE.id,       icon = "85734290151599",  fondo = "85734290151599",  cmd = ";sere",       accent = C.accentPases },
+	{ name = "ARMY BOOMS", price = 80,   gamepassId = Configuration.Gamepasses.ARMYBOOMS.id,  icon = "134501492548324", fondo = "134501492548324", cmd = "",            accent = C.accentPases },
+	{ name = "LIGHTSTICK", price = 80,   gamepassId = Configuration.Gamepasses.LIGHTSTICK.id, icon = "86122436659328",  fondo = "86122436659328",  cmd = "",            accent = C.accentPases },
 	{
 		name       = "AURA PACK",
 		price      = 2500,
-		gamepassId = Configuration.AURA_PACK,
+		gamepassId = Configuration.Gamepasses.AURA_PACK.id,
 		icon       = "129517460766852",
 		fondo      = "79346090571461",
 		cmd        = "",

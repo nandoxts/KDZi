@@ -37,8 +37,7 @@ local Systems = ServerScriptService:WaitForChild("Systems")
 local Configuration = require(game.ReplicatedStorage.Config.Configuration)
 local GamepassManager = require(Systems:WaitForChild("Gamepass Gifting"):WaitForChild("GamepassManager"))
 local Colors = require(game.ReplicatedStorage.Config.ColorConfig)
-local ModulesFolder = Systems:WaitForChild("Modules")
-local GroupRolesModule = require(ModulesFolder:WaitForChild("GroupRolesModule"))
+local AdminConfig = require(game.ReplicatedStorage.Config.AdminConfig)
 local DataStoreQueue = require(ReplicatedStorage:WaitForChild("Systems"):WaitForChild("DataStore"):WaitForChild("DataStoreQueueManager"))
 
 -- DataStore Queues para manejo de rate limit
@@ -47,10 +46,8 @@ local topRachaQueue = DataStoreQueue.new(TopRachaStore, "TopRachaQueue")
 
 --// Constantes
 local GroupID = Configuration.GroupID
-local ALLOWED_RANKS = Configuration.ALLOWED_DJ_RANKS
-local OWS_GAME_IDS = Configuration.OWS
-local VIP_ID = Configuration.VIP
-local GROUP_ROLES = GroupRolesModule.GROUP_ROLES
+local VIP_ID = Configuration.Gamepasses.VIP.id
+local GROUP_ROLES = Configuration.GroupRoles
 
 --// Configuración de tiempos de espera para carga de datos
 local CLAN_LOAD_DELAY = 1.5
@@ -365,7 +362,7 @@ local function setStreakManual(player, amount)
 end
 
 local function EsAdminGrupo(player)
-	return Colors.hasPermission(player, GroupID, ALLOWED_RANKS)
+	return AdminConfig:IsAdmin(player)
 end
 
 --------------------------------------------------------------------------------------------------------
@@ -629,7 +626,7 @@ function OverheadManager:setupBadges(otherFrame, player)
 		local hasVIP = player:GetAttribute("HasVIP") or false
 		if premium then premium.Visible = player.MembershipType == Enum.MembershipType.Premium end
 		if vip then vip.Visible = hasVIP end
-		if verify then verify.Visible = table.find(OWS_GAME_IDS, player.UserId) ~= nil end
+		if verify then verify.Visible = AdminConfig:IsAdmin(player) end
 	end
 
 	-- Inicial

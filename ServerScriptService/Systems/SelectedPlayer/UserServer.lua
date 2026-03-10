@@ -26,15 +26,15 @@ local GamePassManager = require(game.ServerScriptService.Systems["Gamepass Gifti
 local SysConfig = require(game.ReplicatedStorage.Config.Configuration)
 local Config = {
 	Gamepasses = {
-		{SysConfig.VIP,        SysConfig.DEV_VIP},
-		{SysConfig.COMMANDS,   SysConfig.DEV_COMMANDS},
-		{SysConfig.TOMBO,      SysConfig.DEV_TOMBO},
-		{SysConfig.CHORO,      SysConfig.DEV_CHORO},
-		{SysConfig.SERE,       SysConfig.DEV_SERE},
-		{SysConfig.COLORS,     SysConfig.DEV_COLORS},
-		{SysConfig.ARMYBOOMS,  SysConfig.DEV_ARMYBOOMS},
-		{SysConfig.LIGHTSTICK, SysConfig.DEV_LIGHTSTICK},
-		{SysConfig.AURA_PACK,  SysConfig.DEV_AURA_PACK}
+		{SysConfig.Gamepasses.VIP.id,        SysConfig.Gamepasses.VIP.devId},
+		{SysConfig.Gamepasses.COMMANDS.id,   SysConfig.Gamepasses.COMMANDS.devId},
+		{SysConfig.Gamepasses.TOMBO.id,      SysConfig.Gamepasses.TOMBO.devId},
+		{SysConfig.Gamepasses.CHORO.id,      SysConfig.Gamepasses.CHORO.devId},
+		{SysConfig.Gamepasses.SERE.id,       SysConfig.Gamepasses.SERE.devId},
+		{SysConfig.Gamepasses.COLORS.id,     SysConfig.Gamepasses.COLORS.devId},
+		{SysConfig.Gamepasses.ARMYBOOMS.id,  SysConfig.Gamepasses.ARMYBOOMS.devId},
+		{SysConfig.Gamepasses.LIGHTSTICK.id, SysConfig.Gamepasses.LIGHTSTICK.devId},
+		{SysConfig.Gamepasses.AURA_PACK.id,  SysConfig.Gamepasses.AURA_PACK.devId}
 	}
 }
 
@@ -216,10 +216,10 @@ local function _fetchUserStats(userId)
 	task.spawn(function()
 		local targetPlayer = Players:GetPlayerByUserId(userId)
 		if targetPlayer then
-			stats.isVip = checkPlayerGamePass(targetPlayer, SysConfig.VIP)
+			stats.isVip = checkPlayerGamePass(targetPlayer, SysConfig.Gamepasses.VIP.id)
 		else
 			pcall(function()
-				stats.isVip = MarketplaceService:UserOwnsGamePassAsync(userId, SysConfig.VIP)
+				stats.isVip = MarketplaceService:UserOwnsGamePassAsync(userId, SysConfig.Gamepasses.VIP.id)
 			end)
 		end
 		completed += 1

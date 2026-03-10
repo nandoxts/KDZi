@@ -9,7 +9,6 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local DataStoreService = game:GetService("DataStoreService")
 
 local configuration = require(game.ReplicatedStorage.Config.Configuration)
-local GroupRolesModule = require(ServerScriptService.Modules.GroupRolesModule)
 
 -- DataStore y cache para gamepasses
 local GiftedGamepassesData = DataStoreService:GetDataStore("Gifting.1")
@@ -17,7 +16,7 @@ local GamepassCache = {}
 
 -- Cache del servidor para tags
 local serverTagCache = {}
-local groupRoles = GroupRolesModule.GROUP_ROLES
+local groupRoles = configuration.GroupRoles
 
 -- Crear/obtener RemoteEvents
 local tagDataEvent = ReplicatedStorage.Chat:FindFirstChild("PlayerTagData")

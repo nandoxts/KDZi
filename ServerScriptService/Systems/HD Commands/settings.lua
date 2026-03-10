@@ -19,6 +19,7 @@
 ]]
 
 local Configuration = require(game.ReplicatedStorage.Config.Configuration)
+
 --------------| SETUP RANKS |--------------																															 ]] 
 return{
 
@@ -39,8 +40,8 @@ return{
 
 	-- GAMEPASSES
 	Gamepasses = {
-		[Configuration.VIP] = "VIP"; -- VIP
-		[Configuration.COMMANDS] = "COMMANDS"; -- COMMANDS
+		[Configuration.Gamepasses.VIP.id]      = "VIP";      -- VIP
+		[Configuration.Gamepasses.COMMANDS.id] = "COMMANDS"; -- COMMANDS
 	};
 
 	-- ASSETS
@@ -297,7 +298,7 @@ return{
 		["m"] = "Lead Admin";
 		["kick"] = "Owner";
 		-- DJ
-		["disco"] = "DJ";
+		["disco"] = "Owner";
 		["music"] = "DJ";
 		["volume"] = "DJ";
 		["countdown2"] = "DJ";

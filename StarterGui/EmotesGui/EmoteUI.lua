@@ -59,7 +59,7 @@ local NotificationSystem = require(ReplicatedStorage:WaitForChild("Systems"):Wai
 local Icon = require(ReplicatedStorage:WaitForChild("Icon"))
 local ModernScrollbar = require(ReplicatedStorage:WaitForChild("UIComponents"):WaitForChild("ModernScrollbar"))
 
-local VIPGamePassID = ConfigModule.VIP
+local VIPGamePassID = ConfigModule.Gamepasses.VIP.id
 
 -- ════════════════════════════════════════════════════════════════════════════════
 -- VARIABLES

@@ -16,9 +16,9 @@ local hd = hdMain and hdMain:GetModule("API")
 
 -- Mapeo de Gamepass IDs a Rangos HD Admin
 local GAMEPASS_RANKS = {
-	[Configuration.COMMANDS] = "COMMANDS",
-	[Configuration.VIP] = "VIP",
-	[Configuration.ARMYBOOMS] = "ARMYBOOMS"
+	[Configuration.Gamepasses.COMMANDS.id]  = "COMMANDS",
+	[Configuration.Gamepasses.VIP.id]       = "VIP",
+	[Configuration.Gamepasses.ARMYBOOMS.id] = "ARMYBOOMS"
 }
 
 local GROUP_RANKS = {
