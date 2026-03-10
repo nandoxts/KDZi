@@ -38,7 +38,7 @@ function ActualTab.build(parent, THEME, state, R, H)
 	local coverImage = make("ImageLabel", {
 		Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1,
 		ScaleType = Enum.ScaleType.Crop, Image = "",
-		ImageTransparency = THEME.frameAlpha, ZIndex = 212, Parent = coverSection,
+		ImageTransparency = 0, ZIndex = 212, Parent = coverSection,
 	})
 
 	local coverPlaceholder = make("TextLabel", {
@@ -49,15 +49,16 @@ function ActualTab.build(parent, THEME, state, R, H)
 	})
 
 	local gradientOverlay = make("Frame", {
-		Size = UDim2.new(1, 0, 0.65, 0), Position = UDim2.new(0, 0, 0.35, 0),
-		BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = THEME.frameAlpha,
+		Size = UDim2.new(1, 0, 0.75, 0), Position = UDim2.new(0, 0, 0.25, 0),
+		BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 0,
 		ZIndex = 213, Parent = coverSection,
 	})
 	make("UIGradient", {
 		Transparency = NumberSequence.new({
 			NumberSequenceKeypoint.new(0, 1),
-			NumberSequenceKeypoint.new(0.35, 0.7),
-			NumberSequenceKeypoint.new(0.7, 0.3),
+			NumberSequenceKeypoint.new(0.3, 0.9),
+			NumberSequenceKeypoint.new(0.6, 0.5),
+			NumberSequenceKeypoint.new(0.85, 0.1),
 			NumberSequenceKeypoint.new(1, 0),
 		}),
 		Rotation = 90, Parent = gradientOverlay,
@@ -142,14 +143,14 @@ function ActualTab.build(parent, THEME, state, R, H)
 		skipBtn = make("TextButton", {
 			Size = UDim2.new(0, ADMIN_BTN, 0, ADMIN_BTN),
 			Position = UDim2.new(0, 0, 0, 0),
-			BackgroundColor3 = THEME.bg,
-			BackgroundTransparency = 1,
+			BackgroundColor3 = THEME.card,
+			BackgroundTransparency = THEME.frameAlpha,
 			Text = "", BorderSizePixel = 0, AutoButtonColor = false,
 			ZIndex = 214, Parent = reproRow,
 		})
 		rounded(skipBtn, ADMIN_BTN / 2)
 		make("UIStroke", {
-			Color = THEME.stroke, Thickness = 1.5,
+			Color = THEME.stroke, Thickness = 0.5,
 			ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = skipBtn,
 		})
 		make("ImageLabel", {
@@ -163,14 +164,14 @@ function ActualTab.build(parent, THEME, state, R, H)
 		clearBtn = make("TextButton", {
 			Size = UDim2.new(0, ADMIN_BTN, 0, ADMIN_BTN),
 			Position = UDim2.new(1, -ADMIN_BTN, 0, 0),
-			BackgroundColor3 = THEME.bg,
-			BackgroundTransparency = 1,
+			BackgroundColor3 = THEME.card,
+			BackgroundTransparency = THEME.frameAlpha,
 			Text = "", BorderSizePixel = 0, AutoButtonColor = false,
 			ZIndex = 214, Parent = reproRow,
 		})
 		rounded(clearBtn, ADMIN_BTN / 2)
 		make("UIStroke", {
-			Color = THEME.stroke, Thickness = 1.5,
+			Color = THEME.stroke, Thickness = 0.5,
 			ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = clearBtn,
 		})
 		make("ImageLabel", {
@@ -188,13 +189,13 @@ function ActualTab.build(parent, THEME, state, R, H)
 	local inputContainer = make("Frame", {
 		Size = UDim2.new(1, -(inputLeftOff + inputRightOff), 1, 0),
 		Position = UDim2.new(0, inputLeftOff, 0, 0),
-		BackgroundColor3 = THEME.bg,
-		BackgroundTransparency = 1,
+		BackgroundColor3 = THEME.card,
+		BackgroundTransparency = THEME.frameAlpha,
 		BorderSizePixel = 0, ZIndex = 213, Parent = reproRow,
 	})
 	rounded(inputContainer, 21)
 	make("UIStroke", {
-		Color = THEME.stroke, Thickness = 1.5,
+		Color = THEME.stroke, Thickness = 0.5,
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = inputContainer,
 	})
 
@@ -272,20 +273,20 @@ function ActualTab.build(parent, THEME, state, R, H)
 			if R.Next then pcall(function() R.Next:FireServer() end) end
 		end)
 		skipBtn.MouseEnter:Connect(function()
-			tween(skipBtn, 0.15, { BackgroundTransparency = 0, BackgroundColor3 = THEME.elevated })
+			tween(skipBtn, 0.15, { BackgroundTransparency = THEME.lightAlpha, BackgroundColor3 = THEME.elevated })
 		end)
 		skipBtn.MouseLeave:Connect(function()
-			tween(skipBtn, 0.15, { BackgroundTransparency = 1 })
+			tween(skipBtn, 0.15, { BackgroundTransparency = THEME.frameAlpha })
 		end)
 
 		clearBtn.MouseButton1Click:Connect(function()
 			if R.Clear then pcall(function() R.Clear:FireServer() end) end
 		end)
 		clearBtn.MouseEnter:Connect(function()
-			tween(clearBtn, 0.15, { BackgroundTransparency = 0, BackgroundColor3 = THEME.elevated })
+			tween(clearBtn, 0.15, { BackgroundTransparency = THEME.lightAlpha, BackgroundColor3 = THEME.elevated })
 		end)
 		clearBtn.MouseLeave:Connect(function()
-			tween(clearBtn, 0.15, { BackgroundTransparency = 1 })
+			tween(clearBtn, 0.15, { BackgroundTransparency = THEME.frameAlpha })
 		end)
 	end
 
@@ -306,7 +307,7 @@ function ActualTab.build(parent, THEME, state, R, H)
 		Size = UDim2.new(1, -24, 0, 0), Position = UDim2.new(0, 12, 0, 28),
 		BackgroundTransparency = 1, ZIndex = 212, Parent = listaSection,
 	})
-	make("UIListLayout", { Padding = UDim.new(0, 3), SortOrder = Enum.SortOrder.LayoutOrder, Parent = queueContainer })
+	make("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder, Parent = queueContainer })
 
 	local queueEmptyLbl = make("TextLabel", {
 		Size = UDim2.new(1, 0, 0, 40), BackgroundTransparency = 1,
@@ -323,7 +324,7 @@ function ActualTab.build(parent, THEME, state, R, H)
 		card.Name = "QueueCard"
 		card.Size = UDim2.new(1, 0, 0, QC_H)
 		card.BackgroundColor3 = THEME.card
-		card.BackgroundTransparency = THEME.frameAlpha
+		card.BackgroundTransparency = 0
 		card.BorderSizePixel = 0
 		card.GroupTransparency = 0
 		card.ZIndex = 213
@@ -331,7 +332,7 @@ function ActualTab.build(parent, THEME, state, R, H)
 		card.Parent = queueContainer
 		make("UICorner", { CornerRadius = UDim.new(0, 10), Parent = card })
 		make("UIStroke", {
-			Color = THEME.stroke, Thickness = 1, Transparency = 0.3,
+			Color = THEME.stroke, Thickness = 0.5, Transparency = 0.5,
 			ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Name = "CardStroke", Parent = card,
 		})
 
@@ -506,7 +507,7 @@ function ActualTab.build(parent, THEME, state, R, H)
 			task.delay(0.15, function()
 				if coverImage.Parent then
 					coverImage.Image = cover
-					tween(coverImage, 0.3, { ImageTransparency = THEME.frameAlpha })
+					tween(coverImage, 0.3, { ImageTransparency = 0 })
 				end
 			end)
 		end
