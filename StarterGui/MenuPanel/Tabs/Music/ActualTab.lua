@@ -82,19 +82,19 @@ function ActualTab.build(parent, THEME, state, R, H)
 
 	-- ── PROGRESO (barra full-width + tiempos abajo) ──
 	local progressSection = make("Frame", {
-		Size = UDim2.new(1, 0, 0, 56), BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 0, 38), BackgroundTransparency = 1,
 		LayoutOrder = 2, ZIndex = 211, Parent = panel,
 	})
 
 	local timeLeft = make("TextLabel", {
-		Size = UDim2.new(0, 50, 0, 22), Position = UDim2.new(0, 12, 1, -24),
+		Size = UDim2.new(0, 50, 0, 22), Position = UDim2.new(0, 12, 0, 16),
 		BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 16,
 		TextColor3 = THEME.accent, Text = "0:00",
 		TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 212, Parent = progressSection,
 	})
 
 	local timeRight = make("TextLabel", {
-		Size = UDim2.new(0, 50, 0, 22), Position = UDim2.new(1, -62, 1, -24),
+		Size = UDim2.new(0, 50, 0, 22), Position = UDim2.new(1, -62, 0, 16),
 		BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 16,
 		TextColor3 = THEME.dim, Text = "0:00",
 		TextXAlignment = Enum.TextXAlignment.Right, ZIndex = 212, Parent = progressSection,

@@ -9,6 +9,7 @@ local StarterGui        = game:GetService("StarterGui")
 
 local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
 local THEME     = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("ThemeConfig"))
+local BlobIndicator = require(ReplicatedStorage:WaitForChild("UIComponents"):WaitForChild("BlobIndicator"))
 
 local Tabs        = script.Parent:WaitForChild("Tabs")
 local MusicTab    = require(Tabs:WaitForChild("Music"):WaitForChild("Music"))
@@ -25,9 +26,9 @@ _G.CloseMenuPanel = function() end
 
 -- Layout
 local PANEL_W   = THEME.panelWidth or 390
-local HEADER_H, TABBAR_H = 0, 38
+local HEADER_H, TABBAR_H = 0, 45
 local CONTENT_Y = HEADER_H + TABBAR_H
-local ICON_SZ = 25
+local ICON_SZ = 23
 local TAB_PAD = 15
 local ICON_GAP = 3
 local BORDER_R = 14
@@ -154,29 +155,25 @@ headerPillBtn.Text = ""; headerPillBtn.ZIndex = 206; headerPillBtn.Parent = head
 local tabBar = Instance.new("Frame")
 tabBar.Size = UDim2.new(1, 0, 0, TABBAR_H)
 tabBar.Position = UDim2.new(0, 0, 0, HEADER_H)
-tabBar.BackgroundColor3 = THEME.bg; tabBar.BorderSizePixel = 0
+tabBar.BackgroundColor3 = THEME.card; tabBar.BorderSizePixel = 0
 tabBar.ZIndex = 203; tabBar.Parent = canvas
 
-local pillContainer = Instance.new("ScrollingFrame")
-pillContainer.Size = UDim2.new(1, 0, 1, 0)
-pillContainer.Position = UDim2.new(0, 0, 0, 0)
-pillContainer.BackgroundTransparency = 1; pillContainer.BorderSizePixel = 0
-pillContainer.ScrollBarThickness = 0
-pillContainer.ScrollingDirection = Enum.ScrollingDirection.X
-pillContainer.AutomaticCanvasSize = Enum.AutomaticSize.X
-pillContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
-pillContainer.ClipsDescendants = true
-pillContainer.ZIndex = 204; pillContainer.Parent = tabBar
+-- Blob indicator (reutilizable)
+local TAB_COUNT = #TABS
+local btnScale = 1 / TAB_COUNT
 
-do
-	local l = Instance.new("UIListLayout")
-	l.FillDirection = Enum.FillDirection.Horizontal
-	l.HorizontalAlignment = Enum.HorizontalAlignment.Left
-	l.VerticalAlignment = Enum.VerticalAlignment.Center
-	l.Padding = UDim.new(0, 0)
-	l.SortOrder = Enum.SortOrder.LayoutOrder
-	l.Parent = pillContainer
-end
+local blobIndicator = BlobIndicator.new(tabBar, {
+	tabCount     = TAB_COUNT,
+	bgColor      = THEME.subtle,
+	padding      = 4,
+	cornerRadius = 8,
+	zIndex       = 204,
+})
+
+local pillContainer = Instance.new("Frame")
+pillContainer.Size = UDim2.fromScale(1, 1)
+pillContainer.BackgroundTransparency = 1; pillContainer.BorderSizePixel = 0
+pillContainer.ZIndex = 205; pillContainer.Parent = tabBar
 
 -- Content Area
 local contentArea = Instance.new("Frame")
@@ -207,13 +204,10 @@ end
 
 local function resetPills()
 	for _, b in pairs(tabBtns) do
-		tween(b, TW_SNAP, {BackgroundColor3 = THEME.card})
 		local lbl = b:FindFirstChild("Lbl", true)
 		local ico = b:FindFirstChild("Ico", true)
-		local pad = b:FindFirstChild("Pad")
-		if lbl then tween(lbl, TW_SNAP, {TextColor3 = THEME.muted}) end
-		if ico then tween(ico, TW_SNAP, {ImageColor3 = THEME.muted}) end
-		if pad then tween(pad, TW_SNAP, {PaddingLeft = UDim.new(0, TAB_PAD), PaddingRight = UDim.new(0, TAB_PAD)}) end
+		if lbl then lbl.TextColor3 = THEME.muted end
+		if ico then ico.ImageColor3 = THEME.muted end
 	end
 end
 
@@ -250,8 +244,6 @@ for i, t in ipairs(TABS) do tabIndexOf[t.id] = i end
 
 local TW_PAGE = TweenInfo.new(0.28, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 
-local scrollToTab -- forward declaration
-
 local function selectTab(tabId)
 	if activeTabId == tabId or _tabSwitching then return end
 	_tabSwitching = true
@@ -260,7 +252,6 @@ local function selectTab(tabId)
 	if oldId and tabAPIs[oldId] and tabAPIs[oldId].onClose then
 		pcall(tabAPIs[oldId].onClose)
 	end
-	activeTabId = tabId
 
 	for _, t in ipairs(TABS) do
 		if t.id == tabId then
@@ -270,24 +261,29 @@ local function selectTab(tabId)
 		end
 	end
 
+	-- ── BLOB ANIMATION (stretch → settle) ──
+	local oldIdx = 0
+	local newIdx = 0
+	for i, t in ipairs(TABS) do
+		if t.id == oldId then oldIdx = i end
+		if t.id == tabId then newIdx = i end
+	end
+
+	if oldId and oldIdx > 0 then
+		blobIndicator:animateTo(oldIdx, newIdx)
+	else
+		blobIndicator:jumpTo(newIdx)
+	end
+
+	-- Colorear textos/iconos
+	activeTabId = tabId
 	for id, b in pairs(tabBtns) do
 		local active = (id == tabId)
 		local lbl = b:FindFirstChild("Lbl", true)
 		local ico = b:FindFirstChild("Ico", true)
-		local pad = b:FindFirstChild("Pad")
-		tween(b, TW_SMOOTH, {BackgroundColor3 = active and THEME.elevated or THEME.card})
-		if lbl then
-			tween(lbl, TW_SMOOTH, {TextColor3 = active and THEME.accent or THEME.muted})
-		end
-		if ico then
-			tween(ico, TW_SMOOTH, {ImageColor3 = active and THEME.accent or THEME.muted})
-		end
-		if pad then
-			local p = active and TAB_PAD + 5 or TAB_PAD
-			tween(pad, TW_SMOOTH, {PaddingLeft = UDim.new(0, p), PaddingRight = UDim.new(0, p)})
-		end
+		if lbl then tween(lbl, TW_SNAP, {TextColor3 = active and THEME.text or THEME.muted}) end
+		if ico then tween(ico, TW_SNAP, {ImageColor3 = active and THEME.text or THEME.muted}) end
 	end
-	scrollToTab(tabId)
 
 	-- Animación slide horizontal
 	local oldFrame = oldId and tabFrames[oldId]
@@ -326,29 +322,23 @@ local function selectTab(tabId)
 	end
 end
 
--- Construir pills + frames
-local TAB_COUNT = #TABS
+-- Construir tabs + frames
 for idx, tabDef in ipairs(TABS) do
 	local hasIcon = tabDef.icon ~= ""
 
 	local b = Instance.new("TextButton")
-	b.Name = tabDef.id; b.Size = UDim2.new(0, 0, 1, 0)
-	b.AutomaticSize = Enum.AutomaticSize.X
-	b.BackgroundColor3 = THEME.card; b.Text = ""
-	b.BorderSizePixel = 0; b.ZIndex = 205; b.LayoutOrder = idx
-
-	-- UIPadding para ancho animado
-	local pad = Instance.new("UIPadding")
-	pad.Name = "Pad"
-	pad.PaddingLeft = UDim.new(0, TAB_PAD)
-	pad.PaddingRight = UDim.new(0, TAB_PAD)
-	pad.Parent = b
+	b.Name = tabDef.id
+	b.Size = UDim2.new(btnScale, 0, 1, 0)
+	b.Position = UDim2.new(btnScale * (idx - 1), 0, 0, 0)
+	b.BackgroundTransparency = 1; b.Text = ""
+	b.BorderSizePixel = 0; b.AutoButtonColor = false
+	b.ZIndex = 206; b.Parent = pillContainer
 
 	-- Contenedor interno con icon + label
 	local inner = Instance.new("Frame")
 	inner.Name = "Inner"; inner.BackgroundTransparency = 1
 	inner.Size = UDim2.fromScale(1, 1)
-	inner.ZIndex = 206; inner.Parent = b
+	inner.ZIndex = 207; inner.Parent = b
 
 	local innerLayout = Instance.new("UIListLayout")
 	innerLayout.FillDirection = Enum.FillDirection.Horizontal
@@ -364,7 +354,7 @@ for idx, tabDef in ipairs(TABS) do
 		ico.BackgroundTransparency = 1; ico.ScaleType = Enum.ScaleType.Fit
 		ico.ResampleMode = Enum.ResamplerMode.Default
 		ico.Image = tabDef.icon; ico.ImageColor3 = THEME.muted
-		ico.ZIndex = 207; ico.LayoutOrder = 1; ico.Parent = inner
+		ico.ZIndex = 208; ico.LayoutOrder = 1; ico.Parent = inner
 	end
 
 	local lbl = Instance.new("TextLabel")
@@ -372,12 +362,11 @@ for idx, tabDef in ipairs(TABS) do
 	lbl.Size = UDim2.new(0, 0, 0, ICON_SZ)
 	lbl.AutomaticSize = Enum.AutomaticSize.X
 	lbl.BackgroundTransparency = 1; lbl.Font = Enum.Font.GothamBold
-	lbl.TextSize = 14; lbl.TextColor3 = THEME.muted
-	lbl.Text = tabDef.label; lbl.ZIndex = 206; lbl.LayoutOrder = 2
+	lbl.TextSize = 13; lbl.TextColor3 = THEME.muted
+	lbl.Text = tabDef.label; lbl.ZIndex = 207; lbl.LayoutOrder = 2
 	lbl.Parent = inner
 
 	tabBtns[tabDef.id] = b
-	b.Parent = pillContainer
 
 	local frame = Instance.new("Frame")
 	frame.Name = tabDef.id .. "Frame"; frame.Size = UDim2.fromScale(1, 1)
@@ -388,7 +377,6 @@ for idx, tabDef in ipairs(TABS) do
 	b.MouseButton1Click:Connect(function() selectTab(tabDef.id) end)
 	b.MouseEnter:Connect(function()
 		if activeTabId ~= tabDef.id then
-			tween(b, TW_SNAP, {BackgroundColor3 = THEME.elevated})
 			local l = b:FindFirstChild("Lbl", true)
 			local ic = b:FindFirstChild("Ico", true)
 			if l then tween(l, TW_SNAP, {TextColor3 = THEME.dim}) end
@@ -397,7 +385,6 @@ for idx, tabDef in ipairs(TABS) do
 	end)
 	b.MouseLeave:Connect(function()
 		if activeTabId ~= tabDef.id then
-			tween(b, TW_SNAP, {BackgroundColor3 = THEME.card})
 			local l = b:FindFirstChild("Lbl", true)
 			local ic = b:FindFirstChild("Ico", true)
 			if l then tween(l, TW_SNAP, {TextColor3 = THEME.muted}) end
@@ -412,18 +399,7 @@ ShopTab.build(tabFrames["shop"], THEME, sharedState); tabAPIs["shop"] = {}
 SettingsTab.build(tabFrames["settings"], THEME); tabAPIs["settings"] = {}
 CreditsTab.build(tabFrames["credits"], THEME); tabAPIs["credits"] = {}
 
--- Auto-scroll pills al tab activo
-scrollToTab = function(tabId)
-	local btn = tabBtns[tabId]
-	if not btn then return end
-	local cW = pillContainer.AbsoluteSize.X
-	local bX = btn.AbsolutePosition.X - pillContainer.AbsolutePosition.X + pillContainer.CanvasPosition.X
-	local bW = btn.AbsoluteSize.X
-	local target = bX - (cW / 2) + (bW / 2)
-	local maxS = math.max(0, pillContainer.AbsoluteCanvasSize.X - cW)
-	target = math.clamp(target, 0, maxS)
-	TweenService:Create(pillContainer, TW_SMOOTH, { CanvasPosition = Vector2.new(target, 0) }):Play()
-end
+-- (scrollToTab removed — tabs are fixed-width, no scrolling needed)
 
 -- Dismiss
 local function dismiss()

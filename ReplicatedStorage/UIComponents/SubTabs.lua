@@ -1,31 +1,12 @@
 --[[
-	SubTabs - Componente reutilizable de sub-tabs con animación suave
-	Uso:
-		local SubTabs = require(...)
-		local subTabs = SubTabs.new(parent, THEME, {
-			tabs = { {id = "actual", label = "ACTUAL"}, {id = "dj", label = "DJ"} },
-			height = 38,
-			default = "actual",
-			z = 215,
-		})
-
-		-- Obtener contenedor de contenido para cada tab
-		subTabs:getContentParent()  --> Frame debajo de la barra
-
-		-- Registrar panel de cada tab
-		subTabs:register("actual", panel)
-		subTabs:register("dj", panel)
-
-		-- Cambiar tab (con animación)
-		subTabs:select("dj")
-
-		-- Callback
-		subTabs.onSwitch = function(tabId) ... end
+	SubTabs v2 — Blob/Pill sliding indicator
+	El indicador se desliza entre tabs con efecto elástico (stretch + settle).
+	Uso idéntico a v1: .new(), :register(), :select(), .onSwitch
 ]]
 
 local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local UI = require(ReplicatedStorage:WaitForChild("Core"):WaitForChild("UI"))
+local BlobIndicator = require(ReplicatedStorage:WaitForChild("UIComponents"):WaitForChild("BlobIndicator"))
 
 local SubTabs = {}
 SubTabs.__index = SubTabs
@@ -38,74 +19,66 @@ function SubTabs.new(parent, THEME, config)
 	local height = config.height or 38
 	local defaultTab = config.default or (tabs[1] and tabs[1].id)
 	local z = config.z or 215
+	local tabCount = #tabs
+	local btnScale = tabCount > 0 and (1 / tabCount) or 1
 
 	self.THEME = THEME
 	self.activeId = nil
 	self.buttons = {}
+	self.labels = {}
 	self.panels = {}
 	self.tabOrder = {}
+	self.tabDefs = tabs
 	self.origPositions = {}
 	self.onSwitch = nil
 	self._animating = false
+	self._tabCount = tabCount
+	self._btnScale = btnScale
 
-	-- Guardar orden de tabs para dirección de slide
 	for idx, tabDef in ipairs(tabs) do
 		self.tabOrder[tabDef.id] = idx
 	end
 
-	-- Barra
+	-- ── BAR (fondo sutil) ──
 	local bar = Instance.new("Frame")
 	bar.Name = "SubTabBar"
 	bar.Size = UDim2.new(1, 0, 0, height)
-	bar.BackgroundColor3 = THEME.bg
-	bar.BackgroundTransparency = 1
+	bar.BackgroundColor3 = THEME.card
+	bar.BackgroundTransparency = 0
 	bar.BorderSizePixel = 0
 	bar.ZIndex = z
 	bar.Parent = parent
 
-	local layout = Instance.new("UIListLayout")
-	layout.FillDirection = Enum.FillDirection.Horizontal
-	layout.HorizontalAlignment = Enum.HorizontalAlignment.Left
-	layout.VerticalAlignment = Enum.VerticalAlignment.Center
-	layout.SortOrder = Enum.SortOrder.LayoutOrder
-	layout.Padding = UDim.new(0, 0)
-	layout.Parent = bar
+	-- ── BLOB INDICATOR (reutilizable) ──
+	self._blobIndicator = BlobIndicator.new(bar, {
+		tabCount     = tabCount,
+		bgColor      = THEME.subtle,
+		padding      = 4,
+		cornerRadius = 8,
+		zIndex       = z + 1,
+	})
 
-	-- Crear botones (100% ancho, sin padding, sin gaps, sin corner)
-	local tabCount = #tabs
-	local btnWidth = tabCount > 0 and (1 / tabCount) or 1
-
+	-- ── TAB BUTTONS (transparentes, solo texto) ──
 	for idx, tabDef in ipairs(tabs) do
 		local btn = Instance.new("TextButton")
 		btn.Name = tabDef.id
-		btn.Size = UDim2.new(btnWidth, 0, 1, 0)
-		btn.BackgroundColor3 = THEME.card
-		btn.BackgroundTransparency = THEME.lightAlpha
+		btn.Size = UDim2.new(btnScale, 0, 1, 0)
+		btn.Position = UDim2.new(btnScale * (idx - 1), 0, 0, 0)
+		btn.BackgroundTransparency = 1
 		btn.Font = Enum.Font.GothamBold
 		btn.TextSize = 13
 		btn.TextColor3 = THEME.muted
 		btn.Text = tabDef.label
 		btn.BorderSizePixel = 0
 		btn.AutoButtonColor = false
-		btn.ZIndex = z + 1
-		btn.LayoutOrder = idx
+		btn.ZIndex = z + 2
 		btn.Parent = bar
 
 		self.buttons[tabDef.id] = btn
+		self.labels[tabDef.id] = btn
 
 		btn.MouseButton1Click:Connect(function()
 			self:select(tabDef.id)
-		end)
-
-		btn.MouseEnter:Connect(function()
-			if self.activeId ~= tabDef.id then
-				TweenService:Create(btn, TweenInfo.new(0.12), { BackgroundTransparency = THEME.subtleAlpha }):Play()
-			end
-		end)
-		btn.MouseLeave:Connect(function()
-			if self.activeId ~= tabDef.id then
-				TweenService:Create(btn, TweenInfo.new(0.12), { BackgroundTransparency = THEME.lightAlpha }):Play()
-			end
 		end)
 	end
 
@@ -114,7 +87,7 @@ function SubTabs.new(parent, THEME, config)
 
 	-- Seleccionar default sin animación
 	if defaultTab then
-		self:_setActive(defaultTab)
+		self:_setActive(defaultTab, true)
 	end
 
 	return self
@@ -126,23 +99,23 @@ function SubTabs:register(tabId, panel)
 	panel.Visible = (tabId == self.activeId)
 end
 
-function SubTabs:_setActive(tabId)
+function SubTabs:_setActive(tabId, instant)
 	local THEME = self.THEME
 	self.activeId = tabId
 
-	for id, btn in pairs(self.buttons) do
-		if id == tabId then
-			TweenService:Create(btn, TweenInfo.new(0.18), {
-				BackgroundColor3 = THEME.accent,
-				BackgroundTransparency = THEME.subtleAlpha,
-				TextColor3 = THEME.text,
-			}):Play()
+	local idx = self.tabOrder[tabId] or 1
+	if instant then
+		self._blobIndicator:jumpTo(idx)
+	end
+
+	-- Colorear textos
+	local dur = instant and 0 or 0.2
+	for id, btn in pairs(self.labels) do
+		local targetColor = (id == tabId) and THEME.text or THEME.muted
+		if instant then
+			btn.TextColor3 = targetColor
 		else
-			TweenService:Create(btn, TweenInfo.new(0.18), {
-				BackgroundColor3 = THEME.card,
-				BackgroundTransparency = THEME.lightAlpha,
-				TextColor3 = THEME.muted,
-			}):Play()
+			TweenService:Create(btn, TweenInfo.new(dur), { TextColor3 = targetColor }):Play()
 		end
 	end
 end
@@ -155,22 +128,31 @@ function SubTabs:select(tabId)
 	local oldPanel = self.panels[oldId]
 	local newPanel = self.panels[tabId]
 
-	self:_setActive(tabId)
-
-	-- Dirección: forward = slide izquierda, backward = slide derecha
 	local oldIdx = self.tabOrder[oldId] or 0
 	local newIdx = self.tabOrder[tabId] or 0
 	local forward = newIdx > oldIdx
 
-	local TW_PAGE = TweenInfo.new(0.28, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+	-- ── BLOB ANIMATION (stretch → settle) ──
+	self._animating = true
+
+	local oldBlobIdx = self.tabOrder[oldId] or 1
+	local newBlobIdx = self.tabOrder[tabId] or 1
+	self._blobIndicator:animateTo(oldBlobIdx, newBlobIdx)
+
+	-- Actualizar textos inmediatamente
+	self.activeId = tabId
+	for id, btn in pairs(self.labels) do
+		local targetColor = (id == tabId) and self.THEME.text or self.THEME.muted
+		TweenService:Create(btn, TweenInfo.new(0.15), { TextColor3 = targetColor }):Play()
+	end
+
+	-- ── PANEL SLIDE ──
+	local TW_PAGE = TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 
 	if oldPanel and newPanel and oldPanel ~= newPanel then
-		self._animating = true
-
 		local origOld = self.origPositions[oldId]
 		local origNew = self.origPositions[tabId]
 
-		-- Posicionar nuevo fuera de pantalla
 		local inDir = forward and 1 or -1
 		newPanel.Position = UDim2.new(
 			origNew.X.Scale + inDir, origNew.X.Offset,
@@ -178,7 +160,6 @@ function SubTabs:select(tabId)
 		)
 		newPanel.Visible = true
 
-		-- Slide: viejo sale, nuevo entra
 		local outDir = forward and -1 or 1
 		TweenService:Create(oldPanel, TW_PAGE, {
 			Position = UDim2.new(
@@ -188,7 +169,7 @@ function SubTabs:select(tabId)
 		}):Play()
 		TweenService:Create(newPanel, TW_PAGE, { Position = origNew }):Play()
 
-		task.delay(0.28, function()
+		task.delay(0.35, function()
 			oldPanel.Visible = false
 			oldPanel.Position = origOld
 			self._animating = false
@@ -196,6 +177,9 @@ function SubTabs:select(tabId)
 	elseif newPanel then
 		if oldPanel then oldPanel.Visible = false end
 		newPanel.Visible = true
+		task.delay(0.35, function() self._animating = false end)
+	else
+		task.delay(0.35, function() self._animating = false end)
 	end
 
 	if self.onSwitch then

@@ -10,7 +10,7 @@ function DJTab.build(parent, THEME, state, R, H)
 	local make, tween, rounded = H.make, H.tween, H.rounded
 
 	local CARD_H      = 58
-	local CARD_PAD    = 2
+	local CARD_PAD    = 6
 	local VISIBLE_BUF = 3
 	local MAX_POOL    = 30
 	local SCROLL_DEB  = 0.05
@@ -40,12 +40,25 @@ function DJTab.build(parent, THEME, state, R, H)
 		ZIndex = 211, Visible = true, Parent = panel,
 	})
 	local djListSB = ModernScrollbar.setup(djListView, panel, THEME, { transparency = 0.45, offset = -4, zIndex = 300 })
-	make("UIListLayout", { Padding = UDim.new(0, 0), SortOrder = Enum.SortOrder.LayoutOrder, Parent = djListView })
-	make("UIPadding", {
-		PaddingLeft = UDim.new(0, 0), PaddingRight = UDim.new(0, 0),
-		PaddingTop = UDim.new(0, 0), PaddingBottom = UDim.new(0, 0),
+	local DJ_GRID_GAP = 6
+	local djGridLayout = make("UIGridLayout", {
+		CellPadding = UDim2.new(0, DJ_GRID_GAP, 0, DJ_GRID_GAP),
+		CellSize = UDim2.new(0.5, -DJ_GRID_GAP / 2, 0, 100),
+		SortOrder = Enum.SortOrder.LayoutOrder,
 		Parent = djListView,
 	})
+	make("UIPadding", {
+		PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 6),
+		PaddingTop = UDim.new(0, 6), PaddingBottom = UDim.new(0, 6),
+		Parent = djListView,
+	})
+	local function updateGridCellSize()
+		local w = djListView.AbsoluteSize.X - 12
+		local cellW = math.floor((w - DJ_GRID_GAP) / 2)
+		if cellW > 0 then djGridLayout.CellSize = UDim2.new(0, cellW, 0, cellW) end
+	end
+	djListView:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateGridCellSize)
+	task.defer(updateGridCellSize)
 
 	-- ── DJ SONGS VIEW ──
 	local djSongsView = make("Frame", {
@@ -290,7 +303,7 @@ function DJTab.build(parent, THEME, state, R, H)
 			end
 		end
 
-		card.Position = UDim2.new(0, 6, 0, (index - 1) * (CARD_H + CARD_PAD))
+		card.Position = UDim2.new(0, 6, 0, (index - 1) * (CARD_H + CARD_PAD) + CARD_PAD)
 		card.Visible = true
 	end
 
@@ -344,9 +357,9 @@ function DJTab.build(parent, THEME, state, R, H)
 		local first = math.max(1, math.floor(scrollY / step) + 1 - VISIBLE_BUF)
 		local last = math.min(total, math.ceil((scrollY + vpH) / step) + VISIBLE_BUF)
 
-		local totalH = total * step
+		local totalH = total * step + CARD_PAD
 		djSongsContainer.Size = UDim2.new(1, 0, 0, totalH)
-		djSongListScroll.CanvasSize = UDim2.new(0, 0, 0, totalH + 16)
+		djSongListScroll.CanvasSize = UDim2.new(0, 0, 0, totalH)
 
 		for idx, card in pairs(djCardsIndex) do
 			if card and card.Visible and (idx < first or idx > last) then releaseCard(card) end
@@ -421,9 +434,9 @@ function DJTab.build(parent, THEME, state, R, H)
 		releaseAllCards()
 		djSongListScroll.CanvasPosition = Vector2.new(0, 0)
 
-		local totalH = vs.totalSongs * (CARD_H + CARD_PAD)
+		local totalH = vs.totalSongs * (CARD_H + CARD_PAD) + CARD_PAD
 		djSongsContainer.Size = UDim2.new(1, 0, 0, totalH)
-		djSongListScroll.CanvasSize = UDim2.new(0, 0, 0, totalH + 16)
+		djSongListScroll.CanvasSize = UDim2.new(0, 0, 0, totalH)
 
 		api.connectScrollListener()
 		local limit = math.min(vs.totalSongs, 20)
@@ -453,7 +466,7 @@ function DJTab.build(parent, THEME, state, R, H)
 
 	function api.drawDJs()
 		for _, child in pairs(djListView:GetChildren()) do
-			if not child:IsA("UIListLayout") and not child:IsA("UIPadding") then child:Destroy() end
+			if not child:IsA("UIGridLayout") and not child:IsA("UIPadding") then child:Destroy() end
 		end
 
 		if #state.allDJs == 0 then
@@ -467,60 +480,92 @@ function DJTab.build(parent, THEME, state, R, H)
 		end
 
 		for idx, dj in ipairs(state.allDJs) do
-			local DJ_CARD_H = 100
-			local djCard = make("Frame", {
-				Size = UDim2.new(1, 0, 0, DJ_CARD_H),
-				BackgroundColor3 = THEME.card,
-				ClipsDescendants = true, ZIndex = 213,
-				LayoutOrder = idx, Parent = djListView,
-			})
+			local djCard = Instance.new("CanvasGroup")
+			djCard.Name = "DJCard"
+			djCard.BackgroundColor3 = THEME.card
+			djCard.BackgroundTransparency = 0
+			djCard.BorderSizePixel = 0
+			djCard.ClipsDescendants = true
+			djCard.GroupTransparency = 0
+			djCard.ZIndex = 213
+			djCard.LayoutOrder = idx
+			djCard.Parent = djListView
+			make("UICorner", { CornerRadius = UDim.new(0, 12), Parent = djCard })
 
+			-- Cover image (fills entire card)
 			if dj.cover and dj.cover ~= "" then
 				make("ImageLabel", {
 					Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1,
 					ScaleType = Enum.ScaleType.Crop,
-					Image = dj.cover, ImageTransparency = 0.25,
+					Image = dj.cover, ImageTransparency = 0,
 					ZIndex = 214, Parent = djCard,
 				})
 			end
 
-			local djGrad = make("Frame", {
-				Size = UDim2.new(1, 0, 0.6, 0), Position = UDim2.new(0, 0, 0.4, 0),
-				BackgroundColor3 = Color3.new(0, 0, 0), ZIndex = 215, Parent = djCard,
+			-- Info overlay (hidden, appears on hover)
+			local infoOverlay = Instance.new("CanvasGroup")
+			infoOverlay.Name = "InfoOverlay"
+			infoOverlay.Size = UDim2.fromScale(1, 1)
+			infoOverlay.BackgroundTransparency = 1
+			infoOverlay.BorderSizePixel = 0
+			infoOverlay.GroupTransparency = 1
+			infoOverlay.ZIndex = 215
+			infoOverlay.Parent = djCard
+
+			-- Gradient dark from bottom
+			local gradFrame = make("Frame", {
+				Size = UDim2.new(1, 0, 0.65, 0),
+				Position = UDim2.new(0, 0, 0.35, 0),
+				BackgroundColor3 = Color3.new(0, 0, 0),
+				BorderSizePixel = 0, ZIndex = 216, Parent = infoOverlay,
 			})
 			make("UIGradient", {
 				Transparency = NumberSequence.new({
 					NumberSequenceKeypoint.new(0, 1),
-					NumberSequenceKeypoint.new(0.4, 0.5),
-					NumberSequenceKeypoint.new(1, 0.1),
+					NumberSequenceKeypoint.new(0.3, 0.4),
+					NumberSequenceKeypoint.new(1, 0),
 				}),
-				Rotation = 90, Parent = djGrad,
+				Rotation = 90, Parent = gradFrame,
 			})
 
+			-- DJ Name
 			make("TextLabel", {
-				Size = UDim2.new(1, -20, 0, 24), Position = UDim2.new(0, 10, 1, -46),
+				Size = UDim2.new(1, -16, 0, 40),
+				Position = UDim2.new(0, 8, 1, -58),
 				BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 17,
 				TextColor3 = Color3.new(1, 1, 1), Text = dj.name,
-				TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 216, Parent = djCard,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				TextYAlignment = Enum.TextYAlignment.Bottom,
+				TextWrapped = true,
+				ZIndex = 217, Parent = infoOverlay,
 			})
 
+			-- Song count
 			make("TextLabel", {
-				Size = UDim2.new(1, -20, 0, 16), Position = UDim2.new(0, 10, 1, -22),
-				BackgroundTransparency = 1, Font = Enum.Font.GothamMedium, TextSize = 13,
+				Size = UDim2.new(1, -16, 0, 16),
+				Position = UDim2.new(0, 8, 1, -18),
+				BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 14,
 				TextColor3 = THEME.accent,
 				Text = (dj.songCount or 0) .. " canciones",
-				TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 216, Parent = djCard,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				ZIndex = 217, Parent = infoOverlay,
 			})
 
+			-- Click + hover
 			local clickBtn = make("TextButton", {
 				Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "",
-				ZIndex = 217, Parent = djCard,
+				ZIndex = 218, Parent = djCard,
 			})
 			clickBtn.MouseButton1Click:Connect(function() api.selectDJ(dj.name, dj) end)
-			clickBtn.MouseEnter:Connect(function() tween(djCard, 0.15, { BackgroundColor3 = THEME.elevated }) end)
-			clickBtn.MouseLeave:Connect(function() tween(djCard, 0.15, { BackgroundColor3 = THEME.card }) end)
+			clickBtn.MouseEnter:Connect(function()
+				tween(infoOverlay, 0.2, { GroupTransparency = 0 })
+			end)
+			clickBtn.MouseLeave:Connect(function()
+				tween(infoOverlay, 0.2, { GroupTransparency = 1 })
+			end)
 		end
 
+		task.defer(updateGridCellSize)
 		if djListSB then task.defer(djListSB.update) end
 	end
 
