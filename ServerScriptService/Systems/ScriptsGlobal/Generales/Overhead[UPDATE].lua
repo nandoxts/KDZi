@@ -1,6 +1,5 @@
 --// Servicios y Template
 local OverheadTemplate = script:WaitForChild("Template")
-local GamePassService = game:GetService("GamePassService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
@@ -68,10 +67,10 @@ local function getOverheadComponents(char)
 	return {
 		overhead = overhead,
 		frame = frame,
+		clanFrame = frame:FindFirstChild("ClanFrame"),
 		roleFrame = frame:FindFirstChild("RoleFrame"),
 		nameFrame = frame:FindFirstChild("NameFrame"),
-		otherFrame = frame:FindFirstChild("OtherFrame"),
-		levelFrame = frame:FindFirstChild("LevelFrame")
+		otherFrame = frame:FindFirstChild("OtherFrame")
 	}
 end
 
@@ -422,12 +421,19 @@ local function updateClanTagDisplay(player, clanTagLabel)
 	local clanTag = player:GetAttribute("ClanTag")
 	local clanEmoji = player:GetAttribute("ClanEmoji")
 	local clanColor = player:GetAttribute("ClanColor")
+	local clanFrame = clanTagLabel.Parent
 
 	if clanTag and clanTag ~= "" then
 		local prefix = (clanEmoji and clanEmoji ~= "") and (clanEmoji .. " ") or ""
 		clanTagLabel.Text = prefix .. "[" .. clanTag .. "]"
+		if clanFrame and clanFrame:IsA("GuiObject") then
+			clanFrame.Visible = true
+		end
 	else
 		clanTagLabel.Text = ""
+		if clanFrame and clanFrame:IsA("GuiObject") then
+			clanFrame.Visible = false
+		end
 	end
 
 	if clanColor and typeof(clanColor) == "Color3" then
@@ -442,9 +448,9 @@ local function refreshClanTagWithRetry(player, char)
 	if player.Character ~= char then return end
 
 	local components = getOverheadComponents(char)
-	if not components or not components.nameFrame then return end
+	if not components or not components.clanFrame then return end
 
-	local clanTagLabel = components.nameFrame:FindFirstChild("ClanTag")
+	local clanTagLabel = components.clanFrame:FindFirstChild("ClanTag")
 	if not clanTagLabel then return end
 
 	updateClanTagDisplay(player, clanTagLabel)
@@ -522,17 +528,19 @@ function OverheadManager:configureOverhead(overhead, player, char)
 	local frame = overhead:FindFirstChild("Frame")
 	if not frame then return end
 
+	local clanFrame = frame:FindFirstChild("ClanFrame")
 	local roleFrame = frame:FindFirstChild("RoleFrame")
 	local nameFrame = frame:FindFirstChild("NameFrame")
 	local otherFrame = frame:FindFirstChild("OtherFrame")
-	local PaisFrame = frame:FindFirstChild("PaisFrame")
 
-	if nameFrame then
-		local clanTagLabel = nameFrame:FindFirstChild("ClanTag")
+	if clanFrame then
+		local clanTagLabel = clanFrame:FindFirstChild("ClanTag")
 		if clanTagLabel then
 			updateClanTagDisplay(player, clanTagLabel)
 		end
+	end
 
+	if nameFrame then
 		-- ✅ Nombre renderizado con bandera + racha (bandera al inicio)
 		local streak = getSavedStreak(player)
 		renderDisplayName(player, streak)
@@ -548,15 +556,20 @@ function OverheadManager:setupRole(roleFrame, player)
 	local roleText = roleFrame:FindFirstChild("Role")
 	if not roleText then return end
 
+	local function applyRoleText(icon, label, color)
+		local safeIcon = (icon and icon ~= "") and icon or "👤"
+		roleText.RichText = false
+		roleText.Text = string.format("[%s] %s", safeIcon, label)
+		roleText.TextColor3 = color
+	end
+
 	local function updateRoleDisplay()
 		-- 1. Título equipado (máxima prioridad)
 		local titleLabel = player:GetAttribute("EquippedTitleLabel") or ""
 		local titleColor = player:GetAttribute("EquippedTitleColor") or "#FFFFFF"
 
 		if titleLabel ~= "" then
-			roleText.RichText   = false
-			roleText.Text       = titleLabel
-			roleText.TextColor3 = Colors.fromHex(titleColor)
+			applyRoleText("🏷️", titleLabel, Colors.fromHex(titleColor))
 			return
 		end
 
@@ -570,22 +583,18 @@ function OverheadManager:setupRole(roleFrame, player)
 
 			if success then
 				if GROUP_ROLES[rank] then
-					roleText.RichText   = false
-					roleText.Text       = GROUP_ROLES[rank].Name
-					roleText.TextColor3 = GROUP_ROLES[rank].Color
+					applyRoleText(GROUP_ROLES[rank].Icon, GROUP_ROLES[rank].Name, GROUP_ROLES[rank].Color)
 					roleAssigned = true
 				else
 					local highestRole = nil
-					for roleRank, roleData in pairs(GROUP_ROLES) do
+					for roleRank in pairs(GROUP_ROLES) do
 						if rank >= roleRank and (not highestRole or roleRank > highestRole) then
 							highestRole = roleRank
 						end
 					end
 
 					if highestRole then
-						roleText.RichText   = false
-						roleText.Text       = GROUP_ROLES[highestRole].Name
-						roleText.TextColor3 = GROUP_ROLES[highestRole].Color
+						applyRoleText(GROUP_ROLES[highestRole].Icon, GROUP_ROLES[highestRole].Name, GROUP_ROLES[highestRole].Color)
 						roleAssigned = true
 					end
 				end
@@ -595,13 +604,10 @@ function OverheadManager:setupRole(roleFrame, player)
 		-- 3. VIP / Latino
 		if not roleAssigned then
 			local hasVIP = player:GetAttribute("HasVIP") or false
-			roleText.RichText = false
 			if hasVIP then
-				roleText.Text       = "[ VIP ]"
-				roleText.TextColor3 = Color3.fromRGB(217, 43, 13)
+				applyRoleText("👑", "[ VIP ]", Color3.fromRGB(217, 43, 13))
 			else
-				roleText.Text       = "[ Latino ]"
-				roleText.TextColor3 = Color3.fromRGB(119, 0, 255)
+				applyRoleText("🌎", "[ Latino ]", Color3.fromRGB(119, 0, 255))
 			end
 		end
 	end
@@ -691,9 +697,9 @@ Players.PlayerAdded:Connect(function(player)
 		if not player.Character then return end
 
 		local components = getOverheadComponents(player.Character)
-		if not components or not components.nameFrame then return end
+		if not components or not components.clanFrame then return end
 
-		local clanTagLabel = components.nameFrame:FindFirstChild("ClanTag")
+		local clanTagLabel = components.clanFrame:FindFirstChild("ClanTag")
 		if not clanTagLabel then return end
 
 		updateClanTagDisplay(player, clanTagLabel)
@@ -729,9 +735,9 @@ for _, player in ipairs(Players:GetPlayers()) do
 			if not player.Character then return end
 
 			local components = getOverheadComponents(player.Character)
-			if not components or not components.nameFrame then return end
+			if not components or not components.clanFrame then return end
 
-			local clanTagLabel = components.nameFrame:FindFirstChild("ClanTag")
+			local clanTagLabel = components.clanFrame:FindFirstChild("ClanTag")
 			if not clanTagLabel then return end
 
 			updateClanTagDisplay(player, clanTagLabel)
