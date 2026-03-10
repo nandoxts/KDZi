@@ -185,6 +185,7 @@ contentArea.ZIndex = 202; contentArea.Parent = canvas
 -- Estado
 local isOpen, activeTabId = false, nil
 local tabBtns, tabFrames, tabAPIs = {}, {}, {}
+local tabLabels, tabIcons = {}, {} -- cache para evitar FindFirstChild repetido
 local sharedState = { shopCards = {}, isMuted = false }
 _G._MenuPanelShopCards = sharedState.shopCards
 local _playerListWasOpen = false
@@ -203,9 +204,9 @@ local function openPanel()
 end
 
 local function resetPills()
-	for _, b in pairs(tabBtns) do
-		local lbl = b:FindFirstChild("Lbl", true)
-		local ico = b:FindFirstChild("Ico", true)
+	for id, _ in pairs(tabBtns) do
+		local lbl = tabLabels[id]
+		local ico = tabIcons[id]
 		if lbl then lbl.TextColor3 = THEME.muted end
 		if ico then ico.ImageColor3 = THEME.muted end
 	end
@@ -279,8 +280,8 @@ local function selectTab(tabId)
 	activeTabId = tabId
 	for id, b in pairs(tabBtns) do
 		local active = (id == tabId)
-		local lbl = b:FindFirstChild("Lbl", true)
-		local ico = b:FindFirstChild("Ico", true)
+		local lbl = tabLabels[id]
+		local ico = tabIcons[id]
 		if lbl then tween(lbl, TW_SNAP, {TextColor3 = active and THEME.text or THEME.muted}) end
 		if ico then tween(ico, TW_SNAP, {ImageColor3 = active and THEME.text or THEME.muted}) end
 	end
@@ -367,6 +368,8 @@ for idx, tabDef in ipairs(TABS) do
 	lbl.Parent = inner
 
 	tabBtns[tabDef.id] = b
+	tabLabels[tabDef.id] = lbl
+	if hasIcon then tabIcons[tabDef.id] = inner:FindFirstChild("Ico") end
 
 	local frame = Instance.new("Frame")
 	frame.Name = tabDef.id .. "Frame"; frame.Size = UDim2.fromScale(1, 1)
@@ -377,16 +380,16 @@ for idx, tabDef in ipairs(TABS) do
 	b.MouseButton1Click:Connect(function() selectTab(tabDef.id) end)
 	b.MouseEnter:Connect(function()
 		if activeTabId ~= tabDef.id then
-			local l = b:FindFirstChild("Lbl", true)
-			local ic = b:FindFirstChild("Ico", true)
+			local l = tabLabels[tabDef.id]
+			local ic = tabIcons[tabDef.id]
 			if l then tween(l, TW_SNAP, {TextColor3 = THEME.dim}) end
 			if ic then tween(ic, TW_SNAP, {ImageColor3 = THEME.dim}) end
 		end
 	end)
 	b.MouseLeave:Connect(function()
 		if activeTabId ~= tabDef.id then
-			local l = b:FindFirstChild("Lbl", true)
-			local ic = b:FindFirstChild("Ico", true)
+			local l = tabLabels[tabDef.id]
+			local ic = tabIcons[tabDef.id]
 			if l then tween(l, TW_SNAP, {TextColor3 = THEME.muted}) end
 			if ic then tween(ic, TW_SNAP, {ImageColor3 = THEME.muted}) end
 		end
