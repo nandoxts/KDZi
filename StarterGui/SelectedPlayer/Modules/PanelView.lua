@@ -191,35 +191,21 @@ end
 PanelView.Admin = Admin
 
 -- ═══════════════════════════════════════════════════════════════
--- GLASSMORPHISM
+-- PANEL BACKGROUND (sólido, sin glass)
 -- ═══════════════════════════════════════════════════════════════
 local function applyGlass(container, playerColor, L, isAdmin)
-	local baseT = THEME.frameAlpha
-	local colorT = THEME.frameAlpha + 0.22
-
-	local base = Utils.createFrame({ Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = THEME.bg, BackgroundTransparency = baseT, ZIndex = 0, Parent = container })
-
-	local cLayer = Utils.createFrame({ Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = playerColor, BackgroundTransparency = colorT, ZIndex = 0, Parent = container })
-
-	local g = Instance.new("UIGradient")
-	g.Parent = cLayer
-	g.Rotation = 160
-	g.Transparency = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, 0.7),
-		NumberSequenceKeypoint.new(0.5, 0.95),
-		NumberSequenceKeypoint.new(1, 0.85),
-	})
+	Utils.createFrame({ Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = THEME.bg, BackgroundTransparency = 0, ZIndex = 0, Parent = container })
 end
 
 -- ═══════════════════════════════════════════════════════════════
--- BOTÓN CON GLASS EFFECT
+-- BOTÓN SÓLIDO
 -- ═══════════════════════════════════════════════════════════════
 local function createButton(parent, text, layoutOrder, accentColor)
 	local L = getLayout()
 	local container = Utils.createFrame({ Size = UDim2.new(1, 0, 0, L.buttonHeight), LayoutOrder = layoutOrder, Parent = parent })
 
 	local btn = Utils.create("TextButton", {
-		Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = THEME.card, BackgroundTransparency = THEME.frameAlpha,
+		Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = THEME.card, BackgroundTransparency = 0,
 		BorderSizePixel = 0, AutoButtonColor = false, Text = "", Parent = container
 	})
 	Utils.addCorner(btn, 999)
@@ -238,11 +224,11 @@ local function createButton(parent, text, layoutOrder, accentColor)
 	local label = Utils.createLabel({ Size = UDim2.new(1, 0, 1, 0), Text = text, TextSize = L.fontSize.button, Font = Enum.Font.GothamBold, TextColor3 = THEME.text, Parent = btn })
 
 	Utils.addConnection(btn.MouseEnter:Connect(function()
-		safeTween(btn, { BackgroundColor3 = THEME.elevated, BackgroundTransparency = THEME.lightAlpha }, Config.ANIM_FAST)
+		safeTween(btn, { BackgroundColor3 = THEME.elevated, BackgroundTransparency = 0 }, Config.ANIM_FAST)
 		safeTween(stroke, { Transparency = 0.45, Thickness = 1 }, Config.ANIM_FAST)
 	end))
 	Utils.addConnection(btn.MouseLeave:Connect(function()
-		safeTween(btn, { BackgroundColor3 = THEME.card, BackgroundTransparency = THEME.frameAlpha }, Config.ANIM_FAST)
+		safeTween(btn, { BackgroundColor3 = THEME.card, BackgroundTransparency = 0 }, Config.ANIM_FAST)
 		safeTween(stroke, { Transparency = 0.78, Thickness = 0.75 }, Config.ANIM_FAST)
 	end))
 	Utils.addConnection(btn.MouseButton1Click:Connect(function(x, y) Utils.createRipple(btn, rippleCont, x, y) end))
@@ -632,7 +618,7 @@ function PanelView.createPanel(data)
 
 	-- Panel container
 	local pY = L.dragHandleH + 4
-	local panelContainer = Utils.create("CanvasGroup", { Size = UDim2.new(1, 0, 0, L.panelHeight), Position = UDim2.new(0, 0, 0, pY), BackgroundColor3 = THEME.card, BackgroundTransparency = THEME.lightAlpha, BorderSizePixel = 0, Parent = State.container })
+	local panelContainer = Utils.create("CanvasGroup", { Size = UDim2.new(1, 0, 0, L.panelHeight), Position = UDim2.new(0, 0, 0, pY), BackgroundColor3 = THEME.bg, BackgroundTransparency = 0, BorderSizePixel = 0, Parent = State.container })
 	Utils.addCorner(panelContainer, L.cornerRadius)
 
 	local isUserAdmin = Admin.isAdmin(data.username)

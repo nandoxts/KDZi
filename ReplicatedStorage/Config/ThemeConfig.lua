@@ -19,7 +19,7 @@ local THEME = {
 	stroke   = Color3.fromRGB(38,  38,  38),
 
 	-- ═══ ACENTO ═══
-	accent   = Color3.fromRGB(255, 208, 0),   -- naranja (progreso, highlights)
+	accent   = Color3.fromRGB(150, 150, 150),   -- naranja (progreso, highlights)
 
 	-- ═══ ESTADOS ═══
 	danger   = Color3.fromRGB(220, 50,  50),
@@ -28,10 +28,7 @@ local THEME = {
 
 	-- ═══ ALPHA ═══
 	overlayAlpha = 0.6,
-	frameAlpha   = 0.06,
 	lightAlpha   = 0.2,
-	mediumAlpha  = 0.5,
-	subtleAlpha  = 0.85,
 
 	-- ═══ LAYOUT ═══
 	panelWidth  = 390,
