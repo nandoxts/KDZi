@@ -6,11 +6,42 @@ local UI = {}
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 
--- Asumir que THEME está disponible globalmente o requerirlo
 local THEME = require(game.ReplicatedStorage.Config.ThemeConfig)
 
 local trackFunc = nil
 local loadingConnection = nil
+
+-- ════════════════════════════════════════════════════════════════
+-- ICONOS GLOBALES
+-- ════════════════════════════════════════════════════════════════
+UI.ICONS = {
+	PLAY_ADD = "rbxassetid://106062824601262",
+	CHECK    = "rbxassetid://102926522001210",
+	DELETE   = "rbxassetid://100580390387788",
+	LOADING  = "rbxassetid://72909990569897",
+	SKIP     = "rbxassetid://130796780610204",
+	BACK     = "rbxassetid://97043688093134",
+}
+
+-- ════════════════════════════════════════════════════════════════
+-- GENÉRICOS (make, tween)
+-- ════════════════════════════════════════════════════════════════
+function UI.make(class, props)
+	local i = Instance.new(class)
+	for k, v in pairs(props) do
+		if k ~= "Parent" then i[k] = v end
+	end
+	if props.Parent then i.Parent = props.Parent end
+	return i
+end
+
+function UI.tween(obj, t, props)
+	TweenService:Create(obj, TweenInfo.new(t, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), props):Play()
+end
+
+-- ════════════════════════════════════════════════════════════════
+-- UTILIDADES BASE
+-- ════════════════════════════════════════════════════════════════
 
 function UI.setTrack(func)
 	trackFunc = func
@@ -190,6 +221,41 @@ function UI.loading(parent)
 	})
 
 	return container
+end
+
+-- ════════════════════════════════════════════════════════════════
+-- COMPONENTES
+-- ════════════════════════════════════════════════════════════════
+
+-- Botón circular outlined (transparente + UIStroke + icono centrado)
+-- Retorna btn, iconLabel
+function UI.outlinedCircleBtn(parent, opts)
+	local size = opts.size or 32
+	local icon = opts.icon
+	local theme = opts.theme or THEME
+	local z = opts.zIndex or 216
+	local pos = opts.position or UDim2.new(0, 0, 0, 0)
+	local name = opts.name or "OutlinedBtn"
+
+	local btn = UI.make("TextButton", {
+		Size = UDim2.new(0, size, 0, size),
+		Position = pos,
+		BackgroundTransparency = 1,
+		Text = "", BorderSizePixel = 0, AutoButtonColor = false,
+		ZIndex = z, Name = name, Parent = parent,
+	})
+	UI.rounded(btn, size / 2)
+	UI.make("UIStroke", {
+		Color = theme.stroke, Thickness = 1.5,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = btn,
+	})
+	local iconLabel = UI.make("ImageLabel", {
+		Size = UDim2.new(0.55, 0, 0.55, 0), Position = UDim2.new(0.225, 0, 0.225, 0),
+		BackgroundTransparency = 1, Image = icon or "",
+		ImageColor3 = theme.dim,
+		ZIndex = z + 1, Name = "IconImage", Parent = btn,
+	})
+	return btn, iconLabel
 end
 
 return UI

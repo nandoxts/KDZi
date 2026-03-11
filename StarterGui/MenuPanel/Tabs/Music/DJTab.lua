@@ -1,13 +1,17 @@
 -- Music/DJTab.lua — Sub-tab DJ (lista DJs, canciones, virtual scroll, busqueda)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
+local UI = require(ReplicatedStorage:WaitForChild("Core"):WaitForChild("UI"))
 local ModernScrollbar = require(ReplicatedStorage:WaitForChild("UIComponents"):WaitForChild("ModernScrollbar"))
 local SearchModern = require(ReplicatedStorage:WaitForChild("UIComponents"):WaitForChild("SearchModern"))
+local SlideHeader = require(script.Parent.Parent:WaitForChild("Shared"):WaitForChild("SlideHeader"))
+
+local make, tween = UI.make, UI.tween
+local ICONS = UI.ICONS
 
 local DJTab = {}
 
 function DJTab.build(parent, THEME, state, R, H)
-	local make, tween, rounded = H.make, H.tween, H.rounded
 
 	local CARD_H      = 58
 	local CARD_PAD    = 6
@@ -68,43 +72,12 @@ function DJTab.build(parent, THEME, state, R, H)
 	})
 
 	local djHeaderH = 60
-	local djHeader = make("Frame", {
-		Size = UDim2.new(1, 0, 0, djHeaderH),
-		BackgroundColor3 = THEME.card,
-		ClipsDescendants = true, ZIndex = 213, Parent = djSongsView,
+	local djHdr = SlideHeader.new({
+		parent = djSongsView, theme = THEME,
+		bgMode = "image", overlayAlpha = 0.35,
+		titleY = 6, subtitleY = 30,
 	})
-
-	local djHeaderBg = make("ImageLabel", {
-		Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1,
-		ScaleType = Enum.ScaleType.Crop, Image = "",
-		ImageTransparency = 0.2, ZIndex = 213, Name = "HeaderBg", Parent = djHeader,
-	})
-	make("Frame", {
-		Size = UDim2.fromScale(1, 1),
-		BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 0.35,
-		BorderSizePixel = 0, ZIndex = 214, Parent = djHeader,
-	})
-
-	local djBackBtn, _backIcon = H.outlinedCircleBtn(djHeader, {
-		size = 36, icon = H.ICONS.BACK, theme = THEME,
-		position = UDim2.new(0, 8, 0.5, -18),
-		zIndex = 215, name = "BackBtn",
-	})
-
-	local djHeaderName = make("TextLabel", {
-		Size = UDim2.new(1, -60, 0, 22), Position = UDim2.new(0, 52, 0, 6),
-		BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 16,
-		TextColor3 = Color3.new(1, 1, 1), Text = "",
-		TextXAlignment = Enum.TextXAlignment.Left,
-		TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 215, Parent = djHeader,
-	})
-
-	local djHeaderCount = make("TextLabel", {
-		Size = UDim2.new(1, -60, 0, 16), Position = UDim2.new(0, 52, 0, 30),
-		BackgroundTransparency = 1, Font = Enum.Font.GothamMedium, TextSize = 13,
-		TextColor3 = THEME.accent, Text = "0 canciones",
-		TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 215, Parent = djHeader,
-	})
+	djHdr.subtitle.Text = "0 canciones"
 
 	-- Search bar (SearchModern)
 	local djSearchBar, djSearchInput = SearchModern.new(djSongsView, {
@@ -134,7 +107,6 @@ function DJTab.build(parent, THEME, state, R, H)
 	})
 
 	-- ── SONG CARD VIRTUAL SCROLL (CanvasGroup + iconos modernos) ──
-	local ICONS = H.ICONS
 
 	local function createSongCard()
 		local card = Instance.new("CanvasGroup")
@@ -148,7 +120,7 @@ function DJTab.build(parent, THEME, state, R, H)
 		card.Visible = false
 		card.Parent = djSongsContainer
 		make("UICorner", { CornerRadius = UDim.new(0, 10), Parent = card })
-		H.stroked(card, 0.3)
+		UI.stroked(card, 0.3)
 
 		-- Cover full-height izquierda (CanvasGroup recorta bordes)
 		local coverBg = make("Frame", {
@@ -182,7 +154,7 @@ function DJTab.build(parent, THEME, state, R, H)
 		})
 
 		-- Botón agregar (outlined circle)
-		local addBtn, addIcon = H.outlinedCircleBtn(card, {
+		local addBtn, addIcon = UI.outlinedCircleBtn(card, {
 			size = 36, icon = ICONS.PLAY_ADD, theme = THEME,
 			position = UDim2.new(1, -42, 0.5, -18),
 			zIndex = 216, name = "AddButton",
@@ -420,9 +392,9 @@ function DJTab.build(parent, THEME, state, R, H)
 			end)
 		end
 
-		djHeaderName.Text = djName
-		djHeaderCount.Text = (djData.songCount or 0) .. " canciones"
-		djHeaderBg.Image = djData.cover or ""
+		djHdr.title.Text = djName
+		djHdr.subtitle.Text = (djData.songCount or 0) .. " canciones"
+		djHdr.bg.Image = djData.cover or ""
 
 		local vs = state.vs
 		vs.totalSongs = djData.songCount or 0
@@ -445,7 +417,7 @@ function DJTab.build(parent, THEME, state, R, H)
 		end
 	end
 
-	djBackBtn.MouseButton1Click:Connect(function()
+	djHdr.backBtn.MouseButton1Click:Connect(function()
 		-- Slide inverso: canciones salen derecha, lista entra desde izquierda
 		if _djSliding then return end
 		_djSliding = true
@@ -461,8 +433,6 @@ function DJTab.build(parent, THEME, state, R, H)
 		end)
 		state.selectedDJ = nil; state.selectedDJInfo = nil
 	end)
-	djBackBtn.MouseEnter:Connect(function() tween(djBackBtn, 0.1, { BackgroundTransparency = 0, BackgroundColor3 = THEME.elevated }) end)
-	djBackBtn.MouseLeave:Connect(function() tween(djBackBtn, 0.1, { BackgroundTransparency = 1 }) end)
 
 	function api.drawDJs()
 		for _, child in pairs(djListView:GetChildren()) do
@@ -577,7 +547,7 @@ function DJTab.build(parent, THEME, state, R, H)
 			vs.songData[song.index] = song
 		end
 		vs.pendingRequests[(data.startIndex or 0) .. "-" .. (data.endIndex or 0)] = nil
-		djHeaderCount.Text = vs.totalSongs .. " canciones"
+		djHdr.subtitle.Text = vs.totalSongs .. " canciones"
 		api.updateVisibleCards()
 	end
 
@@ -586,7 +556,7 @@ function DJTab.build(parent, THEME, state, R, H)
 		local vs = state.vs
 		vs.searchResults = data.songs or {}
 		local total = data.totalInDJ or vs.totalSongs
-		djHeaderCount.Text = #vs.searchResults .. "/" .. total .. " canciones"
+		djHdr.subtitle.Text = #vs.searchResults .. "/" .. total .. " canciones"
 		djSongListScroll.CanvasPosition = Vector2.new(0, 0)
 		api.updateVisibleCards()
 	end
@@ -601,7 +571,7 @@ function DJTab.build(parent, THEME, state, R, H)
 			local vs = state.vs
 			if query == "" then
 				vs.isSearching = false; vs.searchQuery = ""; vs.searchResults = {}
-				djHeaderCount.Text = vs.totalSongs .. " canciones"
+				djHdr.subtitle.Text = vs.totalSongs .. " canciones"
 				djSongListScroll.CanvasPosition = Vector2.new(0, 0)
 				api.updateVisibleCards()
 			else

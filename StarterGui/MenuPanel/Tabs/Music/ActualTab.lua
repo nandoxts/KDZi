@@ -1,12 +1,15 @@
 -- Music/ActualTab.lua — Sub-tab ACTUAL (cover, progreso, reproduccion, cola)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UI = require(ReplicatedStorage:WaitForChild("Core"):WaitForChild("UI"))
 local ModernScrollbar = require(ReplicatedStorage:WaitForChild("UIComponents"):WaitForChild("ModernScrollbar"))
+
+local make, tween, rounded = UI.make, UI.tween, UI.rounded
+local ICONS = UI.ICONS
 
 local ActualTab = {}
 
 function ActualTab.build(parent, THEME, state, R, H)
-	local make, tween, rounded, formatTime = H.make, H.tween, H.rounded, H.formatTime
-	local ICONS = H.ICONS
+	local formatTime = H.formatTime
 	local CONTENT_TOP = state.subTabH + 1
 
 	local currentCover = ""
@@ -363,7 +366,7 @@ function ActualTab.build(parent, THEME, state, R, H)
 		})
 
 		if state.isAdmin then
-			local rmBtn, rmIcon = H.outlinedCircleBtn(card, {
+			local rmBtn, rmIcon = UI.outlinedCircleBtn(card, {
 				size = 30, icon = ICONS.DELETE, theme = THEME,
 				position = UDim2.new(1, -38, 0.5, -15),
 				zIndex = 216, name = "RemoveBtn",
