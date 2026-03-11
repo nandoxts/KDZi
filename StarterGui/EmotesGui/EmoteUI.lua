@@ -38,13 +38,11 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 -- ════════════════════════════════════════════════════════════════════════════════
 
 local Replicado = ReplicatedStorage:WaitForChild("RemotesGlobal")
-local Ownership = Replicado["Gamepass Gifting"].Remotes.Ownership
 local Remotos = Replicado:WaitForChild("Eventos_Emote")
 local RemotesSync = Replicado:WaitForChild("Emotes_Sync")
 
 local ObtenerFavs = Remotos:WaitForChild("ObtenerFavs")
 local AnadirFav = Remotos:WaitForChild("AnadirFav")
-local ObtenerTrending = Remotos:WaitForChild("ObtenerTrending")
 local PlayAnimationRemote = RemotesSync:FindFirstChild("PlayAnimation")
 local StopAnimationRemote = RemotesSync:FindFirstChild("StopAnimation")
 local SyncRemote = RemotesSync:FindFirstChild("Sync")
@@ -54,7 +52,6 @@ local SyncRemote = RemotesSync:FindFirstChild("Sync")
 local THEME_CONFIG = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("ThemeConfig"))
 local Modulo = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("Animaciones"))
 local NotificationSystem = require(ReplicatedStorage:WaitForChild("Systems"):WaitForChild("NotificationSystem"):WaitForChild("NotificationSystem"))
-local Icon = require(ReplicatedStorage:WaitForChild("Icon"))
 local ModernScrollbar = require(ReplicatedStorage:WaitForChild("UIComponents"):WaitForChild("ModernScrollbar"))
 local SubTabs = require(ReplicatedStorage:WaitForChild("UIComponents"):WaitForChild("SubTabs"))
 
@@ -67,7 +64,6 @@ local PlayerGui = Jugador:WaitForChild("PlayerGui")
 
 local IsMobile = UserInputService.TouchEnabled
 local EmotesFavs = {}
-local EmotesTrending = {}
 local DanceActivated = nil
 local ActiveCard = nil
 local TabActual = "TODOS"
@@ -123,11 +119,6 @@ end
 
 local function EstaEnFavoritos(id)
 	return table.find(EmotesFavs, id) ~= nil
-end
-
-local function ObtenerTipo(id)
-	if table.find(EmotesTrending or {}, id) then return "Trending" end
-	return "Normal"
 end
 
 -- ════════════════════════════════════════════════════════════════════════════════
@@ -1001,20 +992,9 @@ local function CargarTodos(filtro)
 		return filtro == "" or nombre:lower():find(filtro, 1, true)
 	end
 
-	-- TRENDING
-	if EmotesTrending and #EmotesTrending > 0 then
-		for _, id in ipairs(EmotesTrending) do
-			local nombre = EncontrarDatos(id)
-			if pasaFiltro(nombre) then
-				CrearTarjeta(nombre, id, "Trending", orden)
-				orden = orden + 1
-			end
-		end
-	end
-
-	-- LISTA COMPLETA (excluyendo trending ya mostrados)
+	-- LISTA COMPLETA
 	for _, v in ipairs(Modulo.Lista) do
-		if not table.find(EmotesTrending or {}, v.ID) and pasaFiltro(v.Nombre) then
+		if pasaFiltro(v.Nombre) then
 			CrearTarjeta(v.Nombre, v.ID, "Normal", orden)
 			orden = orden + 1
 		end
@@ -1038,8 +1018,7 @@ local function CargarFavoritos(filtro)
 	for _, id in ipairs(EmotesFavs) do
 		local nombre = EncontrarDatos(id)
 		if filtro == "" or nombre:lower():find(filtro, 1, true) then
-			local tipo = ObtenerTipo(id)
-			CrearTarjeta(nombre, id, tipo, orden)
+			CrearTarjeta(nombre, id, "Normal", orden)
 			orden = orden + 1
 			hayVisibles = true
 		end
@@ -1133,8 +1112,8 @@ end)
 -- INICIALIZACIÓN
 -- ════════════════════════════════════════════════════════════════════════════════
 
-EmotesFavs = ObtenerFavs:InvokeServer() or {}
-EmotesTrending = ObtenerTrending:InvokeServer() or {}
+local ok, favs = pcall(function() return ObtenerFavs:InvokeServer() end)
+EmotesFavs = (ok and favs) or {}
 CargarTodos()
 
 -- ════════════════════════════════════════════════════════════════════════════════

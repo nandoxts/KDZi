@@ -81,7 +81,7 @@ end
 function ClanHelpers.createSelector(items, config)
 	local container = UI.frame({
 		size = config.size or UDim2.new(1, 0, 0, 36),
-		pos = config.pos, bg = THEME.surface, z = config.z or 105,
+		pos = config.pos, bg = THEME.elevated, z = config.z or 105,
 		parent = config.parent, corner = 8
 	})
 
@@ -144,7 +144,7 @@ end
 function ClanHelpers.createNavCard(config)
 	local card = UI.frame({
 		size = config.size or UDim2.new(1, 0, 0, 60),
-		pos = config.pos, bg = THEME.card, bgT = THEME.frameAlpha, z = 104,
+		pos = config.pos, bg = THEME.card, bgT = 0.3, z = 104,
 		parent = config.parent, corner = 10, stroke = true, strokeA = 0.5, strokeC = THEME.stroke
 	})
 
@@ -156,7 +156,7 @@ function ClanHelpers.createNavCard(config)
 
 	local notificationDot = nil
 	if config.showNotification then
-		notificationDot = UI.frame({name = "NotificationDot", size = UDim2.new(0, 10, 0, 10), pos = UDim2.new(1, -50, 0, 10), bg = THEME.btnDanger, z = 106, parent = card, corner = 5})
+		notificationDot = UI.frame({name = "NotificationDot", size = UDim2.new(0, 10, 0, 10), pos = UDim2.new(1, -50, 0, 10), bg = THEME.danger, z = 106, parent = card, corner = 5})
 		notificationDot.Visible = false
 	end
 
@@ -176,7 +176,7 @@ end
 
 -- Crear header de vista
 function ClanHelpers.createViewHeader(parent, title, onBack)
-	local header = UI.frame({size = UDim2.new(1, 0, 0, 44), bg = THEME.surface, z = 106, parent = parent, corner = 10})
+	local header = UI.frame({size = UDim2.new(1, 0, 0, 44), bg = THEME.elevated, z = 106, parent = parent, corner = 10})
 
 	local backBtn = UI.button({size = UDim2.new(0, 36, 0, 36), pos = UDim2.new(0, 4, 0.5, -18), bg = THEME.card, text = "‹", color = THEME.text, textSize = 22, font = Enum.Font.GothamBold, z = 107, parent = header, corner = 8})
 	UI.hover(backBtn, THEME.card, THEME.accent)

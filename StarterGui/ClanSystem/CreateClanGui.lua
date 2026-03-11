@@ -1,8 +1,8 @@
 --[[
 	═══════════════════════════════════════════════════════════
-	CLAN SYSTEM UI - Rediseño v3 (Sidebar Pattern)
+	CLAN SYSTEM UI - Rediseño v4 (SubTabs Pattern)
 	═══════════════════════════════════════════════════════════
-	Layout: SidebarNav + ContentArea (mismo patrón que GamepassShop)
+	Layout: SubTabs + ContentArea full-width (mismo patrón que MenuPanel)
 	by ignxts
 ]]
 
@@ -20,7 +20,7 @@ local ClanClient = require(ReplicatedStorage:WaitForChild("Systems"):WaitForChil
 local GlobalModalManager = require(ReplicatedStorage:WaitForChild("Systems"):WaitForChild("GlobalModalManager"))
 local ModalManager = require(ReplicatedStorage:WaitForChild("Modal"):WaitForChild("ModalManager"))
 local SearchModern = require(ReplicatedStorage:WaitForChild("UIComponents"):WaitForChild("SearchModern"))
-local SidebarNav = require(ReplicatedStorage:WaitForChild("UIComponents"):WaitForChild("SidebarNav"))
+local SubTabs = require(ReplicatedStorage:WaitForChild("UIComponents"):WaitForChild("SubTabs"))
 
 -- Módulos internos del sistema de clanes
 local ClanConstants = require(script.Parent.ClanConstants)
@@ -57,8 +57,8 @@ local isMobileDevice = UserInputService.TouchEnabled
 local modal = ModalManager.new({
 	screenGui = screenGui,
 	panelName = "ClanPanel",
-	panelWidth = THEME.panelWidth,
-	panelHeight = THEME.panelHeight,
+	panelWidth = 650,
+	panelHeight = 500,
 	cornerRadius = CONFIG.panel.corner,
 	enableBlur = CONFIG.blur.enabled,
 	blurSize = CONFIG.blur.size,
@@ -67,114 +67,55 @@ local modal = ModalManager.new({
 })
 
 local panel = modal:getPanel()
-panel.BackgroundColor3 = THEME.bg
-panel.BackgroundTransparency = THEME.mediumAlpha
 
 local CONTAINER = modal:getCanvas()  -- recorta hijos respetando UICorner
 
 local tabPages = {}
 local switchTab     -- forward declaration
-local contentTitle  -- label del header, actualizado en switchTab
 
 -- ════════════════════════════════════════════════════════════════
--- SIDEBAR — NAVEGACIÓN LATERAL
+-- SUBTABS — NAVEGACIÓN SUPERIOR (patrón MenuPanel)
 -- ════════════════════════════════════════════════════════════════
-local SIDEBAR_W = isMobileDevice and 100 or 130
-local HEADER_H  = 52
+local TABBAR_H = 42
 
-local CLAN_NAV_ITEMS = {
-	{ id = "TuClan",      label = "Tu Clan"   ,image="79638260789908"},  -- reemplaza 0 con tu asset id
-	{ id = "Disponibles", label = "Disponibles",image="75350864255657"}, -- reemplaza 0 con tu asset id
+local CLAN_TABS = {
+	{ id = "TuClan",      label = "TU CLAN" },
+	{ id = "Disponibles", label = "DISPONIBLES" },
 }
 if isAdmin then
-	table.insert(CLAN_NAV_ITEMS, { id = "Admin", label = "Admin",image="81010877025533"})  -- reemplaza 0 con tu asset id
+	table.insert(CLAN_TABS, { id = "Admin", label = "ADMIN" })
 end
 
-local sidebarNavInstance = SidebarNav.new({
-	parent      = CONTAINER,
-	UI          = UI,
-	THEME       = THEME,
-	title       = "CLANES",
-	items       = CLAN_NAV_ITEMS,
-	width       = SIDEBAR_W,
-	isMobile    = isMobileDevice,
-	onSelect    = function(id)
-		switchTab(id)
-	end,
+local subTabs = SubTabs.new(CONTAINER, THEME, {
+	tabs    = CLAN_TABS,
+	height  = TABBAR_H,
+	z       = 215,
+	textSize = 13,
+	default = "TuClan",
 })
 
 -- ════════════════════════════════════════════════════════════════
--- CONTENT AREA
+-- CONTENT AREA (full-width debajo del tab bar)
 -- ════════════════════════════════════════════════════════════════
 local contentArea = UI.frame({
 	name   = "ContentArea",
-	size   = UDim2.new(1, -SIDEBAR_W, 1, 0),
-	pos    = UDim2.new(0, SIDEBAR_W, 0, 0),
+	size   = UDim2.new(1, 0, 1, -TABBAR_H),
+	pos    = UDim2.new(0, 0, 0, TABBAR_H),
 	bgT    = 1, z = 100,
 	parent = CONTAINER, clips = true,
 })
 
--- Header superior del content area (mismo patrón que GamepassShop)
-local contentHeader = UI.frame({
-	name   = "ContentHeader",
-	size   = UDim2.new(1, 0, 0, HEADER_H),
-	bg     = THEME.bg, bgT = THEME.lightAlpha,
-	z      = 150, parent = contentArea,
-})
-
-contentTitle = UI.label({
-	name      = "Title",
-	size      = UDim2.new(1, -20, 0, HEADER_H),
-	pos       = UDim2.new(0, 18, 0, 0),
-	text      = "TU CLAN",
-	color     = THEME.text,
-	font      = Enum.Font.GothamBlack, textSize = 18,
-	alignX    = Enum.TextXAlignment.Left,
-	z         = 152, parent = contentHeader,
-})
-
-local headerLine = Instance.new("Frame")
-headerLine.Size                   = UDim2.new(1, -20, 0, 1)
-headerLine.Position               = UDim2.new(0, 10, 1, -1)
-headerLine.BackgroundColor3       = THEME.stroke
-headerLine.BackgroundTransparency = THEME.mediumAlpha
-headerLine.BorderSizePixel        = 0
-headerLine.ZIndex                 = 152
-headerLine.Parent                 = contentHeader
-
--- Área de páginas (debajo del header)
-local pagesContainer = UI.frame({
-	name   = "PagesContainer",
-	size   = UDim2.new(1, 0, 1, -HEADER_H),
-	pos    = UDim2.new(0, 0, 0, HEADER_H),
-	bgT    = 1, z = 101,
-	parent = contentArea, clips = true,
-})
-
-local pageLayout = Instance.new("UIPageLayout")
-pageLayout.FillDirection          = Enum.FillDirection.Vertical
-pageLayout.SortOrder              = Enum.SortOrder.LayoutOrder
-pageLayout.HorizontalAlignment    = Enum.HorizontalAlignment.Center
-pageLayout.EasingStyle            = Enum.EasingStyle.Sine
-pageLayout.EasingDirection        = Enum.EasingDirection.InOut
-pageLayout.TweenTime              = 0.35
-pageLayout.ScrollWheelInputEnabled = false
-pageLayout.TouchInputEnabled      = false
-pageLayout.Parent                 = pagesContainer
-
 -- ════════════════════════════════════════════════════════════════
 -- PAGE: TU CLAN
 -- ════════════════════════════════════════════════════════════════
-local pageTuClan = UI.frame({name = "TuClan", size = UDim2.fromScale(1, 1), bgT = 1, z = 102, parent = pagesContainer})
-pageTuClan.LayoutOrder = 1
+local pageTuClan = UI.frame({name = "TuClan", size = UDim2.fromScale(1, 1), bgT = 1, z = 102, parent = contentArea})
 local tuClanContainer = UI.frame({name = "Container", size = UDim2.new(1, -20, 1, -20), pos = UDim2.new(0, 10, 0, 10), bgT = 1, z = 102, parent = pageTuClan})
 tabPages["TuClan"] = pageTuClan
 
 -- ════════════════════════════════════════════════════════════════
 -- PAGE: DISPONIBLES
 -- ════════════════════════════════════════════════════════════════
-local pageDisponibles = UI.frame({name = "Disponibles", size = UDim2.fromScale(1, 1), bgT = 1, z = 102, parent = pagesContainer})
-pageDisponibles.LayoutOrder = 2
+local pageDisponibles = UI.frame({name = "Disponibles", size = UDim2.fromScale(1, 1), bgT = 1, z = 102, parent = contentArea})
 
 local searchContainer, searchInput, searchCleanup = SearchModern.new(pageDisponibles, {placeholder = "Buscar clanes...", size = UDim2.new(1, -20, 0, 36), z = 104, name = "BuscarClanes"})
 searchContainer.Position = UDim2.new(0, 10, 0, 10)
@@ -202,10 +143,9 @@ tabPages["Disponibles"] = pageDisponibles
 local pageAdmin, adminClansScroll
 
 if isAdmin then
-	pageAdmin = UI.frame({name = "Admin", size = UDim2.fromScale(1, 1), bgT = 1, z = 102, parent = pagesContainer})
-	pageAdmin.LayoutOrder = 3
+	pageAdmin = UI.frame({name = "Admin", size = UDim2.fromScale(1, 1), bgT = 1, z = 102, parent = contentArea})
 
-	local adminHeader = UI.frame({size = UDim2.new(1, -20, 0, 40), pos = UDim2.new(0, 10, 0, 10), bg = THEME.warnMuted, z = 103, parent = pageAdmin, corner = 8, stroke = true, strokeA = 0.5, strokeC = THEME.btnDanger})
+	local adminHeader = UI.frame({size = UDim2.new(1, -20, 0, 40), pos = UDim2.new(0, 10, 0, 10), bg = THEME.elevated, z = 103, parent = pageAdmin, corner = 8, stroke = true, strokeA = 0.5, strokeC = THEME.danger})
 	UI.label({size = UDim2.new(1, -16, 1, 0), pos = UDim2.new(0, 8, 0, 0), text = "⚠ Panel de Administrador - Acciones irreversibles", color = THEME.warn, textSize = 11, font = Enum.Font.GothamMedium, z = 104, parent = adminHeader})
 
 	adminClansScroll = ClanHelpers.setupScroll(pageAdmin, {z = 103})

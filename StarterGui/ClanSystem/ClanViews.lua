@@ -85,13 +85,13 @@ function ClanViews.createMainView(parent, clanData, playerRole, screenGui, loadP
 	local function nextOrder() layoutOrder = layoutOrder + 1 return layoutOrder end
 
 	-- INFO CARD
-	local infoCard = UI.frame({size = UDim2.new(1, -8, 0, 160), bg = THEME.card, bgT = THEME.frameAlpha, z = 104, parent = scrollFrame, corner = 12, stroke = true, strokeA = 0.5, strokeC = THEME.stroke, clips = true})
+	local infoCard = UI.frame({size = UDim2.new(1, -8, 0, 160), bg = THEME.card, bgT = 0.3, z = 104, parent = scrollFrame, corner = 12, stroke = true, strokeA = 0.5, strokeC = THEME.stroke, clips = true})
 	infoCard.LayoutOrder = nextOrder()
 
 	local bannerImage = Instance.new("ImageLabel")
 	bannerImage.Size, bannerImage.BackgroundTransparency = UDim2.new(1, 0, 1, 0), 1
 	bannerImage.Image = clanData.logo or ""
-	bannerImage.ScaleType, bannerImage.ImageTransparency, bannerImage.ZIndex = Enum.ScaleType.Crop, THEME.mediumAlpha, 104
+	bannerImage.ScaleType, bannerImage.ImageTransparency, bannerImage.ZIndex = Enum.ScaleType.Crop, 0.5, 104
 	bannerImage.Parent = infoCard
 	UI.rounded(bannerImage, 12)
 
@@ -100,7 +100,7 @@ function ClanViews.createMainView(parent, clanData, playerRole, screenGui, loadP
 	bannerGradient.Rotation = 90
 	bannerGradient.Parent = bannerImage
 
-	local logoFrame = UI.frame({size = UDim2.new(0, 74, 0, 74), pos = UDim2.new(0, 16, 0, 24), bg = THEME.surface, z = 106, parent = infoCard, corner = 37, stroke = true, strokeA = 0.3})
+	local logoFrame = UI.frame({size = UDim2.new(0, 74, 0, 74), pos = UDim2.new(0, 16, 0, 24), bg = THEME.elevated, z = 106, parent = infoCard, corner = 37, stroke = true, strokeA = 0.3})
 
 	if clanData.logo and clanData.logo ~= "" and clanData.logo ~= "rbxassetid://0" then
 		local logoImg = Instance.new("ImageLabel")
@@ -139,7 +139,7 @@ function ClanViews.createMainView(parent, clanData, playerRole, screenGui, loadP
 			if count >= 3 then break end
 			local odINum = tonumber(odI)
 			if odINum and odINum > 0 then
-				local miniAvatar = UI.frame({size = UDim2.new(0, 26, 0, 26), bg = THEME.surface, z = 106, parent = membersAvatarPreview, corner = 13})
+				local miniAvatar = UI.frame({size = UDim2.new(0, 26, 0, 26), bg = THEME.elevated, z = 106, parent = membersAvatarPreview, corner = 13})
 				local avatarImg = Instance.new("ImageLabel")
 				avatarImg.Size, avatarImg.Position = UDim2.new(1, -4, 1, -4), UDim2.new(0, 2, 0, 2)
 				avatarImg.BackgroundTransparency = 1

@@ -151,7 +151,7 @@ function ClanNetworking.createClanEntry(clanData, pendingList, clansScroll, load
 	entry.Name = "ClanEntry_" .. (clanData.clanId or "unknown")
 	entry.Size = UDim2.new(1, 0, 0, 85)
 	entry.BackgroundColor3 = THEME.card
-	entry.BackgroundTransparency = THEME.frameAlpha
+	entry.BackgroundTransparency = 0.3
 	entry.GroupTransparency = 0
 	entry.BorderSizePixel = 0
 	entry.ZIndex = 104
@@ -281,12 +281,12 @@ function ClanNetworking.loadAdminClans(adminClansScroll, screenGui, State, CONFI
 					warn("[CreateClanGui] Clan sin clanId:", clanData)
 				end
 
-				local entry = UI.frame({size = UDim2.new(1, 0, 0, 65), bg = THEME.card, bgT = THEME.frameAlpha, z = 104, parent = adminClansScroll, corner = 10, stroke = true, strokeA = 0.5, strokeC = THEME.stroke})
+				local entry = UI.frame({size = UDim2.new(1, 0, 0, 65), bg = THEME.card, bgT = 0.3, z = 104, parent = adminClansScroll, corner = 10, stroke = true, strokeA = 0.5, strokeC = THEME.stroke})
 
 				UI.label({size = UDim2.new(1, -160, 0, 18), pos = UDim2.new(0, 15, 0, 12), text = (clanData.emoji or "") .. " " .. (clanData.name or "Sin nombre"), color = THEME.accent, textSize = 13, font = Enum.Font.GothamBold, z = 105, parent = entry})
 				UI.label({size = UDim2.new(1, -160, 0, 14), pos = UDim2.new(0, 15, 0, 34), text = "ID: " .. (clanData.clanId or "?") .. " • " .. (clanData.memberCount or 0) .. " miembros", color = THEME.muted, textSize = 10, z = 105, parent = entry})
 
-				local deleteBtn = UI.button({size = UDim2.new(0, 70, 0, 32), pos = UDim2.new(1, -80, 0.5, -16), bg = THEME.btnDanger, text = "Eliminar", textSize = 10, z = 105, parent = entry, corner = 6, hover = true, hoverBg = UI.brighten(THEME.btnDanger, 1.15)})
+				local deleteBtn = UI.button({size = UDim2.new(0, 70, 0, 32), pos = UDim2.new(1, -80, 0.5, -16), bg = THEME.danger, text = "Eliminar", textSize = 10, z = 105, parent = entry, corner = 6, hover = true, hoverBg = UI.brighten(THEME.danger, 1.15)})
 				UI.hover(entry, THEME.card, THEME.elevated)
 
 				Memory:track(deleteBtn.MouseButton1Click:Connect(function()

@@ -180,7 +180,7 @@ function ClanActions:dissolve(gui, clanName, onSuccess)
 	showModal(gui, {
 		title = "Disolver Clan", 
 		message = string.format('¿Disolver "%s"?\n\nEsta acción es IRREVERSIBLE.', clanName),
-		confirm = "Disolver", confirmColor = THEME.btnDanger,
+		confirm = "Disolver", confirmColor = THEME.danger,
 		action = function() return ClanClient:DissolveClan() end,
 		successTitle = "Clan Disuelto", successMsg = "El clan ha sido eliminado",
 		onSuccess = onSuccess
@@ -197,7 +197,7 @@ function ClanActions:adminDelete(gui, clanData, onSuccess)
 	showModal(gui, {
 		title = "Eliminar Clan",
 		message = string.format('¿Eliminar "%s"?\nID: %s', clanData.name or "Sin nombre", clanData.clanId),
-		confirm = "Eliminar", confirmColor = THEME.btnDanger,
+		confirm = "Eliminar", confirmColor = THEME.danger,
 		action = function() return ClanClient:AdminDissolveClan(clanData.clanId) end,
 		successTitle = "Eliminado", successMsg = "Clan eliminado",
 		onSuccess = onSuccess

@@ -56,8 +56,24 @@ end
 -- ICONOS DEL TOPBAR
 -- ════════════════════════════════════════════════════════════════
 
--- EMOTES: El botón de emotes ahora está integrado en EmoteUI.lua
+-- ════════════════════════════════════════════════════════════════
+-- ICONO: CLANES
+-- ════════════════════════════════════════════════════════════════
+_G.ClanSystemIcon = Icon.new()
+	:setImage(108522831218138)
+	:setImageRatio(1)
+	:setImageScale(0.65)
+	:setOrder(2)
+	:autoDeselect(false)
+	:disableOverlay(true)
 
+_G.ClanSystemIcon:bindEvent("selected", function(icon)
+	GlobalModalManager:openModal("Clan")
+end)
+
+_G.ClanSystemIcon:bindEvent("deselected", function(icon)
+	GlobalModalManager:closeModal("Clan")
+end)
 -- ════════════════════════════════════════════════════════════════
 -- ICONO: MENÚ (abre panel lateral unificado)
 -- ════════════════════════════════════════════════════════════════
