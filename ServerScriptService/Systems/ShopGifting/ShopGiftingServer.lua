@@ -48,6 +48,77 @@ local OwnershipUpdated = ShopGiftingFolder:FindFirstChild("OwnershipUpdated")
 OwnershipUpdated.Name = "OwnershipUpdated"
 
 -- ═══════════════════════════════════════════════════════════════
+-- TEST USERS (por username @...)
+-- ═══════════════════════════════════════════════════════════════
+local USE_TEST_USERS = true
+local TEST_USERNAMES = {
+	"ignxts0",
+	"Jeniferx_xd",
+	"AltSocratic",
+	"AngeloGarcia",
+	"Jeny02093",
+	"User_JL11",
+	"TsAlfred",
+	"Fueg2oh",
+	"bvwdhfv",
+	"kirikin113",
+	"Krizart16",
+	"JackFox188",
+	"FranckCazou",
+	"Rach_pr",
+	"GalletaDeAgua20",
+	"adrilivn",
+	"ThealexGamesYTOF",
+	"Tfifa20",
+	"xlm_brem",
+	"itzjheiner",
+	"SCISSORSV7",
+	"Xandroquis",
+	"suzu1k",
+	"JuanMVP36",
+	"Fercho_ZP",
+	"ClasicSans738",
+	"Ismaxxx77",
+	"tulobitajanethalexa",
+	"caramandungap",
+	"ISASIO220",
+}
+
+local function normalizeUsername(raw)
+	if type(raw) ~= "string" then return nil end
+	local cleaned = raw:gsub("@", ""):gsub("%s+", "")
+	if cleaned == "" then return nil end
+	return cleaned
+end
+
+local function getTestUsersForGifting(requestingPlayer)
+	local out = {}
+	for _, rawName in ipairs(TEST_USERNAMES) do
+		local username = normalizeUsername(rawName)
+		if username then
+			local ok, userId = pcall(function()
+				return Players:GetUserIdFromNameAsync(username)
+			end)
+			if ok and userId and userId > 0 and userId ~= requestingPlayer.UserId then
+				table.insert(out, {
+					userId = userId,
+					username = username,
+					displayName = username,
+				})
+			else
+				warn("[ShopGifting] Usuario de prueba inválido/no resuelto:", tostring(rawName))
+			end
+		end
+	end
+
+	table.sort(out, function(a, b)
+		return (a.displayName or ""):lower() < (b.displayName or ""):lower()
+	end)
+
+	return out
+end
+
+-- ═══════════════════════════════════════════════════════════════
 -- CACHE
 -- ═══════════════════════════════════════════════════════════════
 local ownershipCache = {} -- [userId-itemId] = {owns = bool, timestamp = tick()}
@@ -123,6 +194,16 @@ end
 local function getPlayersWithoutItem(requestingPlayer, itemType, itemId)
 	if not requestingPlayer or not itemType or not itemId then
 		return { success = false, error = "Parámetros inválidos" }
+	end
+
+	if USE_TEST_USERS then
+		local testPlayers = getTestUsersForGifting(requestingPlayer)
+		return {
+			success = true,
+			players = testPlayers,
+			total = #testPlayers,
+			isTestMode = true,
+		}
 	end
 	
 	local playersWithout = {}

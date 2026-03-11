@@ -54,13 +54,27 @@ function PlayerList.new(config)
 	local self = setmetatable({}, PlayerList)
 	
 	self.parent = config.parent
-	self.title = config.title or "Jugadores"
+	self.title = config.title
 	self.emptyText = config.emptyText or "No hay jugadores"
 	self.accentColor = config.accentColor or THEME.accent
 	self.buttonText = config.buttonText or "REGALAR"
 	self.buttonIcon = config.buttonIcon or "🎁"
 	self.onAction = config.onAction
 	self.showSearch = config.showSearch ~= false
+	self.showTitle = config.showTitle
+	if self.showTitle == nil then
+		self.showTitle = self.title ~= nil
+	end
+	self.showCount = config.showCount
+	if self.showCount == nil then
+		self.showCount = self.showTitle
+	end
+	self.headerHeight = config.headerHeight or HEADER_HEIGHT
+	self.searchGap = config.searchGap
+	self.searchOptions = config.searchOptions or {}
+	if self.searchGap == nil then
+		self.searchGap = 8
+	end
 	
 	self.players = config.players or {}
 	self.filteredPlayers = {}
@@ -91,52 +105,62 @@ function PlayerList:_build()
 	
 	local contentY = 0
 	
-	-- Header con título y contador
-	if self.title then
+	-- Header con título y/o contador
+	if self.showTitle or self.showCount then
 		local header = Instance.new("Frame")
 		header.Name = "Header"
-		header.Size = UDim2.new(1, -16, 0, HEADER_HEIGHT)
-		header.Position = UDim2.new(0, 8, 0, 0)
+		header.Size = UDim2.new(1, 0, 0, self.headerHeight)
+		header.Position = UDim2.new(0, 0, 0, 0)
 		header.BackgroundTransparency = 1
 		header.Parent = self.root
-		
-		local titleLabel = Instance.new("TextLabel")
-		titleLabel.Name = "Title"
-		titleLabel.Size = UDim2.new(0.7, 0, 1, 0)
-		titleLabel.BackgroundTransparency = 1
-		titleLabel.Font = Enum.Font.GothamBold
-		titleLabel.TextSize = 14
-		titleLabel.TextColor3 = THEME.text
-		titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-		titleLabel.Text = self.title
-		titleLabel.Parent = header
-		
-		self.countLabel = Instance.new("TextLabel")
-		self.countLabel.Name = "Count"
-		self.countLabel.Size = UDim2.new(0.3, 0, 1, 0)
-		self.countLabel.Position = UDim2.new(0.7, 0, 0, 0)
-		self.countLabel.BackgroundTransparency = 1
-		self.countLabel.Font = Enum.Font.Gotham
-		self.countLabel.TextSize = 12
-		self.countLabel.TextColor3 = THEME.muted
-		self.countLabel.TextXAlignment = Enum.TextXAlignment.Right
-		self.countLabel.Text = "0 jugadores"
-		self.countLabel.Parent = header
-		
-		contentY = HEADER_HEIGHT
+
+		if self.showTitle then
+			local titleLabel = Instance.new("TextLabel")
+			titleLabel.Name = "Title"
+			titleLabel.Size = UDim2.new(self.showCount and 0.7 or 1, self.showCount and -8 or -12, 1, 0)
+			titleLabel.Position = UDim2.new(0, 8, 0, 0)
+			titleLabel.BackgroundTransparency = 1
+			titleLabel.Font = Enum.Font.GothamBold
+			titleLabel.TextSize = 14
+			titleLabel.TextColor3 = THEME.text
+			titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+			titleLabel.Text = self.title
+			titleLabel.Parent = header
+			self.titleLabel = titleLabel
+		end
+
+		if self.showCount then
+			self.countLabel = Instance.new("TextLabel")
+			self.countLabel.Name = "Count"
+			self.countLabel.Size = self.showTitle and UDim2.new(0.3, -8, 1, 0) or UDim2.new(1, -8, 1, 0)
+			self.countLabel.Position = self.showTitle and UDim2.new(0.7, 0, 0, 0) or UDim2.new(0, 0, 0, 0)
+			self.countLabel.BackgroundTransparency = 1
+			self.countLabel.Font = Enum.Font.Gotham
+			self.countLabel.TextSize = 12
+			self.countLabel.TextColor3 = THEME.muted
+			self.countLabel.TextXAlignment = Enum.TextXAlignment.Right
+			self.countLabel.Text = "0 jugadores"
+			self.countLabel.Parent = header
+		end
+
+		contentY = self.headerHeight
 	end
 	
 	-- Search bar
 	if self.showSearch then
+		local searchSize = self.searchOptions.size or UDim2.new(1, -16, 0, SEARCH_HEIGHT)
+		local searchHeight = searchSize.Y.Offset ~= 0 and searchSize.Y.Offset or SEARCH_HEIGHT
 		local searchContainer, searchInput = SearchModern.new(self.root, {
-			placeholder = "Buscar jugador...",
-			size = UDim2.new(1, -16, 0, SEARCH_HEIGHT),
-			bg = THEME.card,
-			corner = 8,
-			z = 105,
-			inputName = "PlayerSearchInput",
+			placeholder = self.searchOptions.placeholder or "Buscar jugador...",
+			size = searchSize,
+			bg = self.searchOptions.bg or THEME.card,
+			corner = self.searchOptions.corner,
+			z = self.searchOptions.z or 105,
+			inputName = self.searchOptions.inputName or "PlayerSearchInput",
+			textSize = self.searchOptions.textSize,
+			isMobile = self.searchOptions.isMobile,
 		})
-		searchContainer.Position = UDim2.new(0, 8, 0, contentY)
+		searchContainer.Position = self.searchOptions.position or UDim2.new(0, 8, 0, contentY)
 		
 		self.searchInput = searchInput
 		
@@ -152,7 +176,7 @@ function PlayerList:_build()
 		end)
 		table.insert(self.connections, conn)
 		
-		contentY = contentY + SEARCH_HEIGHT + 8
+		contentY = contentY + searchHeight + self.searchGap
 	end
 	
 	-- Scroll container
@@ -216,25 +240,15 @@ function PlayerList:_build()
 	self.emptyFrame.Visible = false
 	self.emptyFrame.Parent = self.scroll
 	
-	local emptyIcon = Instance.new("TextLabel")
-	emptyIcon.Name = "EmptyIcon"
-	emptyIcon.Size = UDim2.new(1, 0, 0, 30)
-	emptyIcon.Position = UDim2.new(0, 0, 0, 10)
-	emptyIcon.BackgroundTransparency = 1
-	emptyIcon.Font = Enum.Font.Gotham
-	emptyIcon.TextSize = 24
-	emptyIcon.TextColor3 = THEME.muted
-	emptyIcon.Text = "👥"
-	emptyIcon.Parent = self.emptyFrame
-	
 	local emptyText = Instance.new("TextLabel")
 	emptyText.Name = "EmptyText"
-	emptyText.Size = UDim2.new(1, 0, 0, 20)
-	emptyText.Position = UDim2.new(0, 0, 0, 45)
+	emptyText.Size = UDim2.new(1, -16, 0, 24)
+	emptyText.Position = UDim2.new(0, 8, 0, 26)
 	emptyText.BackgroundTransparency = 1
-	emptyText.Font = Enum.Font.Gotham
-	emptyText.TextSize = 12
+	emptyText.Font = Enum.Font.GothamBold
+	emptyText.TextSize = 15
 	emptyText.TextColor3 = THEME.muted
+	emptyText.TextXAlignment = Enum.TextXAlignment.Center
 	emptyText.Text = self.emptyText
 	emptyText.Parent = self.emptyFrame
 end
@@ -351,13 +365,8 @@ end
 
 function PlayerList:setTitle(title)
 	self.title = title
-	-- Update title label if exists
-	local header = self.root:FindFirstChild("Header")
-	if header then
-		local titleLabel = header:FindFirstChild("Title")
-		if titleLabel then
-			titleLabel.Text = title
-		end
+	if self.titleLabel then
+		self.titleLabel.Text = title
 	end
 end
 

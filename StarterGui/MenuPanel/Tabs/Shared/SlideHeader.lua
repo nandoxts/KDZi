@@ -99,7 +99,7 @@ function SlideHeader.new(props)
 	local subtitle = UI.label({
 		size = UDim2.new(1, -60, 0, 16),
 		pos = UDim2.new(0, 52, 0, props.subtitleY or 32),
-		font = Enum.Font.GothamMedium, textSize = 13,
+		font = Enum.Font.GothamBold, textSize = 15,
 		color = THEME.accent,
 		z = Z + 2, parent = header,
 	})

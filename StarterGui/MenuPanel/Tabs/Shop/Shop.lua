@@ -57,12 +57,8 @@ function Shop.build(parent, THEME, sharedState)
 	-- ══════════════════════════════════════════════════════════════
 	-- LIFECYCLE
 	-- ══════════════════════════════════════════════════════════════
-	local function onClose()
-		if gamepassResult.cleanup then gamepassResult.cleanup() end
-		if titlesResult.cleanup then titlesResult.cleanup() end
-	end
-
-	return { onOpen = function() end, onClose = onClose }
+	-- onClose es no-op: las connections (MarketplaceService, OwnershipUpdated)
+	return { onOpen = function() end, onClose = function() end }
 end
 
 return Shop
