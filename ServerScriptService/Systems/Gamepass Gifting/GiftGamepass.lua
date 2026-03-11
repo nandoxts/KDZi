@@ -185,6 +185,11 @@ local function giftGamepassFree(admin, gamepass, recipientUserId, recipientUsern
 		GamepassName = gamepassName
 	})
 
+	-- Notificar a ShopGifting para actualizar listas en tiempo real
+	if _G.ShopGifting_OnItemGifted then
+		pcall(_G.ShopGifting_OnItemGifted, recipientUserId, "gamepass", gamepass[1])
+	end
+
 	-- Notificar al admin que se completó el regalo
 	GamepassGifting:FireClient(admin, "Purchase")
 
@@ -429,6 +434,11 @@ local function handleGiftPurchase(receiptInfo)
 						BadgeService:AwardBadge(donor.UserId, BADGES_Gift)
 					end
 				end
+			end
+
+			-- Notificar a ShopGifting para actualizar listas en tiempo real
+			if _G.ShopGifting_OnItemGifted then
+				pcall(_G.ShopGifting_OnItemGifted, Recipient, "gamepass", gamepass[1])
 			end
 
 			-- Retornar inmediatamente (el DataStore se guardará en background)

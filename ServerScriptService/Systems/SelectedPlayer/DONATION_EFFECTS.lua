@@ -14,7 +14,6 @@ local Workspace = game:GetService("Workspace")
 
 local Configuration  = require(game.ReplicatedStorage.Config.Configuration)
 local AdminConfig    = require(game.ReplicatedStorage.Config.AdminConfig)
-local ColorEffects = require(game:GetService("ServerScriptService").Systems.Effects.ColorEffectsModule)
 
 --==================================================
 --                    CONSTANTES
