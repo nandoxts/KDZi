@@ -16,7 +16,7 @@ local PanelView = {}
 -- DEPENDENCIAS (inyectadas via init)
 -- ═══════════════════════════════════════════════════════════════
 local Config, State, Utils, Remotes
-local Services, NotificationSystem, ColorEffects, Gifting, THEME
+local Services, NotificationSystem, ColorEffects, THEME
 local player, playerGui
 
 -- Cache de layout por sesión de panel (evita recalcular)
@@ -32,7 +32,6 @@ function PanelView.init(config, state, utils, remotes)
 	Services = remotes.Services
 	NotificationSystem = remotes.Systems.NotificationSystem
 	ColorEffects = remotes.Systems.ColorEffects
-	Gifting = remotes.Gifting.GiftingRemote
 	THEME = config.THEME
 	player = Services.Player
 	playerGui = Services.PlayerGui
@@ -126,6 +125,7 @@ local Admin = {}
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local AdminConfig = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("AdminConfig"))
 local ModernScrollbar = require(ReplicatedStorage:WaitForChild("UIComponents"):WaitForChild("ModernScrollbar"))
+local UI = require(ReplicatedStorage:WaitForChild("Core"):WaitForChild("UI"))
 
 function Admin.isAdmin(userName)
 	-- Acepta nombre de usuario (string)
@@ -237,166 +237,207 @@ local function createButton(parent, text, layoutOrder, accentColor)
 end
 
 -- ═══════════════════════════════════════════════════════════════
--- DYNAMIC SECTION (Donaciones / Regalar Pase)
+-- DONATION OVERLAY (Mini-panel flotante sobre el panel)
 -- ═══════════════════════════════════════════════════════════════
-local function renderDynamicSection(viewType, items, targetName, playerColor)
-	if not State.dynamicSection or not State.dynamicSection.Parent then return end
+
+local function closeDonationOverlay()
+	local content = State.donationOverlay
+	if not content or not content.Parent then
+		State.donationOverlay = nil
+		State.isLoadingDynamic = false
+		return
+	end
+
+	local L = getLayout()
+	local pY = L.dragHandleH + 4
+	local targetY = pY + L.panelHeight / 2 + 30
+
+	safeTween(content, {
+		GroupTransparency = 1,
+		Position = UDim2.new(0.5, 0, 0, targetY),
+	}, 0.28, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
+
+	task.delay(0.3, function()
+		if content and content.Parent then content:Destroy() end
+		State.donationOverlay = nil
+		State.isLoadingDynamic = false
+	end)
+end
+
+local function showDonationOverlay(items, targetName, playerColor)
 	local L = getLayout()
 
-	for _, child in ipairs(State.dynamicSection:GetChildren()) do child:Destroy() end
+	if State.donationOverlay then
+		closeDonationOverlay()
+		task.wait(0.32)
+	end
 
-	-- Header + Back
-	local header = Utils.createFrame({ Size = UDim2.new(1, 0, 0, L.fontSize.title + 14), Parent = State.dynamicSection })
-	Utils.addCorner(header, 8)
+	local parent = State.container
+	if not parent then return end
 
-	local backBase = THEME.elevated:Lerp(playerColor or THEME.accent, 0.05)
-	local backBtn = Utils.create("TextButton", {
-		Size = UDim2.new(0, 28, 0, 28), BackgroundColor3 = backBase, BackgroundTransparency = 0.1,
-		Text = "‹", TextColor3 = THEME.text, TextSize = 16, Font = Enum.Font.GothamBold,
-		AutoButtonColor = false, ZIndex = 70, Parent = header
+	local pY = L.dragHandleH + 4
+	local contentH = L.cardSize + 86
+	local centerY = pY + L.panelHeight / 2
+	local startY = centerY + 30
+
+	-- Panel flotante directo (sin overlay backdrop)
+	local content = Utils.create("CanvasGroup", {
+		Name = "DonationContent",
+		Size = UDim2.new(1, -L.panelPadding * 2, 0, contentH),
+		Position = UDim2.new(0.5, 0, 0, startY),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		BackgroundColor3 = THEME.bg,
+		BackgroundTransparency = 0,
+		BorderSizePixel = 0,
+		ZIndex = 100,
+		GroupTransparency = 1,
+		Parent = parent,
 	})
-	Utils.addCorner(backBtn, 8)
-	Utils.addStroke(backBtn, playerColor or THEME.accent, 1, 0.8)
+	Utils.addCorner(content, L.cornerRadius)
+	Utils.addStroke(content, THEME.stroke, 1.6, 0.25)
+	State.donationOverlay = content
 
-	local backHover = Utils.darkenColor(playerColor or THEME.accent, 0.25)
-	Utils.addConnection(backBtn.MouseEnter:Connect(function() safeTween(backBtn, { BackgroundColor3 = backHover }, Config.ANIM_FAST) end))
-	Utils.addConnection(backBtn.MouseLeave:Connect(function() safeTween(backBtn, { BackgroundColor3 = backBase }, Config.ANIM_FAST) end))
+	-- Header
+	local headerH = 36
+	local headerFrame = Utils.createFrame({
+		Size = UDim2.new(1, 0, 0, headerH),
+		ZIndex = 101, Parent = content,
+	})
 
-	Utils.addConnection(backBtn.MouseButton1Click:Connect(function()
-		if not State.dynamicSection then return end
-		safeTween(State.dynamicSection, { Position = UDim2.new(1, 0, 0, State.dynamicSection.Position.Y.Offset) }, 0.25, Enum.EasingStyle.Sine, Enum.EasingDirection.In)
-		if State.buttonsFrame then
-			State.buttonsFrame.Visible = true
-			State.buttonsFrame.Position = UDim2.new(-1, 0, 0, State.buttonsFrame.Position.Y.Offset)
-			safeTween(State.buttonsFrame, { Position = UDim2.new(0, L.panelPadding, 0, State.buttonsFrame.Position.Y.Offset) }, 0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-		end
-		task.delay(0.25, function()
-			if State.dynamicSection then State.dynamicSection:Destroy(); State.dynamicSection = nil end
-			State.currentView = "buttons"
-			State.isLoadingDynamic = false
-		end)
+	-- Botón BACK (outlined circle)
+	local backBtn, backIcon = UI.outlinedCircleBtn(headerFrame, {
+		size = 26,
+		icon = UI.ICONS.BACK,
+		theme = THEME,
+		zIndex = 102,
+		position = UDim2.new(0, L.panelPadding, 0.5, -13),
+		name = "BackBtn",
+	})
+	Utils.addConnection(backBtn.MouseButton1Click:Connect(closeDonationOverlay))
+
+	-- Hover sutil en el icono
+	Utils.addConnection(backBtn.MouseEnter:Connect(function()
+		safeTween(backIcon, { ImageColor3 = THEME.text }, Config.ANIM_FAST)
+	end))
+	Utils.addConnection(backBtn.MouseLeave:Connect(function()
+		safeTween(backIcon, { ImageColor3 = THEME.dim }, Config.ANIM_FAST)
 	end))
 
-	local title = viewType == "donations" and ("Donar a " .. (targetName or "Usuario")) or "Regalar Pase"
+	-- Título
 	Utils.createLabel({
-		Size = UDim2.new(1, -36, 0, L.fontSize.title + 14), Position = UDim2.new(0, 34, 0, 0),
-		Text = title, TextColor3 = THEME.text, TextSize = L.fontSize.title - 2,
-		Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Left,
-		TextTruncate = Enum.TextTruncate.AtEnd, Parent = header
+		Size = UDim2.new(1, -(L.panelPadding * 2 + 34), 0, headerH),
+		Position = UDim2.new(0, L.panelPadding + 34, 0, 0),
+		Text = "Donar a " .. (targetName or "Usuario"),
+		TextColor3 = THEME.text,
+		TextSize = L.fontSize.title - 2,
+		Font = Enum.Font.GothamBold,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		ZIndex = 101, Parent = headerFrame,
 	})
 
-	-- Scroll horizontal
-	local scrollTop = L.fontSize.title + 20
+	-- Scroll horizontal de items
+	local scrollTop = headerH + 6
 	local scroll = Utils.create("ScrollingFrame", {
-		Size = UDim2.new(1, 0, 1, -scrollTop), Position = UDim2.new(0, 0, 0, scrollTop),
-		BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 3,
-		ScrollBarImageColor3 = playerColor or THEME.accent, ScrollBarImageTransparency = 0.3,
-		ScrollingDirection = Enum.ScrollingDirection.X, AutomaticCanvasSize = Enum.AutomaticSize.X,
-		CanvasSize = UDim2.new(0, 0, 0, L.cardSize + 14), ElasticBehavior = Enum.ElasticBehavior.Never,
-		Parent = State.dynamicSection
+		Size = UDim2.new(1, -L.panelPadding * 2, 1, -scrollTop - 8),
+		Position = UDim2.new(0, L.panelPadding, 0, scrollTop),
+		BackgroundTransparency = 1, BorderSizePixel = 0,
+		ScrollBarThickness = 3,
+		ScrollBarImageColor3 = playerColor or THEME.accent,
+		ScrollBarImageTransparency = 0.3,
+		ScrollingDirection = Enum.ScrollingDirection.X,
+		AutomaticCanvasSize = Enum.AutomaticSize.X,
+		CanvasSize = UDim2.new(0, 0, 0, L.cardSize + 14),
+		ElasticBehavior = Enum.ElasticBehavior.Never,
+		ZIndex = 101, Parent = content,
 	})
 	Utils.create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Left, VerticalAlignment = Enum.VerticalAlignment.Top, Padding = UDim.new(0, 10), Parent = scroll })
 	Utils.create("UIPadding", { PaddingLeft = UDim.new(0, 4), PaddingRight = UDim.new(0, 4), Parent = scroll })
 
 	if not items or #items == 0 then
-		Utils.createLabel({ Size = UDim2.new(1, 0, 1, 0), Text = "No hay items disponibles", TextColor3 = THEME.muted, TextSize = L.fontSize.statLabel + 2, Parent = scroll })
-		return
-	end
+		Utils.createLabel({ Size = UDim2.new(1, 0, 1, 0), Text = "No hay items disponibles", TextColor3 = THEME.muted, TextSize = L.fontSize.statLabel + 2, ZIndex = 101, Parent = scroll })
+	else
+		for i, item in ipairs(items) do
+			local cardOuter = Utils.createFrame({ Size = UDim2.new(0, L.cardSize + 10, 0, L.cardSize + 10), LayoutOrder = i, ZIndex = 101, Parent = scroll })
 
-	for i, item in ipairs(items) do
-		local cardOuter = Utils.createFrame({ Size = UDim2.new(0, L.cardSize + 10, 0, L.cardSize + 10), LayoutOrder = i, Parent = scroll })
-		Utils.addCorner(cardOuter, L.cardSize / 2)
+			-- CanvasGroup circular para recorte limpio de imagen
+			local circle = Utils.create("CanvasGroup", {
+				Size = UDim2.new(0, L.cardSize, 0, L.cardSize),
+				Position = UDim2.new(0.5, 0, 0.5, 0), AnchorPoint = Vector2.new(0.5, 0.5),
+				BackgroundColor3 = THEME.card, BackgroundTransparency = 0,
+				BorderSizePixel = 0,
+				ZIndex = 101, Parent = cardOuter,
+			})
+			Utils.addCorner(circle, L.cardSize / 2)
+			local circleStroke = Utils.addStroke(circle, THEME.stroke, 1.5)
 
-		local circle = Utils.createFrame({
-			Size = UDim2.new(0, L.cardSize, 0, L.cardSize), Position = UDim2.new(0.5, 0, 0.5, 0),
-			AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = THEME.card, BackgroundTransparency = 0,
-			ClipsDescendants = true, Parent = cardOuter
-		})
-		Utils.addCorner(circle, L.cardSize / 2)
-		local circleStroke = Utils.addStroke(circle, THEME.stroke, 1.5)
+			Utils.create("ImageLabel", {
+				Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1,
+				Image = item.icon or "", ScaleType = Enum.ScaleType.Crop,
+				ZIndex = 102, Parent = circle,
+			})
 
-		local img = Utils.create("ImageLabel", { Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Image = item.icon or "", ScaleType = Enum.ScaleType.Crop, ZIndex = 1, Parent = circle })
-		Utils.addCorner(img, L.cardSize / 2)
+			local priceOverlay = Utils.createFrame({
+				Size = UDim2.new(1, 0, 0.4, 0),
+				Position = UDim2.new(0.5, 0, 0.5, 0), AnchorPoint = Vector2.new(0.5, 0.5),
+				BackgroundColor3 = Color3.fromRGB(10, 10, 15), BackgroundTransparency = 0.35,
+				ZIndex = 103, ClipsDescendants = true, Parent = circle,
+			})
+			Utils.addCorner(priceOverlay, 8)
 
-		-- Precio overlay (centrado)
-		local priceOverlay = Utils.createFrame({
-			Size = UDim2.new(1, 0, 0.4, 0), Position = UDim2.new(0.5, 0, 0.5, 0), AnchorPoint = Vector2.new(0.5, 0.5),
-			BackgroundColor3 = Color3.fromRGB(10, 10, 15), BackgroundTransparency = 0.35, ZIndex = 2, ClipsDescendants = true, Parent = circle
-		})
-		Utils.addCorner(priceOverlay, 8)
+			local priceText = Utils.createLabel({
+				Size = UDim2.new(1, 0, 1, 0),
+				Text = utf8.char(0xE002) .. tostring(item.price or 0),
+				TextColor3 = THEME.accent, TextSize = 12, Font = Enum.Font.GothamBold,
+				ZIndex = 104, Parent = priceOverlay,
+			})
 
-		local priceText = Utils.createLabel({ Size = UDim2.new(1, 0, 1, 0), Text = utf8.char(0xE002) .. tostring(item.price or 0), TextColor3 = THEME.accent, TextSize = 12, Font = Enum.Font.GothamBold, ZIndex = 3, Parent = priceOverlay })
-
-		-- Check pass (async)
-		if item.hasPass == true then
-			priceText.Text = "ADQUIRIDO"
-			priceText.TextColor3 = Color3.fromRGB(100, 220, 100)
-			priceOverlay.BackgroundTransparency = 0.4
-		elseif item.hasPass == nil and item.passId then
-			task.spawn(function()
-				local ok, result = pcall(function()
-					return viewType == "passes"
-						and Remotes.Remotes.CheckGamePass:InvokeServer(item.passId, State.userId)
-						or Remotes.Remotes.CheckGamePass:InvokeServer(item.passId)
-				end)
-				item.hasPass = (ok and result) or false
-				if item.hasPass and priceText.Parent then
-					priceText.Text = "ADQUIRIDO"
-					priceText.TextColor3 = Color3.fromRGB(100, 220, 100)
-					priceOverlay.BackgroundTransparency = 0.4
-				end
-			end)
-		end
-
-		-- Click
-		local clickBtn = Utils.create("TextButton", { Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Text = "", ZIndex = 10, Parent = cardOuter })
-		local strokeHover = playerColor or THEME.accent
-
-		Utils.addConnection(clickBtn.MouseEnter:Connect(function()
-			safeTween(circleStroke, { Color = strokeHover, Thickness = 2.5 }, Config.ANIM_FAST)
-		end))
-		Utils.addConnection(clickBtn.MouseLeave:Connect(function()
-			safeTween(circleStroke, { Color = THEME.stroke, Thickness = 1.5 }, Config.ANIM_FAST)
-		end))
-
-		Utils.addConnection(clickBtn.MouseButton1Click:Connect(function()
 			if item.hasPass == true then
-				if NotificationSystem then
-					local msg = viewType == "passes" and "Esta persona ya tiene este pase" or "Ya compraste este pase"
-					NotificationSystem:Info("Game Pass", msg, 2)
-				end
-			elseif item.passId then
-				if viewType == "passes" then
-					if not Gifting or not State.target or not State.target.UserId or not item.productId then return end
-					local tid = State.target.UserId
-					if type(tid) ~= "number" or tid == 0 then return end
-					pcall(function() Gifting:FireServer({ item.passId, item.productId }, tid, State.target.Name, player.UserId) end)
-				else
+				priceText.Text = "ADQUIRIDO"
+				priceText.TextColor3 = Color3.fromRGB(100, 220, 100)
+				priceOverlay.BackgroundTransparency = 0.4
+			elseif item.hasPass == nil and item.passId then
+				task.spawn(function()
+					local ok, result = pcall(function()
+						return Remotes.Remotes.CheckGamePass:InvokeServer(item.passId)
+					end)
+					item.hasPass = (ok and result) or false
+					if item.hasPass and priceText.Parent then
+						priceText.Text = "ADQUIRIDO"
+						priceText.TextColor3 = Color3.fromRGB(100, 220, 100)
+						priceOverlay.BackgroundTransparency = 0.4
+					end
+				end)
+			end
+
+			local clickBtn = Utils.create("TextButton", { Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Text = "", ZIndex = 105, Parent = cardOuter })
+			local strokeHover = playerColor or THEME.accent
+
+			Utils.addConnection(clickBtn.MouseEnter:Connect(function()
+				safeTween(circleStroke, { Color = strokeHover, Thickness = 2.5 }, Config.ANIM_FAST)
+			end))
+			Utils.addConnection(clickBtn.MouseLeave:Connect(function()
+				safeTween(circleStroke, { Color = THEME.stroke, Thickness = 1.5 }, Config.ANIM_FAST)
+			end))
+
+			Utils.addConnection(clickBtn.MouseButton1Click:Connect(function()
+				if item.hasPass == true then
+					if NotificationSystem then
+						NotificationSystem:Info("Game Pass", "Ya compraste este pase", 2)
+					end
+				elseif item.passId then
 					pcall(function() Services.MarketplaceService:PromptGamePassPurchase(player, item.passId) end)
 				end
-			end
-		end))
-	end
-end
-
-local function showDynamicSection(viewType, items, targetName, playerColor)
-	local L = getLayout()
-	State.currentView = viewType
-
-	if State.buttonsFrame then
-		safeTween(State.buttonsFrame, { Position = UDim2.new(-1, 0, 0, State.buttonsFrame.Position.Y.Offset) }, 0.3, Enum.EasingStyle.Sine, Enum.EasingDirection.In)
-		task.delay(0.3, function() if State.buttonsFrame then State.buttonsFrame.Visible = false end end)
+			end))
+		end
 	end
 
-	if State.dynamicSection then State.dynamicSection:Destroy() end
-
-	local startY = L.avatarHeight + 8
-	local availH = math.max(80, State.panel.AbsoluteSize.Y - startY - L.panelPadding)
-
-	State.dynamicSection = Utils.createFrame({ Size = UDim2.new(1, -2 * L.panelPadding, 0, availH), Position = UDim2.new(1, 0, 0, startY), ZIndex = 10, Parent = State.panel })
-	renderDynamicSection(viewType, items, targetName, playerColor)
-	safeTween(State.dynamicSection, { Position = UDim2.new(0, L.panelPadding, 0, startY) }, 0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-	task.delay(0.3, function() State.isLoadingDynamic = false end)
+	-- Animación de entrada: slide-up + fade con Back easing
+	safeTween(content, {
+		GroupTransparency = 0,
+		Position = UDim2.new(0.5, 0, 0, centerY),
+	}, 0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+	task.delay(0.45, function() State.isLoadingDynamic = false end)
 end
 
 -- ═══════════════════════════════════════════════════════════════
@@ -407,7 +448,7 @@ local function createButtonsSection(panel, target, playerColor)
 	State.panel = panel
 
 	local startY = L.avatarHeight + L.buttonGap
-	local numBtns = (State.userId ~= player.UserId) and 4 or 3
+	local numBtns = 3
 	local btnsH = (L.buttonHeight * numBtns) + (L.buttonGap * (numBtns - 1))
 
 	State.buttonsFrame = Utils.createFrame({ Size = UDim2.new(1, -2 * L.panelPadding, 0, btnsH + 8), Position = UDim2.new(0, L.panelPadding, 0, startY), ZIndex = 5, Parent = panel })
@@ -435,7 +476,7 @@ local function createButtonsSection(panel, target, playerColor)
 	-- 3. Donar
 	local donateBtn, donateLabel = createButton(State.buttonsFrame, "Donar", 3, playerColor)
 	Utils.addConnection(donateBtn.MouseButton1Click:Connect(function()
-		if not State.userId or State.isLoadingDynamic or State.dynamicSection then return end
+		if not State.userId or State.isLoadingDynamic or State.donationOverlay then return end
 		State.isLoadingDynamic = true
 		donateBtn.Active = false; donateLabel.Text = "Cargando..."
 		safeTween(donateBtn, { BackgroundTransparency = 0.5 }, Config.ANIM_FAST)
@@ -447,7 +488,7 @@ local function createButtonsSection(panel, target, playerColor)
 				safeTween(donateBtn, { BackgroundTransparency = 0.15 }, Config.ANIM_FAST)
 			end
 			if ok and donations then
-				showDynamicSection("donations", donations, target and target.DisplayName, playerColor)
+				showDonationOverlay(donations, target and target.DisplayName, playerColor)
 			else
 				State.isLoadingDynamic = false
 				if NotificationSystem then NotificationSystem:Error("Error", "No se pudo cargar donaciones", 2) end
@@ -455,30 +496,6 @@ local function createButtonsSection(panel, target, playerColor)
 		end)
 	end))
 
-	-- 4. Regalar Pase
-	if State.userId ~= player.UserId then
-		local giftBtn, giftLabel = createButton(State.buttonsFrame, "Regalar Pase", 4, playerColor)
-		Utils.addConnection(giftBtn.MouseButton1Click:Connect(function()
-			if State.isLoadingDynamic or State.dynamicSection then return end
-			State.isLoadingDynamic = true
-			giftBtn.Active = false; giftLabel.Text = "Cargando..."
-			safeTween(giftBtn, { BackgroundTransparency = 0.5 }, Config.ANIM_FAST)
-
-			task.spawn(function()
-				local ok, passes = pcall(function() return Remotes.Remotes.GetGamePasses:InvokeServer(State.userId) end)
-				if giftBtn and giftBtn.Parent then
-					giftBtn.Active = true; giftLabel.Text = "Regalar Pase"
-					safeTween(giftBtn, { BackgroundTransparency = 0.15 }, Config.ANIM_FAST)
-				end
-				if ok and passes then
-					showDynamicSection("passes", passes, nil, playerColor)
-				else
-					State.isLoadingDynamic = false
-					if NotificationSystem then NotificationSystem:Error("Error", "No se pudieron cargar pases", 2) end
-				end
-			end)
-		end))
-	end
 end
 
 -- ═══════════════════════════════════════════════════════════════
@@ -532,7 +549,7 @@ local function createAvatarSection(panel, data, playerColor)
 		Utils.createLabel({ Size = UDim2.new(0, 0, 1, 0), AutomaticSize = Enum.AutomaticSize.X, Text = "", TextColor3 = playerColor, TextSize = L.fontSize.title, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Left, LayoutOrder = 2, Parent = nameCont })
 	end
 
-	Utils.createLabel({ Size = UDim2.new(1, 0, 0, 16), Text = "@" .. data.username, TextColor3 = THEME.muted, TextSize = L.fontSize.subtitle + 1, Font = Enum.Font.GothamMedium, TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, LayoutOrder = 2, Parent = nameMain })
+	Utils.createLabel({ Size = UDim2.new(1, 0, 0, 16), Text = "@" .. data.username, TextColor3 = THEME.muted, TextSize = L.fontSize.subtitle + 3, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, LayoutOrder = 2, Parent = nameMain })
 
 	if isAdmin and badgeInfo then
 		local badge = Admin.createBadge(avatarSection, badgeInfo, L)
@@ -624,7 +641,7 @@ function PanelView.createPanel(data)
 	local isUserAdmin = Admin.isAdmin(data.username)
 	applyGlass(panelContainer, playerColor, L, isUserAdmin)
 
-	local panelStroke = Utils.addStroke(panelContainer, THEME.stroke, 1, 0.6)
+	local panelStroke = Utils.addStroke(panelContainer, THEME.stroke, 1.6, 0.25)
 	State.panelStroke = panelStroke
 
 	-- Vignette lateral izquierdo (igual que MenuPanel)

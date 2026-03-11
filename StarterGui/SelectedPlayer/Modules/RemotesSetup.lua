@@ -30,10 +30,6 @@ return function()
 	-- Sistema de likes
 	local LikesEvents = remoteGlobal:WaitForChild("LikesEvents")
 
-	-- Sistema de regalos
-	local GiftingFolder = remoteGlobal:FindFirstChild("Gamepass Gifting")
-	local GiftingRemotes = GiftingFolder and GiftingFolder:FindFirstChild("Remotes")
-
 	-- Sistema de SelectedPlayer
 	local SelectedPlayerModule = remoteGlobal:FindFirstChild("SelectedPlayer")
 
@@ -87,7 +83,6 @@ return function()
 		Remotes = {
 			GetUserData      = remotesFolder:WaitForChild("GetUserData"),
 			GetUserDonations = remotesFolder:WaitForChild("GetUserDonations"),
-			GetGamePasses    = remotesFolder:WaitForChild("GetGamePasses"),
 			DonationNotify   = remotesFolder:FindFirstChild("DonationNotify"),
 			DonationMessage  = remotesFolder:FindFirstChild("DonationMessage"),
 			CheckGamePass    = remotesFolder:WaitForChild("CheckGamePass")
@@ -105,12 +100,6 @@ return function()
 			GiveLikeEvent = LikesEvents and (LikesEvents:FindFirstChild("GiveLikeEvent") or LikesEvents:WaitForChild("GiveLikeEvent", 2)),
 			GiveSuperLikeEvent = LikesEvents and (LikesEvents:FindFirstChild("GiveSuperLikeEvent") or LikesEvents:WaitForChild("GiveSuperLikeEvent", 2)),
 			BroadcastEvent = LikesEvents and (LikesEvents:FindFirstChild("BroadcastEvent") or LikesEvents:WaitForChild("BroadcastEvent", 2))
-		},
-
-		-- Sistema de Regalos
-		Gifting = {
-			GiftingRemote = GiftingRemotes and GiftingRemotes:FindFirstChild("Gifting"),
-			GiftBroadcastEvent = GiftingRemotes and (GiftingRemotes:FindFirstChild("GiftBroadcastEvent") or GiftingRemotes:WaitForChild("GiftBroadcastEvent", 2))
 		},
 
 		-- Sistemas

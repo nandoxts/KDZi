@@ -83,9 +83,8 @@ local function closePanel()
 	State.panel = nil
 	State.buttonsFrame = nil
 	State.buttonsOverlay = nil
-	State.dynamicSection = nil
+	State.donationOverlay = nil
 	State.statsLabels = {}
-	State.currentView = "buttons"
 	State.isLoadingDynamic = false
 	State.dragging = false
 	State.closing = false

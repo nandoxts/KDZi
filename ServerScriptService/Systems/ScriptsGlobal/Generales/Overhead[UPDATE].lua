@@ -34,7 +34,7 @@ end
 --// Módulos
 local Systems = ServerScriptService:WaitForChild("Systems")
 local Configuration = require(game.ReplicatedStorage.Config.Configuration)
-local GamepassManager = require(Systems:WaitForChild("Gamepass Gifting"):WaitForChild("GamepassManager"))
+local ShopManager = require(Systems:WaitForChild("GiftManager"):WaitForChild("ShopManager"))
 local Colors = require(game.ReplicatedStorage.Config.ColorConfig)
 local AdminConfig = require(game.ReplicatedStorage.Config.AdminConfig)
 local DataStoreQueue = require(ReplicatedStorage:WaitForChild("Systems"):WaitForChild("DataStore"):WaitForChild("DataStoreQueueManager"))
@@ -168,7 +168,7 @@ end
 -- Función para sincronizar estado VIP en tiempo real
 local function updateVIPStatus(player)
 	if not player or not player.Parent then return end
-	local hasVIP = GamepassManager.HasGamepass(player, VIP_ID)
+	local hasVIP = ShopManager.HasGamepass(player, VIP_ID)
 	player:SetAttribute("HasVIP", hasVIP)
 end
 

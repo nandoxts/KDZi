@@ -21,22 +21,7 @@ local PLACE_ID = game.PlaceId
 
 local LikesDataStore = DataStoreService:GetDataStore("LikesData")
 
-local GamePassManager = require(game.ServerScriptService.Systems["Gamepass Gifting"]["GamepassManager"])
-
 local SysConfig = require(game.ReplicatedStorage.Config.Configuration)
-local Config = {
-	Gamepasses = {
-		{SysConfig.Gamepasses.VIP.id,        SysConfig.Gamepasses.VIP.devId},
-		{SysConfig.Gamepasses.COMMANDS.id,   SysConfig.Gamepasses.COMMANDS.devId},
-		{SysConfig.Gamepasses.TOMBO.id,      SysConfig.Gamepasses.TOMBO.devId},
-		{SysConfig.Gamepasses.CHORO.id,      SysConfig.Gamepasses.CHORO.devId},
-		{SysConfig.Gamepasses.SERE.id,       SysConfig.Gamepasses.SERE.devId},
-		{SysConfig.Gamepasses.COLORS.id,     SysConfig.Gamepasses.COLORS.devId},
-		{SysConfig.Gamepasses.ARMYBOOMS.id,  SysConfig.Gamepasses.ARMYBOOMS.devId},
-		{SysConfig.Gamepasses.LIGHTSTICK.id, SysConfig.Gamepasses.LIGHTSTICK.devId},
-		{SysConfig.Gamepasses.AURA_PACK.id,  SysConfig.Gamepasses.AURA_PACK.devId}
-	}
-}
 
 -- ═══════════════════════════════════════════════════════════════
 -- CONFIGURACIÓN
@@ -45,7 +30,6 @@ local Config = {
 local CONFIG = {
 	STATS_CACHE_TIME = 60,
 	DONATIONS_CACHE_TIME = 120,
-	GAMEPASSES_CACHE_TIME = 120,
 	MAX_GAMES_TO_SEARCH = 5,
 	HTTP_DELAY = 0.1,
 	MAX_ITEMS_TO_SHOW = 15,
@@ -67,7 +51,6 @@ local userPanelFolder = remotesGlobal:WaitForChild("UserPanel")
 local GetUserData      = userPanelFolder:WaitForChild("GetUserData")
 local RefreshUserData  = userPanelFolder:WaitForChild("RefreshUserData")
 local GetUserDonations = userPanelFolder:WaitForChild("GetUserDonations")
-local GetGamePasses    = userPanelFolder:WaitForChild("GetGamePasses")
 local CheckGamePass    = userPanelFolder:WaitForChild("CheckGamePass")
 
 local LikesEvents = remotesGlobal:WaitForChild("LikesEvents")
@@ -80,8 +63,6 @@ local Cache = {
 	stats = {},         -- Stats temporales (30s TTL)
 	groupIcons = {},    -- Group icons PERMANENTES (1 vez por sesión)
 	donations = {},
-	gamePasses = nil,
-	gamePassesTime = 0,
 	inflight = {},      -- Anti-duplicados: userId = { waiting = {threads...} }
 }
 
@@ -280,31 +261,6 @@ local function getUserStats(userId)
 end
 
 -- ═══════════════════════════════════════════════════════════════
--- GAME PASS INFO
--- ═══════════════════════════════════════════════════════════════
-
-local function getGamePassInfo(passId, productId)
-	local success, info = pcall(function()
-		return MarketplaceService:GetProductInfo(passId, Enum.InfoType.GamePass)
-	end)
-
-	if success and info then
-		local price = info.PriceInRobux or 0
-		if price > 0 then
-			return {
-				passId = passId,
-				productId = productId,
-				name = info.Name or "Game Pass",
-				price = price,
-				icon = info.IconImageAssetId and ("rbxassetid://" .. info.IconImageAssetId) or ""
-			}
-		end
-	end
-
-	return nil
-end
-
--- ═══════════════════════════════════════════════════════════════
 -- GAME PASSES VIA API (donaciones)
 -- ═══════════════════════════════════════════════════════════════
 
@@ -337,24 +293,6 @@ local function getGamePassesFromAPI(universeId)
 		nextPageToken = data.nextPageToken or ""
 	until nextPageToken == ""
 
-	return passes
-end
-
--- ═══════════════════════════════════════════════════════════════
--- GAME PASSES DEL JUEGO ACTUAL
--- ═══════════════════════════════════════════════════════════════
-
-local function getGamePasses()
-	local passes = {}
-	if Config.Gamepasses then
-		for _, gamepass in ipairs(Config.Gamepasses) do
-			local passInfo = getGamePassInfo(gamepass[1], gamepass[2])
-			if passInfo then
-				table.insert(passes, passInfo)
-			end
-		end
-	end
-	table.sort(passes, function(a, b) return a.price < b.price end)
 	return passes
 end
 
@@ -467,44 +405,6 @@ GetUserDonations.OnServerInvoke = function(player, targetUserId)
 	end
 
 	return donations
-end
-
-GetGamePasses.OnServerInvoke = function(player, targetUserId)
-	local passes = getGamePasses()
-	local targetPlayer = targetUserId and Players:GetPlayerByUserId(targetUserId)
-	if not targetPlayer then return passes end
-
-	if #passes > CONFIG.MAX_ITEMS_TO_SHOW then
-		local limited = {}
-		for i = 1, CONFIG.MAX_ITEMS_TO_SHOW do
-			table.insert(limited, passes[i])
-		end
-		passes = limited
-	end
-
-	if targetPlayer and passes and #passes > 0 then
-		local toValidate = math.min(#passes, CONFIG.MAX_ITEMS_TO_VALIDATE)
-		local completed = 0
-
-		for i = 1, toValidate do
-			local pass = passes[i]
-			task.spawn(function()
-				pass.hasPass = checkPlayerGamePass(targetPlayer, pass.passId)
-				completed = completed + 1
-			end)
-		end
-
-		for i = toValidate + 1, #passes do
-			passes[i].hasPass = nil
-		end
-
-		local startTime = tick()
-		while completed < toValidate and (tick() - startTime) < 3 do
-			task.wait(0.05)
-		end
-	end
-
-	return passes
 end
 
 CheckGamePass.OnServerInvoke = function(player, passId, targetUserId)
@@ -625,7 +525,3 @@ end)
 -- ═══════════════════════════════════════════════════════════════
 -- INICIO
 -- ═══════════════════════════════════════════════════════════════
-
-task.spawn(function()
-	getGamePasses()
-end)

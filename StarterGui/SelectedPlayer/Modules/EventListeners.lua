@@ -15,7 +15,6 @@ function EventListeners.init(remotes)
 	-- Setup todos los listeners
 	EventListeners.setupDonationListeners()
 	EventListeners.setupLikeBroadcast()
-	EventListeners.setupGiftBroadcast()
 end
 
 -- ═══════════════════════════════════════════════════════════════
@@ -111,43 +110,6 @@ function EventListeners.setupLikeBroadcast()
 			RBXSystem:DisplaySystemMessage(chatMessage)
 		end)
 	end)
-end
-
--- ═══════════════════════════════════════════════════════════════
--- REGALOS BROADCAST
--- ═══════════════════════════════════════════════════════════════
-
-function EventListeners.setupGiftBroadcast()
-	local GiftBroadcastEvent = Remotes.Gifting.GiftBroadcastEvent
-	local GiftingRemote = Remotes.Gifting.GiftingRemote
-	local NotificationSystem = Remotes.Systems.NotificationSystem
-
-	if GiftBroadcastEvent then
-		GiftBroadcastEvent.OnClientEvent:Connect(function(action, data)
-			if action == "GiftNotification" then
-				local message = '<font color="#00D9FF"><b>' .. data.Donor .. ' regaló el gamepass "' .. data.GamepassName .. '" a ' .. data.Recipient .. '</b></font>'
-
-				pcall(function()
-					local TextChannels = TextChatService:WaitForChild("TextChannels")
-					local RBXSystem = TextChannels:WaitForChild("RBXSystem")
-					RBXSystem:DisplaySystemMessage(message)
-				end)
-			end
-		end)
-	end
-
-	-- Escuchar notificación PERSONAL cuando el admin regala (sin cobro)
-	if GiftingRemote then
-		GiftingRemote.OnClientEvent:Connect(function(action, message)
-			if action == "Purchase" and NotificationSystem then
-				-- Mostrar notificación verde de éxito
-				NotificationSystem:Success("Game Pass", "¡Pase regalado exitosamente!", 3)
-			elseif action == "Error" and NotificationSystem then
-				-- Mostrar notificación roja de error
-				NotificationSystem:Error("Error", message or "No se pudo completar la acción", 3)
-			end
-		end)
-	end
 end
 
 return EventListeners

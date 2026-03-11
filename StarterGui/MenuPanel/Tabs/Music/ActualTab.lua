@@ -2,6 +2,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UI = require(ReplicatedStorage:WaitForChild("Core"):WaitForChild("UI"))
 local ModernScrollbar = require(ReplicatedStorage:WaitForChild("UIComponents"):WaitForChild("ModernScrollbar"))
+local Card = require(script.Parent.Parent:WaitForChild("Shared"):WaitForChild("Card"))
 
 local make, tween, rounded = UI.make, UI.tween, UI.rounded
 local ICONS = UI.ICONS
@@ -316,81 +317,39 @@ function ActualTab.build(parent, THEME, state, R, H)
 		ZIndex = 212, Visible = true, Parent = queueContainer,
 	})
 
-	-- Queue card factory (CanvasGroup + iconos modernos — mismo estilo MusicDjDashboard)
-	local QC_H = 58
+	-- Queue card factory (usa Card compartido)
+	local QC_H = 62
 
 	local function createQueueCard()
-		local card = Instance.new("CanvasGroup")
-		card.Name = "QueueCard"
-		card.Size = UDim2.new(1, 0, 0, QC_H)
-		card.BackgroundColor3 = THEME.card
-		card.BackgroundTransparency = 0
-		card.BorderSizePixel = 0
-		card.GroupTransparency = 0
-		card.ZIndex = 213
-		card.Visible = false
-		card.Parent = queueContainer
-		make("UICorner", { CornerRadius = UDim.new(0, 10), Parent = card })
-		make("UIStroke", {
-			Color = THEME.stroke, Thickness = 1, Transparency = 0.3,
-			ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Name = "CardStroke", Parent = card,
+		local c = Card.new(queueContainer, {
+			buttonIcon   = ICONS.DELETE,
+			showButton   = state.isAdmin,
+			instanceName = "QueueCard",
+			visible      = false,
+			zIndex       = 213,
 		})
 
-		-- Cover full-height izquierda (CanvasGroup recorta los bordes)
-		local coverBg = make("Frame", {
-			Size = UDim2.new(0, QC_H, 1, 0),
-			BackgroundColor3 = THEME.elevated, BackgroundTransparency = 0,
-			BorderSizePixel = 0, ZIndex = 214, Name = "CoverBg", Parent = card,
-		})
-		make("ImageLabel", {
-			Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1,
-			ScaleType = Enum.ScaleType.Crop, Image = "", BorderSizePixel = 0,
-			ZIndex = 215, Name = "Cover", Parent = coverBg,
-		})
-
-		local tx = QC_H + 8
-		make("TextLabel", {
-			Size = UDim2.new(1, -(tx + 8), 0, 20), Position = UDim2.new(0, tx, 0, 10),
-			BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 14,
-			TextColor3 = THEME.text, Text = "",
-			TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd,
-			ZIndex = 214, Name = "NameLabel", Parent = card,
-		})
-
-		make("TextLabel", {
-			Size = UDim2.new(1, -(tx + 8), 0, 14), Position = UDim2.new(0, tx, 0, 32),
-			BackgroundTransparency = 1, Font = Enum.Font.GothamMedium, TextSize = 12,
-			TextColor3 = THEME.dim, Text = "",
-			TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd,
-			ZIndex = 214, Name = "ArtistLabel", Parent = card,
-		})
-
-		if state.isAdmin then
-			local rmBtn, rmIcon = UI.outlinedCircleBtn(card, {
-				size = 30, icon = ICONS.DELETE, theme = THEME,
-				position = UDim2.new(1, -38, 0.5, -15),
-				zIndex = 216, name = "RemoveBtn",
-			})
-			rmBtn.MouseButton1Click:Connect(function()
-				local idx = card:GetAttribute("QueueIndex")
+		if state.isAdmin and c.actionBtn then
+			c.actionBtn.MouseButton1Click:Connect(function()
+				local idx = c.card:GetAttribute("QueueIndex")
 				if idx and R.Remove then pcall(function() R.Remove:FireServer(idx) end) end
 			end)
 		end
 
-		return card
+		return c
 	end
 
 	for _ = 1, 6 do table.insert(queueCardPool, createQueueCard()) end
 
 	local function releaseAllQueueCards()
 		for _, c in ipairs(activeQueueCards) do
-			c.Visible = false; c:SetAttribute("QueueIndex", nil)
+			c.card.Visible = false; c.card:SetAttribute("QueueIndex", nil)
 		end
 		activeQueueCards = {}
 	end
 
 	local function getQueueCard()
-		for _, c in ipairs(queueCardPool) do if not c.Visible then return c end end
+		for _, c in ipairs(queueCardPool) do if not c.card.Visible then return c end end
 		if #queueCardPool < 20 then
 			local c = createQueueCard(); table.insert(queueCardPool, c); return c
 		end
@@ -438,31 +397,25 @@ function ActualTab.build(parent, THEME, state, R, H)
 
 		for i, song in ipairs(queue) do
 			local isActive = state.currentSong and song.id == state.currentSong.id
-			local card = getQueueCard()
-			if not card then break end
+			local cardObj = getQueueCard()
+			if not cardObj then break end
 
-			card.LayoutOrder = i; card:SetAttribute("QueueIndex", i)
-			card.Visible = true
-			table.insert(activeQueueCards, card)
+			cardObj.card.LayoutOrder = i; cardObj.card:SetAttribute("QueueIndex", i)
+			cardObj.card.Visible = true
+			table.insert(activeQueueCards, cardObj)
 
-			card.BackgroundColor3 = isActive and THEME.elevated or THEME.card
+			cardObj.card.BackgroundColor3 = isActive and THEME.elevated or THEME.card
 
 			-- UIStroke activa
-			local stroke = card:FindFirstChild("CardStroke")
-			if stroke then
-				stroke.Color = isActive and THEME.accent or THEME.stroke
-				stroke.Transparency = isActive and 0.4 or 0.3
+			if cardObj.stroke then
+				cardObj.stroke.Color = isActive and THEME.accent or THEME.stroke
+				cardObj.stroke.Transparency = isActive and 0.4 or 0.3
 			end
 
-			local nl = card:FindFirstChild("NameLabel")
-			if nl then nl.Text = song.name or "Desconocida"; nl.TextColor3 = isActive and THEME.accent or THEME.text end
-
-			local al = card:FindFirstChild("ArtistLabel")
-			if al then al.Text = song.artist or song.requestedBy or "" end
-
-			local cov = card:FindFirstChild("Cover", true)
-			if cov then cov.Image = song.djCover or "" end
-
+			cardObj.nameLabel.Text = song.name or "Desconocida"
+			cardObj.nameLabel.TextColor3 = isActive and THEME.accent or THEME.text
+			cardObj.subtitleLabel.Text = song.artist or song.requestedBy or ""
+			cardObj.imageLabel.Image = song.djCover or ""
 		end
 
 		listaSection.Size = UDim2.new(1, 0, 0, count * 61 + 32)

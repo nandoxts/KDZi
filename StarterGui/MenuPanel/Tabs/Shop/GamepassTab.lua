@@ -12,7 +12,6 @@ local MarketplaceService = game:GetService("MarketplaceService")
 
 local Configuration     = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("Configuration"))
 local AdminConfig       = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("AdminConfig"))
-local ConfirmationModal = require(ReplicatedStorage:WaitForChild("Modal"):WaitForChild("ConfirmationModal"))
 local Notify            = require(ReplicatedStorage:WaitForChild("Systems"):WaitForChild("NotificationSystem"):WaitForChild("NotificationSystem"))
 local ShopItemList      = require(script.Parent.Parent:WaitForChild("Shared"):WaitForChild("ShopItemList"))
 
@@ -118,22 +117,12 @@ function GamepassTab.build(parent, THEME, state, screenGui)
 		end,
 
 		onGift = function(item, userId, username, displayName)
-			local priceText = isAdmin and "GRATIS (Admin)" or (ROBUX_CHAR .. " " .. item.price)
-			ConfirmationModal.show(screenGui, {
-				title       = "Regalar " .. item.name,
-				message     = "Regalar a " .. displayName .. "?\n\nCosto: " .. priceText,
-				confirmText = "REGALAR",
-				cancelText  = "CANCELAR",
-				accentColor = item.color,
-				onConfirm   = function()
-					if GiftingRemote then
-						GiftingRemote:FireServer({ item.id, item.productId }, userId, username, player.UserId)
-						Notify:Info("Regalo", "Procesando regalo de " .. item.name .. " para " .. displayName, 3)
-					else
-						Notify:Error("Error", "Sistema de regalos no disponible", 3)
-					end
-				end,
-			})
+			if GiftingRemote then
+				GiftingRemote:FireServer({ item.id, item.productId }, userId, username, player.UserId)
+				Notify:Info("Regalo", "Procesando regalo de " .. item.name .. " para " .. displayName, 3)
+			else
+				Notify:Error("Error", "Sistema de regalos no disponible", 3)
+			end
 		end,
 
 		loadPlayers = function(item, callback)

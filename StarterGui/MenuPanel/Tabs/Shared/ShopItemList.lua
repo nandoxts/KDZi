@@ -292,7 +292,7 @@ function ShopItemList.build(props)
         emptyText   = props.emptyListText or "No hay jugadores disponibles",
         accentColor = THEME.accent,
         buttonText  = "REGALAR",
-        buttonIcon  = nil,
+        buttonIcon  = UI.ICONS.GIFT,
         showSearch  = true,
         searchGap   = 0,
         searchOptions = {

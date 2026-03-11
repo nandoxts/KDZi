@@ -4,7 +4,7 @@ local DataStoreService = game:GetService("DataStoreService")
 
 -- Modules
 local Configuration = require(game.ReplicatedStorage.Config.Configuration)
-local GamepassManager = require(ServerScriptService["Gamepass Gifting"].GamepassManager)
+local ShopManager = require(ServerScriptService.GiftManager.ShopManager)
 local ColorEffects = require(game.ReplicatedStorage.Config.ColorConfig)
 
 -- Gamepass ID VIP
@@ -50,7 +50,7 @@ end
 --------------------------------------------------------------------
 local function handleChatCommand(player, message)
 	-- Solo VIP
-	if not GamepassManager.HasGamepass(player, PROFILECOLORS) then return end
+	if not ShopManager.HasGamepass(player, PROFILECOLORS) then return end
 
 	local args = string.split(string.lower(message), " ")
 	if args[1] == ";cl" and args[2] then

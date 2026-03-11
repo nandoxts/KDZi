@@ -17,7 +17,7 @@ local Debris             = game:GetService("Debris")
 --> Modules
 local Configuration  = require(game.ReplicatedStorage.Config.Configuration)
 local AdminConfig    = require(game.ReplicatedStorage.Config.AdminConfig)
-local GamepassManager = require(ServerScriptService["Gamepass Gifting"].GamepassManager)
+local ShopManager = require(ServerScriptService.GiftManager.ShopManager)
 local ColorEffects = require(game.ReplicatedStorage.Config.ColorConfig)
 
 
@@ -355,8 +355,8 @@ local function handleAuraCommand(player, auraName)
 	if not config then return end
 
 	-- Si tiene el AURA PACK, puede usar todas las auras
-	local hasAuraPack = GamepassManager.HasGamepass(player, Configuration.Gamepasses.AURA_PACK.id)
-	local hasPass = GamepassManager.HasGamepass(player, config.gamepassKey) or hasAuraPack
+	local hasAuraPack = ShopManager.HasGamepass(player, Configuration.Gamepasses.AURA_PACK.id)
+	local hasPass = ShopManager.HasGamepass(player, config.gamepassKey) or hasAuraPack
 	if not hasPass then return end
 
 	local character = player.Character
@@ -513,7 +513,7 @@ local function grantItemsBasedOnPasses(player)
 	}
 
 	for _, gp in ipairs(autoGrant) do
-		if gp.id and GamepassManager.HasGamepass(player, gp.id) then
+		if gp.id and ShopManager.HasGamepass(player, gp.id) then
 			equipItems(player, gp.folder)
 		end
 	end
@@ -574,7 +574,7 @@ end
 local function handleSpecialCommand(player, commandName)
 	local config = SPECIAL_COMMANDS[commandName]
 	if not config then return end
-	if not GamepassManager.HasGamepass(player, config.gamepassKey) then return end
+	if not ShopManager.HasGamepass(player, config.gamepassKey) then return end
 
 	local character = player.Character
 	if not character then return end
@@ -846,7 +846,7 @@ local function processCommand(player, message)
 		{pattern = Configuration.CommandDestacado, effect = "destacar"},
 	}
 
-	local hasCommands = GamepassManager.HasGamepass(player, Configuration.Gamepasses.COMMANDS.id)
+	local hasCommands = ShopManager.HasGamepass(player, Configuration.Gamepasses.COMMANDS.id)
 
 	-- 1. Efectos (requieren COMMANDS gamepass)
 	if hasCommands then
@@ -868,7 +868,7 @@ local function processCommand(player, message)
 
 	-- 2. VIP commands (korblox, headless)
 	local function checkVIP()
-		return GamepassManager.HasGamepass(player, Configuration.Gamepasses.VIP.id)
+		return ShopManager.HasGamepass(player, Configuration.Gamepasses.VIP.id)
 	end
 
 	local korblox = message:match(Configuration.CommandKorblox)

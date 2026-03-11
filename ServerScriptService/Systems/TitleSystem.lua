@@ -9,11 +9,16 @@
 -- ════════════════════════════════════════════════════════════════
 
 local Players            = game:GetService("Players")
-local MarketplaceService = game:GetService("MarketplaceService")
 local ReplicatedStorage  = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
 
 local TitleConfig = require(
 	ReplicatedStorage:WaitForChild("Config"):WaitForChild("TitleConfig")
+)
+local ShopManager = require(
+	ServerScriptService:WaitForChild("Systems")
+		:WaitForChild("GiftManager")
+		:WaitForChild("ShopManager")
 )
 
 -- ── Obtener remote existente (RemotesGlobal/Title/Titles) ──────
@@ -43,13 +48,7 @@ end
 
 local function playerOwnsTitle(player, t)
 	if not t.gamepassId or t.gamepassId == 0 then return true end
-	local ok, owns = pcall(
-		MarketplaceService.UserOwnsGamePassAsync,
-		MarketplaceService,
-		player.UserId,
-		t.gamepassId
-	)
-	return ok and owns == true
+	return ShopManager.HasGamepass(player, t.gamepassId)
 end
 
 -- ── Handler ──────────────────────────────────────────────────────

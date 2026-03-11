@@ -37,7 +37,7 @@ local NOTIFICATION_TYPES = {
 		iconType = "checkmark",
 		accentColor = Color3.fromRGB(34, 197, 94),
 		accentColorDark = Color3.fromRGB(22, 101, 52),
-		sound = "rbxassetid://6026984224"
+		sound = "rbxassetid://75077523327813"
 	},
 	error = {
 		iconType = "cross",

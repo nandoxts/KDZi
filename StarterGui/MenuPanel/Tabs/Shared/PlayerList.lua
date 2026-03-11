@@ -293,16 +293,12 @@ function PlayerList:_renderCards()
 		local username    = pd.username or ""
 
 		local cardObj = Card.new(self.scroll, {
-			height       = CARD_HEIGHT,
 			instanceName = "PlayerCard_" .. pd.userId,
 			image        = getAvatarUrl(pd.userId),
 			name         = displayName,
-			nameSize     = 16,
 			subtitle     = "@" .. username,
-			subtitleSize = 13,
-			subtitleFont = Enum.Font.GothamBold,
 			buttonIcon   = self.buttonIcon,
-			buttonSize   = 36,
+			
 			layoutOrder  = i,
 			onAction     = function()
 				if self.onAction then

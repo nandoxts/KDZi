@@ -30,9 +30,8 @@ return {
 	isLoadingDynamic = false,
 
 	-- Vistas
-	currentView = "buttons",
 	buttonsFrame = nil,
-	dynamicSection = nil,
+	donationOverlay = nil,
 
 	-- Conexiones
 	connections = {},
