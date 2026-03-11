@@ -16,15 +16,10 @@ local hd = hdMain and hdMain:GetModule("API")
 
 
 local CONFIG = {
-	prefix = ";tono",
 	eventPrefix = ";event",
 	uneventPrefix = ";unevent",
 	m2Prefix = ";m2",
-	messages = {
-		disabled = "Sistema de tono desactivado.",
-		rainbow = "Modo rainbow activado.",
-		theme = "Modo %s se ha activado.",
-	}
+	m2RequiredRank = "Influencer", -- Cambiar aquí el rol mínimo para usar ;m2
 }
 
 -- ═══════════════════════════════════════════════════════════════════
@@ -33,13 +28,7 @@ local CONFIG = {
 local remotesGlobal = ReplicatedStorage:WaitForChild("RemotesGlobal")
 local commandsFolder = remotesGlobal:WaitForChild("Commands")
 
-local toneModeEvent = commandsFolder:WaitForChild("ToneModeChanged")
-local getModeFunction = commandsFolder:WaitForChild("GetToneMode")
-local toneMessageEvent = commandsFolder:WaitForChild("ToneMessage")
 local eventMessageEvent = commandsFolder:WaitForChild("EventMessage")
-
--- RemoteFunction para obtener temas disponibles de RainbowSync
-local getThemesFunction = commandsFolder:WaitForChild("GetAvailableThemes")
 
 -- M2 Announcement Remotes
 local messageFolder = remotesGlobal:WaitForChild("Message")
@@ -68,15 +57,15 @@ local function filterMessage(text, userId)
 	return filtered
 end
 
--- Validar permisos para ;m2 (Solo Influencer en adelante)
+-- Validar permisos para ;m2 (Solo el rango configurado en CONFIG.m2RequiredRank en adelante)
 local function canUseM2Command(player)
 	if not hd then return false end
 
 	local rankId = hd:GetRank(player)
-	local influencerRankId = hd:GetRankId("Influencer")
+	local requiredRankId = hd:GetRankId(CONFIG.m2RequiredRank)
 
-	if rankId and influencerRankId then
-		return rankId >= influencerRankId
+	if rankId and requiredRankId then
+		return rankId >= requiredRankId
 	end
 
 	return false
@@ -121,68 +110,8 @@ local function setEventMode(value)
 	_G.EventModeActive = value
 end
 
--- ═══════════════════════════════════════════════════════════════════
--- LÓGICA
--- ═══════════════════════════════════════════════════════════════════
-local function getAvailableThemes()
-	local ok, themes = pcall(function()
-		return getThemesFunction:Invoke()
-	end)
-
-	return ok and themes or {}
-end
-
-local function isThemeValid(themeName)
-	local themes = getAvailableThemes()
-	for _, theme in ipairs(themes) do
-		if theme == themeName then
-			return true
-		end
-	end
-	return false
-end
-
-local function broadcast(msg)
-	toneMessageEvent:FireAllClients(msg)
-end
-
-local function handleCommand(args)
-	args = args:lower():gsub("^%s*(.-)%s*$", "%1") -- trim
-
-	if args == "" then
-		-- Toggle rainbow/disabled
-		local current = getModeFunction:Invoke()
-		if current == "rainbow" then
-			toneModeEvent:Fire("disabled")
-			broadcast(CONFIG.messages.disabled)
-		else
-			toneModeEvent:Fire("rainbow")
-			broadcast(CONFIG.messages.rainbow)
-		end
-	elseif args == "off" then
-		toneModeEvent:Fire("disabled")
-		broadcast(CONFIG.messages.disabled)
-	else
-		-- Validar que el tema exista antes de enviar mensaje
-		if isThemeValid(args) then
-			toneModeEvent:Fire("theme", args)
-			broadcast(string.format(CONFIG.messages.theme, args))
-		end
-		-- Si no existe, no hacer nada (silenciosamente)
-	end
-end
-
 local function onChatted(player, message)
 	local lower = message:lower()
-
-	-- Procesar comando ;tono (requiere admin)
-	if lower:sub(1, #CONFIG.prefix) == CONFIG.prefix then
-		if not AdminConfig:IsAdmin(player) then
-			return
-		end
-		local args = message:sub(#CONFIG.prefix + 1)
-		handleCommand(args)
-	end
 
 	-- Procesar comando ;event (requiere admin)
 	if lower == CONFIG.eventPrefix then
@@ -192,7 +121,6 @@ local function onChatted(player, message)
 			fireAllClients(eventMessageEvent, msg)
 		end
 	end
-
 
 	-- Procesar comando ;unevent (requiere admin)
 	if lower == CONFIG.uneventPrefix then

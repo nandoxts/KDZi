@@ -19,7 +19,6 @@
 ]]
 
 local Configuration = require(game.ReplicatedStorage.Config.Configuration)
-
 --------------| SETUP RANKS |--------------																															 ]] 
 return{
 
@@ -40,7 +39,7 @@ return{
 
 	-- GAMEPASSES
 	Gamepasses = {
-		[Configuration.Gamepasses.VIP.id]      = "VIP";      -- VIP
+		[Configuration.Gamepasses.VIP.id] = "VIP"; -- VIP
 		[Configuration.Gamepasses.COMMANDS.id] = "COMMANDS"; -- COMMANDS
 	};
 
@@ -53,16 +52,15 @@ return{
 	Groups = {
 		[Configuration.GroupID] = {
 			[255] = "Owner"; -- [ Propietario ]
-			[254] = "Owner"; -- [ Developer ]
-			[253] = "Owner"; -- [ Co-Owner ]
-			[252] = "Help Creator"; -- [ Help Creator ]
-			[251] = "Lead Admin"; -- [ Lead Admin ]
-			[250] = "Head Admin"; -- [ Head Admin ]
-			[249] = "Administrador"; -- [ Administrador ]
-			[248] = "Moderador"; -- [ Moderador ]
-			[247] = "DJ"; -- [ DJ ]
-			[246] = "Influencer"; -- [ Influencer ]
-			[245] = "Socio" -- [ Socio ]
+			[254] = "Owner"; -- [ Co-Owner ]
+			[253] = "Help Creator"; -- [ Help Creator ]
+			[252] = "Lead Admin"; -- [ Lead Admin ]
+			[251] = "Head Admin"; -- [ Head Admin ]
+			[250] = "Administrador"; -- [ Administrador ]
+			[249] = "Moderador"; -- [ Moderador ]
+			[248] = "DJ"; -- [ DJ ]
+			[247] = "Influencer"; -- [ Influencer ]
+			[246] = "Socio" -- [ Socio ]
 		};
 	};
 
@@ -299,7 +297,7 @@ return{
 		["m"] = "Lead Admin";
 		["kick"] = "Owner";
 		-- DJ
-		["disco"] = "Owner";
+		["disco"] = "DJ";
 		["music"] = "DJ";
 		["volume"] = "DJ";
 		["countdown2"] = "DJ";

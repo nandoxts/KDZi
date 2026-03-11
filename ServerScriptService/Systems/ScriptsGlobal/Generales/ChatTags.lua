@@ -3,8 +3,8 @@
 -- ========================================
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage"):WaitForChild("RemotesGlobal")
-local ServerScriptService = game:GetService("ServerScriptService"):WaitForChild("Systems")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RemotesGlobal = ReplicatedStorage:WaitForChild("RemotesGlobal")
 local MarketplaceService = game:GetService("MarketplaceService")
 local DataStoreService = game:GetService("DataStoreService")
 
@@ -18,21 +18,13 @@ local GamepassCache = {}
 local serverTagCache = {}
 local groupRoles = configuration.GroupRoles
 
--- Crear/obtener RemoteEvents
-local tagDataEvent = ReplicatedStorage.Chat:FindFirstChild("PlayerTagData")
-if not tagDataEvent then
-	tagDataEvent = Instance.new("RemoteEvent")
-	tagDataEvent.Name = "PlayerTagData"
-	tagDataEvent.Parent = ReplicatedStorage.Chat
-end
+local chatFolder = RemotesGlobal:WaitForChild("Chat")
+local tagDataEvent = chatFolder:WaitForChild("PlayerTagData")
+local remoteFunction = chatFolder:WaitForChild("CheckGamePass")
 
-local remoteFunction = ReplicatedStorage.Chat.CheckGamePass
-
--- ID del gamepass VIP (fuente única: Configuration.Gamepasses)
-local VIP_GAMEPASS_ID = configuration.Gamepasses.VIP.id
-
--- Función optimizada para verificar gamepasses
+-- Función optimizada para verificar gamepasses (tu código integrado)
 local function checkPlayerGamepasses(userId)
+	-- Si ya está en cache, devolverlo
 	if GamepassCache[userId] then
 		return GamepassCache[userId]
 	end
@@ -42,12 +34,13 @@ local function checkPlayerGamepasses(userId)
 		lastChecked = os.time()
 	}
 
-	-- Verificar VIP (compra directa o regalo)
+	-- Verificar VIP
+	local vipId = configuration.Gamepasses.VIP.id
 	local successVIP, hasVIP = pcall(function()
-		if MarketplaceService:UserOwnsGamePassAsync(userId, VIP_GAMEPASS_ID) then
+		if MarketplaceService:UserOwnsGamePassAsync(userId, vipId) then
 			return true
 		end
-		return GiftedGamepassesData:GetAsync(userId .. "-" .. VIP_GAMEPASS_ID)
+		return GiftedGamepassesData:GetAsync(userId .. "-" .. vipId)
 	end)
 
 	if successVIP and hasVIP then
@@ -63,9 +56,11 @@ end
 
 -- Función mejorada para obtener rank (SOLO en servidor)
 local function getPlayerGroupRank(player)
+	local groupId = tonumber(configuration.GroupID)
+
 	-- Intentar método nativo primero (más rápido)
 	local success, rank = pcall(function()
-		return player:GetRankInGroup(configuration.GroupID)
+		return player:GetRankInGroupAsync(groupId)
 	end)
 
 	if success and rank > 0 then
@@ -80,7 +75,7 @@ local function getPlayerGroupRank(player)
 	if httpSuccess then
 		local data = HttpService:JSONDecode(result)
 		for _, groupData in ipairs(data.data) do
-			if groupData.group.id == configuration.GroupID then
+			if tostring(groupData.group.id) == configuration.GroupID then
 				return groupData.role.rank
 			end
 		end
@@ -109,23 +104,11 @@ local function calculatePlayerTag(player)
 
 	local tagInfo = {}
 
-	-- 1. Título equipado (máxima prioridad)
-	local titleLabel = player:GetAttribute("EquippedTitleLabel") or ""
-	local titleColor = player:GetAttribute("EquippedTitleColor") or "#FFFFFF"
-
-	if titleLabel ~= "" then
-		tagInfo = {
-			Prefix = string.format("<font color='%s'><b>%s</b></font> ", titleColor, titleLabel),
-			Priority = 100,
-			HasSpecialTag = true,
-			Source = "TITLE",
-		}
-	else
-		-- 2. Rango de grupo
+	-- 1. Rango de grupo
+	do
 		local playerRank = getPlayerGroupRank(player)
 		local roleData = groupRoles[playerRank]
-
-		if roleData and playerRank >= 10 then -- Recruiter hacia arriba
+		if roleData and playerRank >= 1 then -- Miembro hacia arriba
 			local colorHex = color3ToHex(roleData.Color)
 			local icon = roleData.Icon
 
@@ -142,17 +125,17 @@ local function calculatePlayerTag(player)
 
 			if gamepassInfo and gamepassInfo.status == "VIP" then
 				tagInfo = {
-					Prefix = "<font color='#D92B0D'>[👑]</font> <font color='#D92B0D'>[ VIP ]</font> ",
-					TextColor = "#D92B0D",
+					Prefix = "<font color='#C500FF'>[👑]</font> <font color='#C500FF'>[VIP]</font> ",
+					TextColor = "#C500FF",
 					Priority = 5,
 					HasSpecialTag = true,
 					Source = "VIP_GAMEPASS"
 				}
 			else
-				-- 4. Tag por defecto
+				-- Tag por defecto
 				tagInfo = {
-					Prefix = "<font color='#0099FF'>[👤]</font> <font color='#0099FF'>[ Tonero ]</font> ",
-					TextColor = "#FFFFFF",
+					Prefix = "<font color='#AAAAAA'>[👤]</font> <font color='#AAAAAA'>[PLAYER]</font> ",
+					TextColor = "#AAAAAA",
 					Priority = 0,
 					HasSpecialTag = false,
 					Source = "DEFAULT"
@@ -169,48 +152,35 @@ end
 
 -- Verificar al unirse y al reaparecer el personaje (tu código integrado)
 local function setupPlayer(player)
-	-- Verificar gamepasses inmediatamente al unirse
-	checkPlayerGamepasses(player.UserId)
-
-	-- Esperar un poco para que cargue completamente
-	task.wait(2)
-
-	-- 1. Calcular tag del nuevo jugador
+	-- 1. Calcular y enviar tag INMEDIATAMENTE (rango de grupo es síncrono)
 	local tagInfo = calculatePlayerTag(player)
-
-	-- 2. Enviar tag del nuevo jugador a TODOS los clientes
 	tagDataEvent:FireAllClients(player.UserId, tagInfo)
 
-	-- 3. IMPORTANTE: Enviar tags de TODOS los jugadores existentes al nuevo cliente
+	-- 2. Enviar tags de jugadores existentes al nuevo cliente
 	for _, existingPlayer in ipairs(Players:GetPlayers()) do
 		if existingPlayer ~= player and serverTagCache[existingPlayer.UserId] then
-			-- Enviar tag de cada jugador existente solo al nuevo cliente
 			tagDataEvent:FireClient(player, existingPlayer.UserId, serverTagCache[existingPlayer.UserId])
 		end
 	end
 
-	--print("Tag calculado para", player.Name, ":", tagInfo.Prefix, "| Fuente:", tagInfo.Source)
-	--print("Enviados", #Players:GetPlayers()-1, "tags existentes a", player.Name)
+	-- 3. Verificar gamepasses en background y actualizar solo si cambia el tag
+	task.spawn(function()
+		checkPlayerGamepasses(player.UserId)
+		task.wait(2)
+		local oldTag = serverTagCache[player.UserId]
+		serverTagCache[player.UserId] = nil
+		local updatedTag = calculatePlayerTag(player)
+		if oldTag and oldTag.Source ~= updatedTag.Source then
+			tagDataEvent:FireAllClients(player.UserId, updatedTag)
+		end
+	end)
 
-	-- Volver a verificar si el personaje reaparece
 	player.CharacterAdded:Connect(function()
-		-- Limpiar cache para forzar re-verificación
 		serverTagCache[player.UserId] = nil
 		GamepassCache[player.UserId] = nil
-
-		-- Recalcular después de un pequeño delay
 		task.wait(1)
 		local newTagInfo = calculatePlayerTag(player)
 		tagDataEvent:FireAllClients(player.UserId, newTagInfo)
-
-		--print("Tag actualizado para", player.Name, "tras respawn:", newTagInfo.Source)
-	end)
-
-	-- Actualizar tag cuando equipa/desequipa un título
-	player:GetAttributeChangedSignal("EquippedTitleLabel"):Connect(function()
-		serverTagCache[player.UserId] = nil
-		local updatedTag = calculatePlayerTag(player)
-		tagDataEvent:FireAllClients(player.UserId, updatedTag)
 	end)
 end
 
@@ -225,13 +195,8 @@ end)
 -- Para jugadores ya conectados cuando se inicia el script
 for _, player in ipairs(Players:GetPlayers()) do
 	task.spawn(function()
-		-- Calcular tag para jugador existente
 		local tagInfo = calculatePlayerTag(player)
-
-		-- Enviar a todos los clientes
 		tagDataEvent:FireAllClients(player.UserId, tagInfo)
-
-		--print("Tag inicial calculado para", player.Name, ":", tagInfo.Source)
 	end)
 end
 
@@ -262,16 +227,12 @@ local function forceUpdatePlayerTag(player)
 end
 
 -- Event para actualizaciones manuales (opcional - para admins)
-local updateTagEvent = ReplicatedStorage.Chat:FindFirstChild("ForceUpdateTag")
-if not updateTagEvent then
-	updateTagEvent = Instance.new("RemoteEvent")
-	updateTagEvent.Name = "ForceUpdateTag"
-	updateTagEvent.Parent = ReplicatedStorage.Chat
-end
+local updateTagEvent = chatFolder:WaitForChild("ForceUpdateTag")
 
 updateTagEvent.OnServerEvent:Connect(function(player, targetUserId)
 	-- Solo admins pueden forzar actualización
-	if player:GetRankInGroup(configuration.GroupID) >= 255 then -- Admin o superior
+	local ok, rank = pcall(function() return player:GetRankInGroupAsync(tonumber(configuration.GroupID)) end)
+	if ok and rank >= 255 then -- Admin o superior
 		local targetPlayer = Players:GetPlayerByUserId(targetUserId)
 		if targetPlayer then
 			forceUpdatePlayerTag(targetPlayer)

@@ -16,10 +16,8 @@ local Debris             = game:GetService("Debris")
 
 --> Modules
 local Configuration  = require(game.ReplicatedStorage.Config.Configuration)
-local AdminConfig    = require(game.ReplicatedStorage.Config.AdminConfig)
-local ShopManager = require(ServerScriptService.GiftManager.ShopManager)
-local ColorEffects = require(game.ReplicatedStorage.Config.ColorConfig)
-
+local GamepassManager = require(ServerScriptService["Gamepass Gifting"].GamepassManager)
+local ColorEffects   = require(game.ReplicatedStorage.Config.ColorConfig)
 
 --> ClanData (carga segura)
 local ClanData = nil
@@ -37,41 +35,42 @@ end
 
 --> Constants
 local EFFECT_PARTS = {"Head", "LeftLowerArm", "RightLowerArm", "LeftLowerLeg", "RightLowerLeg"}
+local BLACKLISTED_USERIDS = Configuration.OWS
 local COOLDOWN_SECONDS = 0.5 -- Anti-spam entre comandos
 
 local SPECIAL_COMMANDS = {
 	TOMBO = {
-		gamepassKey = Configuration.Gamepasses.TOMBO.id,
+		gamepassKey = Configuration.Gamepasses.TOMBO and Configuration.Gamepasses.TOMBO.id,
 		clothing    = { pantsID = 10820482467, shirtID = 16963556758 },
 		itemFolder  = "TOMBO",
 	},
 	SERE = {
-		gamepassKey = Configuration.Gamepasses.SERE.id,
+		gamepassKey = Configuration.Gamepasses.SERE and Configuration.Gamepasses.SERE.id,
 		clothing    = { shirtID = 7650880991 },
 		accessories = { hatID = 125648027192051, backAccessoryID = 125602307013071 },
 		itemFolder  = "SERE",
 	},
 	CHORO = {
-		gamepassKey = Configuration.Gamepasses.CHORO.id,
+		gamepassKey = Configuration.Gamepasses.CHORO and Configuration.Gamepasses.CHORO.id,
 		itemFolder  = "CHORO",
 	},
 	ARMYBOOMS = {
-		gamepassKey = Configuration.Gamepasses.ARMYBOOMS.id,
+		gamepassKey = Configuration.Gamepasses.ARMYBOOMS and Configuration.Gamepasses.ARMYBOOMS.id,
 		itemFolder  = "ARMYBOOMS",
 	},
 	LIGHTSTICK = {
-		gamepassKey = Configuration.Gamepasses.LIGHTSTICK.id,
+		gamepassKey = Configuration.Gamepasses.LIGHTSTICK and Configuration.Gamepasses.LIGHTSTICK.id,
 		itemFolder  = "LIGHTSTICK",
 	},
 }
 
 local AURA_COMMANDS = {
-	atomic   = { gamepassKey = Configuration.Gamepasses.AURA_PACK.id, folder = "ATOMIC"    },
-	blazing  = { gamepassKey = Configuration.Gamepasses.AURA_PACK.id, folder = "BLAZING"   },
-	nano     = { gamepassKey = Configuration.Gamepasses.AURA_PACK.id, folder = "NANO"      },
-	redheart = { gamepassKey = Configuration.Gamepasses.AURA_PACK.id, folder = "RED HEART" },
-	snow     = { gamepassKey = Configuration.Gamepasses.AURA_PACK.id, folder = "SNOW"      },
-	dragon   = { gamepassKey = Configuration.Gamepasses.AURA_PACK.id, folder = "DRAGON"    },
+	atomic   = { gamepassKey = Configuration.Gamepasses.AURA_ATOMIC and Configuration.Gamepasses.AURA_ATOMIC.id,   folder = "ATOMIC"    },
+	blazing  = { gamepassKey = Configuration.Gamepasses.AURA_BLAZING and Configuration.Gamepasses.AURA_BLAZING.id,  folder = "BLAZING"   },
+	nano     = { gamepassKey = Configuration.Gamepasses.AURA_NANO and Configuration.Gamepasses.AURA_NANO.id,     folder = "NANO"      },
+	redheart = { gamepassKey = Configuration.Gamepasses.AURA_REDHEART and Configuration.Gamepasses.AURA_REDHEART.id, folder = "RED HEART" },
+	snow     = { gamepassKey = Configuration.Gamepasses.AURA_SNOW and Configuration.Gamepasses.AURA_SNOW.id,     folder = "SNOW"      },
+	dragon   = { gamepassKey = Configuration.Gamepasses.AURA_PACK and Configuration.Gamepasses.AURA_PACK.id,     folder = "DRAGON"    },
 }
 
 local AURA_SOUNDS = {
@@ -316,7 +315,7 @@ local function applyEffectToPlayer(targetPlayer, effectType, color, commandingPl
 	if not character then return end
 
 	if commandingPlayer and commandingPlayer ~= targetPlayer then
-		if not AdminConfig:IsAdmin(commandingPlayer) then
+		if not ColorEffects.hasPermission(commandingPlayer, Configuration.GroupID, Configuration.ALLOWED_RANKS_OWS) then
 			return
 		end
 	end
@@ -355,8 +354,8 @@ local function handleAuraCommand(player, auraName)
 	if not config then return end
 
 	-- Si tiene el AURA PACK, puede usar todas las auras
-	local hasAuraPack = ShopManager.HasGamepass(player, Configuration.Gamepasses.AURA_PACK.id)
-	local hasPass = ShopManager.HasGamepass(player, config.gamepassKey) or hasAuraPack
+	local hasAuraPack = Configuration.Gamepasses.AURA_PACK and GamepassManager.HasGamepass(player, Configuration.Gamepasses.AURA_PACK.id)
+	local hasPass = GamepassManager.HasGamepass(player, config.gamepassKey) or hasAuraPack
 	if not hasPass then return end
 
 	local character = player.Character
@@ -390,41 +389,39 @@ local function handleAuraCommand(player, auraName)
 	-- Clonar efectos del maniquí al personaje
 	for _, auraPartContainer in ipairs(auraFolder:GetChildren()) do
 		local partName = auraPartContainer.Name
-		if MANNEQUIN_SKIP[partName] then continue end
+		if not MANNEQUIN_SKIP[partName] then
+			local targetNames = R6_TO_R15[partName] or {partName}
 
-		local targetNames = R6_TO_R15[partName] or {partName}
+			for _, targetName in ipairs(targetNames) do
+				local targetPart = character:FindFirstChild(targetName)
+				if targetPart then
+					for _, effect in ipairs(auraPartContainer:GetChildren()) do
+						if not (effect:IsA("Decal") and string.lower(effect.Name) == "face") then
+							local clone = effect:Clone()
+							clone:SetAttribute("PlayerAura", true)
+							for _, desc in ipairs(clone:GetDescendants()) do
+								desc:SetAttribute("PlayerAura", true)
+							end
 
-		for _, targetName in ipairs(targetNames) do
-			local targetPart = character:FindFirstChild(targetName)
-			if not targetPart then continue end
+							-- Fade in según tipo
+							if clone:IsA("ParticleEmitter") then
+								local originalRate = effect.Rate or 10
+								clone.Rate = 0
+								clone.Enabled = true
+								clone.Parent = targetPart
+								TweenService:Create(clone, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Rate = originalRate}):Play()
 
-			for _, effect in ipairs(auraPartContainer:GetChildren()) do
-				if effect:IsA("Decal") and string.lower(effect.Name) == "face" then
-					continue
-				end
+							elseif clone:IsA("PointLight") then
+								local originalBrightness = effect.Brightness or 5
+								clone.Brightness = 0
+								clone.Parent = targetPart
+								TweenService:Create(clone, TweenInfo.new(0.6, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {Brightness = originalBrightness}):Play()
 
-				local clone = effect:Clone()
-				clone:SetAttribute("PlayerAura", true)
-				for _, desc in ipairs(clone:GetDescendants()) do
-					desc:SetAttribute("PlayerAura", true)
-				end
-
-				-- Fade in según tipo
-				if clone:IsA("ParticleEmitter") then
-					local originalRate = effect.Rate or 10
-					clone.Rate = 0
-					clone.Enabled = true
-					clone.Parent = targetPart
-					TweenService:Create(clone, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Rate = originalRate}):Play()
-
-				elseif clone:IsA("PointLight") then
-					local originalBrightness = effect.Brightness or 5
-					clone.Brightness = 0
-					clone.Parent = targetPart
-					TweenService:Create(clone, TweenInfo.new(0.6, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {Brightness = originalBrightness}):Play()
-
-				else
-					clone.Parent = targetPart
+							else
+								clone.Parent = targetPart
+							end
+						end
+					end
 				end
 			end
 		end
@@ -508,12 +505,12 @@ end
 local function grantItemsBasedOnPasses(player)
 	local autoGrant = {
 		{folder = "VIP",        id = Configuration.Gamepasses.VIP.id},
-		{folder = "ARMYBOOMS",  id = Configuration.Gamepasses.ARMYBOOMS.id},
-		{folder = "LIGHTSTICK", id = Configuration.Gamepasses.LIGHTSTICK.id},
+		{folder = "ARMYBOOMS",  id = Configuration.Gamepasses.ARMYBOOMS and Configuration.Gamepasses.ARMYBOOMS.id},
+		{folder = "LIGHTSTICK", id = Configuration.Gamepasses.LIGHTSTICK and Configuration.Gamepasses.LIGHTSTICK.id},
 	}
 
 	for _, gp in ipairs(autoGrant) do
-		if gp.id and ShopManager.HasGamepass(player, gp.id) then
+		if gp.id and GamepassManager.HasGamepass(player, gp.id) then
 			equipItems(player, gp.folder)
 		end
 	end
@@ -574,7 +571,7 @@ end
 local function handleSpecialCommand(player, commandName)
 	local config = SPECIAL_COMMANDS[commandName]
 	if not config then return end
-	if not ShopManager.HasGamepass(player, config.gamepassKey) then return end
+	if not GamepassManager.HasGamepass(player, config.gamepassKey) then return end
 
 	local character = player.Character
 	if not character then return end
@@ -740,9 +737,11 @@ local function handleCloneCommand(player, targetName)
 	local ok, targetUserId = pcall(Players.GetUserIdFromNameAsync, Players, targetName)
 	if not ok then return end
 
-	if AdminConfig:IsAdmin(targetName) then
-		player:Kick("No puedes clonar a este usuario")
-		return
+	for _, blocked in ipairs(BLACKLISTED_USERIDS) do
+		if targetUserId == blocked then
+			player:Kick("No puedes clonar a este usuario")
+			return
+		end
 	end
 
 	local humanoidDescription
@@ -781,7 +780,7 @@ local function handleAppearanceCommand(player, commandType)
 
 	local attempt = 0
 	local function tryModify()
-		attempt += 1
+		attempt = attempt + 1
 		if attempt > 3 then return end
 		if not modifyCharacter(character, modification) and attempt < 3 then
 			task.delay(0.5 * attempt, tryModify)
@@ -812,7 +811,7 @@ local function applyEffectWithTarget(player, effectType, input)
 
 	local lower = string.lower(targetName)
 	if lower == "all" or lower == "todos" then
-		local isAdmin = AdminConfig:IsAdmin(player)
+		local isAdmin = ColorEffects.hasPermission(player, Configuration.GroupID, Configuration.ALLOWED_RANKS_OWS)
 		for _, target in ipairs(Players:GetPlayers()) do
 			if target == player or isAdmin then
 				applyEffectToPlayer(target, effectType, color, player)
@@ -846,7 +845,7 @@ local function processCommand(player, message)
 		{pattern = Configuration.CommandDestacado, effect = "destacar"},
 	}
 
-	local hasCommands = ShopManager.HasGamepass(player, Configuration.Gamepasses.COMMANDS.id)
+	local hasCommands = GamepassManager.HasGamepass(player, Configuration.Gamepasses.COMMANDS.id)
 
 	-- 1. Efectos (requieren COMMANDS gamepass)
 	if hasCommands then
@@ -868,7 +867,7 @@ local function processCommand(player, message)
 
 	-- 2. VIP commands (korblox, headless)
 	local function checkVIP()
-		return ShopManager.HasGamepass(player, Configuration.Gamepasses.VIP.id)
+		return not Configuration.Gamepasses.VIP or GamepassManager.HasGamepass(player, Configuration.Gamepasses.VIP.id)
 	end
 
 	local korblox = message:match(Configuration.CommandKorblox)
@@ -939,7 +938,7 @@ local function processCommand(player, message)
 	-- 6. Reset
 	local isReset = message:match(Configuration.CommandReset) or message:match(Configuration.CommandReset2)
 	if isReset then
-		if hasCommands then
+		if not Configuration.Gamepasses.COMMANDS or hasCommands then
 			resetCharacter(player)
 		end
 	end
@@ -968,7 +967,7 @@ Players.PlayerAdded:Connect(function(player)
 		local count = 0
 		for _, tool in ipairs(player.Backpack:GetChildren()) do
 			if tool.Name == child.Name then
-				count += 1
+				count = count + 1
 				if count > 1 then
 					child:Destroy()
 					return

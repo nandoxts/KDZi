@@ -16,24 +16,22 @@ local hd = hdMain and hdMain:GetModule("API")
 
 -- Mapeo de Gamepass IDs a Rangos HD Admin
 local GAMEPASS_RANKS = {
-	[Configuration.Gamepasses.COMMANDS.id]  = "COMMANDS",
-	[Configuration.Gamepasses.VIP.id]       = "VIP",
-	[Configuration.Gamepasses.ARMYBOOMS.id] = "ARMYBOOMS"
+	[Configuration.Gamepasses.COMMANDS.id] = "COMMANDS",
+	[Configuration.Gamepasses.VIP.id] = "VIP",
 }
 
 local GROUP_RANKS = {
 	[Configuration.GroupID] = {
 		[255] = "Owner"; -- [ Propietario ]
-		[254] = "Owner"; -- [ Developer ]
-		[253] = "Owner"; -- [ Co-Owner ]
-		[252] = "Help Creator"; -- [ Help Creator ]
-		[251] = "Lead Admin"; -- [ Lead Admin ]
-		[250] = "Head Admin"; -- [ Head Admin ]
-		[249] = "Administrador"; -- [ Administrador ]
-		[248] = "Moderador"; -- [ Moderador ]
-		[247] = "DJ"; -- [ DJ ]
-		[246] = "Influencer"; -- [ Influencer ]
-		[245] = "Socio" -- [ Socio ]
+		[254] = "Owner"; -- [ Co-Owner ]
+		[253] = "Help Creator"; -- [ Help Creator ]
+		[252] = "Lead Admin"; -- [ Lead Admin ]
+		[251] = "Head Admin"; -- [ Head Admin ]
+		[250] = "Administrador"; -- [ Administrador ]
+		[249] = "Moderador"; -- [ Moderador ]
+		[248] = "DJ"; -- [ DJ ]
+		[247] = "Influencer"; -- [ Influencer ]
+		[246] = "Socio" -- [ Socio ]
 		--[253] = "Owner"; -- [ Lead Designer ]
 		--[252] = "Owner"; -- [ Project Manager ]
 		--[251] = "Owner"; -- [ Developer ]

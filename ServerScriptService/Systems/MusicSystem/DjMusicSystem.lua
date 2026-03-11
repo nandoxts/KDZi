@@ -12,7 +12,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local MusicConfig    = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("MusicSystemConfig"))
 local Systems        = ServerScriptService:WaitForChild("Systems")
 local Configuration  = require(game.ReplicatedStorage.Config.Configuration)
-local ShopManager = require(Systems:WaitForChild("GiftManager"):WaitForChild("ShopManager"))
+local GamepassManager = require(Systems:WaitForChild("Gamepass Gifting"):WaitForChild("GamepassManager"))
 
 -- ════════════════════════════════════════════════════════════════
 -- CONSTANTS
@@ -51,13 +51,7 @@ local RC = {
 -- STATE
 -- ════════════════════════════════════════════════════════════════
 local musicDatabase   = {}
-local djOrder         = {
-	"Top Hits", "Trap Latino", "Mix Brazil", "Kpop Army",
-	"DJ Angelisai", "DJ AngeloGarcia", "Hora Loca", "Rock",
-	"Reparto", "Phonk", "Vallenatos", "Mix Argentina",
-	"Electronica", "Romanticas", "Mixes Djs", "Mix chile",
-	"DJ Alex", "DJ SPARTAN", "DJ POOLEX", "Cumbia", "Salsa"
-}
+local djOrder         = MusicConfig.DjOrder
 local playQueue       = {}
 local currentSongIndex = 1
 local isPlaying       = false
@@ -413,7 +407,7 @@ end
 local function getUserQueueLimit(player)
 	if MusicConfig:IsAdmin(player) then
 		return MusicConfig.LIMITS.MaxSongsPerUserAdmin, "Admin"
-	elseif ShopManager.HasGamepass(player, VIP_ID) then
+	elseif GamepassManager.HasGamepass(player, VIP_ID) then
 		return MusicConfig.LIMITS.MaxSongsPerUserVIP, "VIP"
 	end
 	return MusicConfig.LIMITS.MaxSongsPerUserNormal, "Normal"

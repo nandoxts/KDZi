@@ -51,7 +51,6 @@ local userPanelFolder = remotesGlobal:WaitForChild("UserPanel")
 local GetUserData      = userPanelFolder:WaitForChild("GetUserData")
 local RefreshUserData  = userPanelFolder:WaitForChild("RefreshUserData")
 local GetUserDonations = userPanelFolder:WaitForChild("GetUserDonations")
-local CheckGamePass    = userPanelFolder:WaitForChild("CheckGamePass")
 
 local LikesEvents = remotesGlobal:WaitForChild("LikesEvents")
 
@@ -407,19 +406,6 @@ GetUserDonations.OnServerInvoke = function(player, targetUserId)
 	return donations
 end
 
-CheckGamePass.OnServerInvoke = function(player, passId, targetUserId)
-	if not passId then return false end
-
-	local playerToCheck = player
-	if targetUserId then
-		playerToCheck = Players:GetPlayerByUserId(targetUserId)
-		if not playerToCheck then return false end
-	end
-
-	if not playerToCheck then return false end
-	return checkPlayerGamePass(playerToCheck, passId)
-end
-
 -- ═══════════════════════════════════════════════════════════════
 -- INVALIDAR CACHÉ DE LIKES
 -- ═══════════════════════════════════════════════════════════════
@@ -525,3 +511,4 @@ end)
 -- ═══════════════════════════════════════════════════════════════
 -- INICIO
 -- ═══════════════════════════════════════════════════════════════
+

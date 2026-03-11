@@ -174,19 +174,13 @@ function spawnGiantDonationEffect(donatingPlayer, donatedPlayer, amount)
 	if not RobuxHammerGiant or not donatingPlayer or not donatedPlayer then return end
 
 	local giantClone = RobuxHammerGiant:Clone()
-	local mapFolder = Workspace:FindFirstChild("Map")
-	if not mapFolder then
+	local mamboKing = Workspace:FindFirstChild("MAMBO KING")
+	if not mamboKing then
 		giantClone:Destroy()
 		return
 	end
 
-	local changingMap = mapFolder:FindFirstChild("ChangingMap")
-	if not changingMap then
-		giantClone:Destroy()
-		return
-	end
-
-	giantClone.Parent = changingMap
+	giantClone.Parent = mamboKing
 
 	-- Optimizar colisiones
 	for _, part in ipairs(giantClone:GetDescendants()) do
@@ -226,7 +220,28 @@ function spawnGiantDonationEffect(donatingPlayer, donatedPlayer, amount)
 					Head = humanoid:FindFirstChild("HeadScale") and humanoid.HeadScale.Value or 1
 				}
 
+				-- Guardar cara original del giant antes de aplicar la descripción
+				local head = giantClone:FindFirstChild("Head", true)
+				local originalFaceTexture = nil
+				if head then
+					local faceDecal = head:FindFirstChildOfClass("Decal")
+					if faceDecal then
+						originalFaceTexture = faceDecal.Texture
+					end
+				end
+
+				-- No copiar la cara del jugador al giant
+				desc.Face = 0
+
 				pcall(humanoid.ApplyDescription, humanoid, desc)
+
+				-- Restaurar cara original del giant
+				if originalFaceTexture and head then
+					local faceDecal = head:FindFirstChildOfClass("Decal")
+					if faceDecal then
+						faceDecal.Texture = originalFaceTexture
+					end
+				end
 
 				-- Restaurar escalas
 				if humanoid:FindFirstChild("BodyHeightScale") then humanoid.BodyHeightScale.Value = scales.Height end

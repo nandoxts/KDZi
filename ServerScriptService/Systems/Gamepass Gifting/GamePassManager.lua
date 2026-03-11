@@ -1,9 +1,9 @@
--- ModuleScript: ShopManager
+-- ModuleScript: GamepassManager
 local MarketplaceService = game:GetService("MarketplaceService")
 local DataStoreService = game:GetService("DataStoreService")
 local GiftedGamepassesData = DataStoreService:GetDataStore("Gifting.1")
 
-local ShopManager = {}
+local GamepassManager = {}
 
 -- Función privada para verificar gamepass con manejo de errores
 local function checkGamepassOwnership(player, gamepassId)
@@ -25,13 +25,13 @@ local function checkGamepassOwnership(player, gamepassId)
 end
 
 -- Función pública para verificar múltiples gamepasses
-function ShopManager.HasGamepass(player, gamepassId)
+function GamepassManager.HasGamepass(player, gamepassId)
 	if not player or not gamepassId then return false end
 	return checkGamepassOwnership(player, gamepassId)
 end
 
 -- Función para verificar varios gamepasses a la vez
-function ShopManager.HasAnyGamepass(player, gamepassIds)
+function GamepassManager.HasAnyGamepass(player, gamepassIds)
 	if not player or not gamepassIds then return false end
 
 	for _, gamepassId in ipairs(gamepassIds) do
@@ -44,7 +44,7 @@ function ShopManager.HasAnyGamepass(player, gamepassIds)
 end
 
 -- Función para obtener todos los gamepasses que tiene un jugador
-function ShopManager.GetPlayerGamepasses(player, gamepassList)
+function GamepassManager.GetPlayerGamepasses(player, gamepassList)
 	local ownedGamepasses = {}
 
 	if not player or not gamepassList then return ownedGamepasses end
@@ -61,19 +61,4 @@ function ShopManager.GetPlayerGamepasses(player, gamepassList)
 	return ownedGamepasses
 end
 
--- Función para verificar ownership por userId (sin necesitar objeto Player)
-function ShopManager.HasGamepassByUserId(userId, gamepassId)
-	if not userId or not gamepassId then return false end
-
-	local success, owns = pcall(function()
-		return MarketplaceService:UserOwnsGamePassAsync(userId, gamepassId)
-	end)
-	if success and owns then return true end
-
-	success, owns = pcall(function()
-		return GiftedGamepassesData:GetAsync(userId .. "-" .. gamepassId)
-	end)
-	return success and owns or false
-end
-
-return ShopManager
+return GamepassManager
