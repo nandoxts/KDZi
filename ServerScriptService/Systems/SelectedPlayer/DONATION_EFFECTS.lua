@@ -7,7 +7,6 @@
 --==================================================
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage"):WaitForChild("RemotesGlobal"):WaitForChild("SelectedPlayer")
 local MarketplaceService = game:GetService("MarketplaceService")
 local DataStoreService = game:GetService("DataStoreService")
 local Workspace = game:GetService("Workspace")
@@ -18,7 +17,6 @@ local AdminConfig    = require(game.ReplicatedStorage.Config.AdminConfig)
 --==================================================
 --                    CONSTANTES
 --==================================================
-local GROUP_ID = Configuration.GroupID
 local HTTP_RETRY_LIMIT = 3
 local HTTP_RETRY_DELAY = 1
 local DATASTORE_RETRY_LIMIT = 3
@@ -27,12 +25,10 @@ local GIANT_EFFECT_CLEANUP_TIME = 40
 --==================================================
 --                    EVENTOS
 --==================================================
-local Events = ReplicatedStorage.Events
-local update_donation = Events.update_donation
-local donation_message = Events.donation_message
 
 -- Eventos del UserPanel (nuevos)
 local remotesGlobal = game:GetService("ReplicatedStorage"):WaitForChild("RemotesGlobal")
+local EventMessage  = remotesGlobal:WaitForChild("Commands"):WaitForChild("EventMessage")
 local userPanelFolder = remotesGlobal:FindFirstChild("UserPanel")
 local DonationNotify = userPanelFolder and userPanelFolder:FindFirstChild("DonationNotify")
 local DonationMessage = userPanelFolder and userPanelFolder:FindFirstChild("DonationMessage")
@@ -52,7 +48,6 @@ local ReceiversDS = DataStoreService:GetOrderedDataStore("TopRece")
 --==================================================
 local PlayerCache = {}
 local ProductInfoCache = {}
-local ActiveEffects = {}
 
 --==================================================
 --             CONFIGURACIÓN DE EFECTOS
@@ -451,16 +446,13 @@ local function onPurchase(player, assetId, wasPurchased, isGamepass)
 
 	if not creatorId then return end
 
-	-- Notificar clientes
-	update_donation:Fire(player.UserId, price, creatorId)
-
 	local donatedPlayer = Players:GetPlayerByUserId(creatorId)
 	if donatedPlayer then
 		-- Obtener nombre de forma segura
 		local creatorName = donatedPlayer.Name
 
-		-- Notificar sistema viejo
-		donation_message:FireAllClients(player.Name, price, creatorName)
+		-- Mensaje en el chat del servidor
+		EventMessage:FireAllClients(player.Name .. " donó " .. formatNumber(price) .. "a " .. creatorName .. "!", "donation")
 
 		-- Notificar UserPanel nuevo (si existe)
 		if DonationNotify then
@@ -550,8 +542,9 @@ function handleCommand(player, message)
 		end
 
 		-- Simular donación
-		update_donation:Fire(player.UserId, amount, targetPlayer.UserId)
-		donation_message:FireAllClients(player.Name, amount, targetPlayer.Name)
+
+		-- Mensaje en el chat del servidor
+		EventMessage:FireAllClients(player.Name .. " donó " .. formatNumber(amount) .. " R$ a " .. targetPlayer.Name .. "!", "donation")
 
 		-- Notificar UserPanel (si existe)
 		if DonationNotify then

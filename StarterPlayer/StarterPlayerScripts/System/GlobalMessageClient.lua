@@ -8,10 +8,12 @@ local commandsFolder = remotesGlobal:WaitForChild("Commands", 10)
 
 -- Colores para diferentes tipos de mensajes
 local MESSAGE_COLORS = {
-	tone     = { hex = "#FFC800", rgb = Color3.fromRGB(255, 200, 0) },      -- Amarillo/Dorado
-	event    = { hex = "#00D4FF", rgb = Color3.fromRGB(0, 212, 255) },      -- Azul/Cian
-	gift     = { hex = "#FF6EC7", rgb = Color3.fromRGB(255, 110, 199) },    -- Rosa (regalos)
-	donation = { hex = "#00FF88", rgb = Color3.fromRGB(0, 255, 136) },      -- Verde (donaciones)
+	tone      = { hex = "#FFC800", rgb = Color3.fromRGB(255, 200, 0) },      -- Amarillo/Dorado
+	event     = { hex = "#00D4FF", rgb = Color3.fromRGB(0, 212, 255) },      -- Azul/Cian
+	gift      = { hex = "#FF6EC7", rgb = Color3.fromRGB(255, 110, 199) },    -- Rosa (regalos)
+	donation  = { hex = "#00FF88", rgb = Color3.fromRGB(0, 255, 136) },      -- Verde (donaciones)
+	like      = { hex = "#FFFF7F", rgb = Color3.fromRGB(255, 255, 127) },    -- Amarillo claro (likes)
+	superlike = { hex = "#F7004D", rgb = Color3.fromRGB(247, 0, 77) },       -- Rojo (super likes)
 }
 
 local function displayMessage(message, colorInfo)

@@ -13,16 +13,20 @@ API:
       parent        : Instance
       theme         : table
       state         : { subTabH: number }
-      items         : { {id, name, price, icon, color, gradColor?, desc?}, ... }
+      items         : { {id, name, price, icon, color, gradColor?, desc?, titleId?}, ... }
       emptyListText : string?
       onBuy         : function(item)
       onGift        : function(item, userId, username, displayName)
       loadPlayers   : function(item, setPlayers)   -- setPlayers(array)
+      onEquip       : function(item)?  -- si se da, los items owned muestran EQUIPAR/DESEQUIPAR
   }
 ]]
 
+local Players           = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService      = game:GetService("TweenService")
+
+local player = Players.LocalPlayer
 
 local UI              = require(ReplicatedStorage:WaitForChild("Core"):WaitForChild("UI"))
 local ModernScrollbar = require(ReplicatedStorage:WaitForChild("UIComponents"):WaitForChild("ModernScrollbar"))
@@ -59,6 +63,8 @@ function ShopItemList.build(props)
     local _sliding     = false
     local selectedItem = nil
     local buyBtnRefs   = {}    -- [item.id] → buyBtn
+    local itemByIdRefs = {}    -- [item.id] → item
+    local attrConns    = {}    -- conexiones EquippedTitle para cleanup
 
     -- ── VIEW 1: LISTA ──
     local listView = Instance.new("ScrollingFrame")
@@ -183,7 +189,8 @@ function ShopItemList.build(props)
         })
         giftBtn.BackgroundTransparency = 0.3
 
-        buyBtnRefs[item.id] = buyBtn
+        buyBtnRefs[item.id]   = buyBtn
+        itemByIdRefs[item.id] = item
 
         -- Hover card
         card.InputBegan:Connect(function(input)
@@ -199,7 +206,10 @@ function ShopItemList.build(props)
 
         -- Buy hover + click
         buyBtn.MouseButton1Click:Connect(function()
-            if buyBtn:GetAttribute("Owned") then return end
+            if buyBtn:GetAttribute("Owned") then
+                if props.onEquip then props.onEquip(item) end
+                return
+            end
             if props.onBuy then props.onBuy(item) end
         end)
         buyBtn.MouseEnter:Connect(function()
@@ -315,8 +325,27 @@ function ShopItemList.build(props)
 
     local function markOwned(itemId)
         local btn = buyBtnRefs[itemId]
-        if btn and btn.Parent then
-            btn:SetAttribute("Owned", true)
+        if not (btn and btn.Parent) then return end
+        btn:SetAttribute("Owned", true)
+
+        if props.onEquip then
+            -- Modo equip: EQUIPAR / DESEQUIPAR según atributo
+            local itm = itemByIdRefs[itemId]
+            local function refreshEquipBtn()
+                local equipped = tostring(player:GetAttribute("EquippedTitle") or "")
+                local titleId  = tostring((itm and itm.titleId) or itemId)
+                if titleId == equipped then
+                    btn.Text             = "DESEQUIPAR"
+                    btn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+                else
+                    btn.Text             = "EQUIPAR"
+                    btn.BackgroundColor3 = (itm and itm.color) or THEME.accent
+                end
+            end
+            refreshEquipBtn()
+            local conn = player:GetAttributeChangedSignal("EquippedTitle"):Connect(refreshEquipBtn)
+            table.insert(attrConns, conn)
+        else
             btn.Text             = "TIENES"
             btn.BackgroundColor3 = Color3.fromRGB(40, 180, 80)
         end
@@ -329,6 +358,8 @@ function ShopItemList.build(props)
     end
 
     local function cleanup()
+        for _, conn in ipairs(attrConns) do conn:Disconnect() end
+        attrConns = {}
         if playerListInstance then
             playerListInstance:destroy()
             playerListInstance = nil

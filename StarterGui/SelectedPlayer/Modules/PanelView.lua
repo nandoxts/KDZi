@@ -59,10 +59,11 @@ local function getLayout()
 	lastDeviceType = device
 
 	if device == "mobile" then
+		local ph = Config.PANEL_HEIGHT - 20
 		cachedLayout = {
 			panelWidth = math.min(Config.PANEL_WIDTH, 280),
-			panelHeight = Config.PANEL_HEIGHT - 20,
-			avatarHeight = Config.AVATAR_HEIGHT - 10,
+			panelHeight = ph,
+			avatarHeight = ph,   -- siempre igual al panel visible
 			buttonHeight = Config.BUTTON_HEIGHT - 2,
 			buttonGap = Config.BUTTON_GAP,
 			panelPadding = math.max(Config.PANEL_PADDING - 2, 6),
@@ -72,10 +73,11 @@ local function getLayout()
 			bottomOffset = 60, likeButtonSize = 22,
 		}
 	elseif device == "tablet" then
+		local ph = Config.PANEL_HEIGHT
 		cachedLayout = {
 			panelWidth = Config.PANEL_WIDTH + 20,
-			panelHeight = Config.PANEL_HEIGHT,
-			avatarHeight = Config.AVATAR_HEIGHT,
+			panelHeight = ph,
+			avatarHeight = ph,   -- siempre igual al panel visible
 			buttonHeight = Config.BUTTON_HEIGHT,
 			buttonGap = Config.BUTTON_GAP,
 			panelPadding = Config.PANEL_PADDING,
@@ -85,10 +87,11 @@ local function getLayout()
 			bottomOffset = 80, likeButtonSize = 26,
 		}
 	else
+		local ph = Config.PANEL_HEIGHT
 		cachedLayout = {
 			panelWidth = Config.PANEL_WIDTH,
-			panelHeight = Config.PANEL_HEIGHT,
-			avatarHeight = Config.AVATAR_HEIGHT,
+			panelHeight = ph,
+			avatarHeight = ph,   -- siempre igual al panel visible
 			buttonHeight = Config.BUTTON_HEIGHT,
 			buttonGap = Config.BUTTON_GAP,
 			panelPadding = Config.PANEL_PADDING,
@@ -253,7 +256,6 @@ local function closeDonationOverlay()
 	local targetY = pY + L.panelHeight / 2 + 30
 
 	safeTween(content, {
-		GroupTransparency = 1,
 		Position = UDim2.new(0.5, 0, 0, targetY),
 	}, 0.28, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
 
@@ -290,7 +292,7 @@ local function showDonationOverlay(items, targetName, playerColor)
 		BackgroundTransparency = 0,
 		BorderSizePixel = 0,
 		ZIndex = 100,
-		GroupTransparency = 1,
+		GroupTransparency = 0,
 		Parent = parent,
 	})
 	Utils.addCorner(content, L.cornerRadius)
@@ -352,7 +354,6 @@ local function showDonationOverlay(items, targetName, playerColor)
 		ZIndex = 101, Parent = content,
 	})
 	Utils.create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Left, VerticalAlignment = Enum.VerticalAlignment.Top, Padding = UDim.new(0, 10), Parent = scroll })
-	Utils.create("UIPadding", { PaddingLeft = UDim.new(0, 4), PaddingRight = UDim.new(0, 4), Parent = scroll })
 
 	if not items or #items == 0 then
 		Utils.createLabel({ Size = UDim2.new(1, 0, 1, 0), Text = "No hay items disponibles", TextColor3 = THEME.muted, TextSize = L.fontSize.statLabel + 2, ZIndex = 101, Parent = scroll })
@@ -434,7 +435,6 @@ local function showDonationOverlay(items, targetName, playerColor)
 
 	-- Animación de entrada: slide-up + fade con Back easing
 	safeTween(content, {
-		GroupTransparency = 0,
 		Position = UDim2.new(0.5, 0, 0, centerY),
 	}, 0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 	task.delay(0.45, function() State.isLoadingDynamic = false end)
@@ -511,9 +511,9 @@ local function createAvatarSection(panel, data, playerColor)
 
 	-- Avatar
 	local avatarImage = Utils.create("ImageLabel", {
-		AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0.5, 0, 0.5, 0),
-		Size = UDim2.new(Config.AVATAR_ZOOM, 0, Config.AVATAR_ZOOM, 0), BackgroundTransparency = 1,
-		Image = data.avatar or "", ScaleType = Enum.ScaleType.Fit, ZIndex = 3, Parent = avatarSection
+		Size = UDim2.new(1, 0, 1, 0),
+		BackgroundTransparency = 1,
+		Image = data.avatar or "", ScaleType = Enum.ScaleType.Crop, ZIndex = 3, Parent = avatarSection
 	})
 	Utils.asyncLoadAvatar(data.userId, avatarImage)
 
@@ -664,7 +664,7 @@ function PanelView.createPanel(data)
 	})
 	gR.Parent = edgeR
 
-	local panelImage = Utils.create("ImageLabel", { Size = UDim2.new(1, 0, 0, 210), BackgroundTransparency = 1, Image = "", ImageTransparency = 0.6, ScaleType = Enum.ScaleType.Crop, ZIndex = 1, Parent = panelContainer })
+	local panelImage = Utils.create("ImageLabel", { Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Image = "", ImageTransparency = 0.6, ScaleType = Enum.ScaleType.Crop, ZIndex = 1, Parent = panelContainer })
 	State.panelBgImage = panelImage
 
 	local panel = Utils.create("ScrollingFrame", {

@@ -56,20 +56,22 @@ function LikesSystem.setupLikeListeners(soundsFolder)
 	if Remotes.Likes.GiveLikeEvent then
 		Remotes.Likes.GiveLikeEvent.OnClientEvent:Connect(function(action, data)
 			if action == "LikeSuccess" then
-				-- Notificacion DESPUES de confirmacion del servidor
 				if NotificationSystem then
 					local targetName = State.target and State.target.DisplayName or "jugador"
 					NotificationSystem:Success("Like", "Like enviado a " .. targetName .. "!", 2)
 				end
-
 				if soundsFolder and soundsFolder:FindFirstChild("Like") then
 					soundsFolder.Like:Play()
+				end
+			elseif action == "LikeReceived" and data then
+				-- Notificación personal: me dieron un like
+				if NotificationSystem then
+					NotificationSystem:Info("Like", "¡" .. data.Sender .. " te dio un Like!", 3)
 				end
 			elseif action == "Error" then
 				if NotificationSystem then
 					NotificationSystem:Error("Like", data or "Error al dar like", 3)
 				end
-
 				if soundsFolder and soundsFolder:FindFirstChild("Error") then
 					soundsFolder.Error:Play()
 				end
@@ -82,6 +84,11 @@ function LikesSystem.setupLikeListeners(soundsFolder)
 			if action == "SuperLikeSuccess" then
 				if soundsFolder and soundsFolder:FindFirstChild("Like") then
 					soundsFolder.Like:Play()
+				end
+			elseif action == "LikeReceived" and data then
+				-- Notificación personal: me dieron un super like
+				if NotificationSystem then
+					NotificationSystem:Success("Super Like", "¡" .. data.Sender .. " te dio un Super Like (+" .. tostring(data.Amount) .. ")!", 3)
 				end
 			end
 		end)

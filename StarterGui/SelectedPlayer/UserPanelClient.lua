@@ -20,7 +20,6 @@ local RemotesSetup = require(Modules.RemotesSetup)
 local Utils = require(Modules.Utils)
 local SyncSystem = require(Modules.SyncSystem)
 local LikesSystem = require(Modules.LikesSystem)
-local EventListeners = require(Modules.EventListeners)
 local InputHandler = require(Modules.InputHandler)
 local PanelView = require(Modules.PanelView)
 
@@ -35,7 +34,6 @@ local ColorEffects = Remotes.Systems.ColorEffects
 Utils.init(Config, State)
 SyncSystem.init(Remotes, State)
 LikesSystem.init(Remotes, State, Config)
-EventListeners.init(Remotes)
 PanelView.init(Config, State, Utils, Remotes)
 
 -- ═══════════════════════════════════════════════════════════════

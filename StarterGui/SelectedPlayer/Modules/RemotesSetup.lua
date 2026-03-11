@@ -98,8 +98,7 @@ return function()
 		-- Sistema de Likes
 		Likes = {
 			GiveLikeEvent = LikesEvents and (LikesEvents:FindFirstChild("GiveLikeEvent") or LikesEvents:WaitForChild("GiveLikeEvent", 2)),
-			GiveSuperLikeEvent = LikesEvents and (LikesEvents:FindFirstChild("GiveSuperLikeEvent") or LikesEvents:WaitForChild("GiveSuperLikeEvent", 2)),
-			BroadcastEvent = LikesEvents and (LikesEvents:FindFirstChild("BroadcastEvent") or LikesEvents:WaitForChild("BroadcastEvent", 2))
+			GiveSuperLikeEvent = LikesEvents and (LikesEvents:FindFirstChild("GiveSuperLikeEvent") or LikesEvents:WaitForChild("GiveSuperLikeEvent", 2))
 		},
 
 		-- Sistemas

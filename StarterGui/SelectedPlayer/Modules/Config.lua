@@ -22,13 +22,13 @@ end
 local function getDimensions()
 	local isMobile = UserInputService.TouchEnabled and not UserInputService.MouseEnabled
 	return {
-		PANEL_WIDTH = isMobile and 210 or 280,
-		PANEL_HEIGHT = isMobile and 300 or 350,
-		AVATAR_HEIGHT = isMobile and 160 or 200,
-		BUTTON_HEIGHT = isMobile and 35 or 38,
-		CARD_SIZE = isMobile and 60 or 75,
-		STATS_WIDTH = isMobile and 45 or 70,
-		STATS_ITEM_HEIGHT = isMobile and 30 or 50,
+		PANEL_WIDTH = isMobile and 210 or 250,
+		PANEL_HEIGHT = isMobile and 210 or 250,
+		AVATAR_HEIGHT = isMobile and 210 or 250,
+		BUTTON_HEIGHT = isMobile and 38 or 38,
+		CARD_SIZE = isMobile and 75 or 75,
+		STATS_WIDTH = isMobile and 70 or 70,
+		STATS_ITEM_HEIGHT = isMobile and 50 or 50,
 	}
 end
 
@@ -76,9 +76,6 @@ return {
 	-- Touch
 	TOUCH_ENABLED = true,
 	LONG_PRESS_TIME = 0.5,
-
-	-- Likes
-	LIKE_COOLDOWN = 60,
 
 	-- Cursores (solo desktop)
 	DEFAULT_CURSOR = "rbxassetid://13335399499",

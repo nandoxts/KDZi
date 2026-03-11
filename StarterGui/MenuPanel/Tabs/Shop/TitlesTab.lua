@@ -40,6 +40,7 @@ function TitlesTab.build(parent, THEME, state, screenGui)
 
 	-- ── Remotes ──────────────────────────────────────────────────
 	local GetPlayersWithoutItem, GiftingRemote, OwnershipUpdated
+	local ownershipRemote, equipRemote
 
 	task.spawn(function()
 		local rg = ReplicatedStorage:WaitForChild("RemotesGlobal", 5)
@@ -52,7 +53,14 @@ function TitlesTab.build(parent, THEME, state, screenGui)
 		local giftFolder = rg:FindFirstChild("Gamepass Gifting")
 		if giftFolder then
 			local remotes = giftFolder:FindFirstChild("Remotes")
-			if remotes then GiftingRemote = remotes:FindFirstChild("Gifting") end
+			if remotes then
+				GiftingRemote   = remotes:FindFirstChild("Gifting")
+				ownershipRemote = remotes:FindFirstChild("Ownership")
+			end
+		end
+		local titleFolder = rg:FindFirstChild("Title")
+		if titleFolder then
+			equipRemote = titleFolder:FindFirstChild("Titles")
 		end
 	end)
 
@@ -61,11 +69,12 @@ function TitlesTab.build(parent, THEME, state, screenGui)
 	for _, t in ipairs(TitleConfig) do
 		if t.gamepassId and t.name then
 			table.insert(items, {
-				id    = t.gamepassId,
-				name  = t.name,
-				price = t.price or 500,
-				icon  = t.icon or "",
-				color = parseColor(t.color, THEME.accent),
+				id      = t.gamepassId,
+				titleId = t.id,          -- string id para equip remote ("fresita", etc.)
+				name    = t.name,
+				price   = t.price or 500,
+				icon    = t.icon or "",
+				color   = parseColor(t.color, THEME.accent),
 			})
 		end
 	end
@@ -80,6 +89,12 @@ function TitlesTab.build(parent, THEME, state, screenGui)
 
 		onBuy = function(item)
 			pcall(function() MarketplaceService:PromptGamePassPurchase(player, item.id) end)
+		end,
+
+		onEquip = function(item)
+			if equipRemote then
+				equipRemote:FireServer(item.titleId)
+			end
 		end,
 
 		onGift = function(item, userId, username, displayName)
@@ -109,7 +124,21 @@ function TitlesTab.build(parent, THEME, state, screenGui)
 		if plr ~= player or not bought then return end
 		listApi.markOwned(passId)
 	end)
-
+	-- ── Pre-check ownership al abrir ─────────────────────────────────
+	task.spawn(function()
+		if not ownershipRemote then task.wait(1.5) end
+		if not ownershipRemote then return end
+		for _, item in ipairs(items) do
+			task.spawn(function()
+				local ok, owned = pcall(function()
+					return ownershipRemote:InvokeServer(item.id)
+				end)
+				if ok and owned then
+					listApi.markOwned(item.id)
+				end
+			end)
+		end
+	end)
 	-- ── OwnershipUpdated ──────────────────────────────────────────
 	task.spawn(function()
 		task.wait(1)
