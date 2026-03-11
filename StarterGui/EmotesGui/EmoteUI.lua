@@ -30,7 +30,6 @@ local Config = {
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
-local MarketplaceService = game:GetService("MarketplaceService")
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -53,13 +52,11 @@ local SyncRemote = RemotesSync:FindFirstChild("Sync")
 -- Las funciones setActiveByName y clearActive se definen DESPUÉS de ScrollFrame
 
 local THEME_CONFIG = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("ThemeConfig"))
-local ConfigModule = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("Configuration"))
-local Modulo = require(RemotesSync:WaitForChild("Emotes_Modules"):WaitForChild("Animaciones"))
+local Modulo = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("Animaciones"))
 local NotificationSystem = require(ReplicatedStorage:WaitForChild("Systems"):WaitForChild("NotificationSystem"):WaitForChild("NotificationSystem"))
 local Icon = require(ReplicatedStorage:WaitForChild("Icon"))
 local ModernScrollbar = require(ReplicatedStorage:WaitForChild("UIComponents"):WaitForChild("ModernScrollbar"))
-
-local VIPGamePassID = ConfigModule.Gamepasses.VIP.id
+local SubTabs = require(ReplicatedStorage:WaitForChild("UIComponents"):WaitForChild("SubTabs"))
 
 -- ════════════════════════════════════════════════════════════════════════════════
 -- VARIABLES
@@ -68,18 +65,12 @@ local VIPGamePassID = ConfigModule.Gamepasses.VIP.id
 local Jugador = Players.LocalPlayer
 local PlayerGui = Jugador:WaitForChild("PlayerGui")
 
--- Función para verificar VIP bajo demanda
-local function TieneVIP()
-	return Jugador:GetAttribute("HasVIP") or false
-end
-
 local IsMobile = UserInputService.TouchEnabled
 local EmotesFavs = {}
 local EmotesTrending = {}
 local DanceActivated = nil
 local ActiveCard = nil
-local tieneVIP = false
-local TabActual = "Todos"
+local TabActual = "TODOS"
 local IsSynced = false -- Estado de sincronización
 local currentLeaderUserId = nil -- UserId del jugador que sigo (nil si no sigo a nadie)
 
@@ -124,14 +115,10 @@ local function GetCardHeight()
 end
 
 local function EncontrarDatos(BaileId)
-	for _, lista in ipairs({Modulo.Ids, Modulo.Vip, Modulo.Recomendado}) do
-		if lista then
-			for _, v in pairs(lista) do
-				if v.ID == BaileId then return v.Nombre, lista == Modulo.Vip end
-			end
-		end
+	for _, v in ipairs(Modulo.Lista) do
+		if v.ID == BaileId then return v.Nombre end
 	end
-	return "Dance", false
+	return "Dance"
 end
 
 local function EstaEnFavoritos(id)
@@ -140,8 +127,6 @@ end
 
 local function ObtenerTipo(id)
 	if table.find(EmotesTrending or {}, id) then return "Trending" end
-	for _, v in ipairs(Modulo.Vip or {}) do if v.ID == id then return "VIP" end end
-	for _, v in ipairs(Modulo.Recomendado or {}) do if v.ID == id then return "Recommended" end end
 	return "Normal"
 end
 
@@ -255,75 +240,93 @@ ScreenGui.Parent = PlayerGui
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.BackgroundColor3 = THEME_CONFIG.bg
-MainFrame.BackgroundTransparency = THEME_CONFIG.frameAlpha
+MainFrame.BackgroundTransparency = 1
 MainFrame.BorderSizePixel = 0
-MainFrame.Visible = false
+MainFrame.Visible = true
 MainFrame.AnchorPoint = Vector2.new(0, 0.5)
+MainFrame.ClipsDescendants = false
 MainFrame.Parent = ScreenGui
+
+local emotesPanelOpen = false
 
 local function ActualizarTamanoFrame()
 	if IsMobile then
 		MainFrame.Size = UDim2.new(0, Config.Movil_Ancho, 0, Config.Movil_Alto)
-		MainFrame.Position = UDim2.new(0, Config.Movil_MargenIzquierdo, 0.5, Config.Movil_OffsetVertical)
+		MainFrame.Position = UDim2.new(0, -Config.Movil_Ancho, 0.5, Config.Movil_OffsetVertical)
 	else
 		MainFrame.Size = UDim2.new(0, Config.PC_Ancho, 0, Config.PC_Alto)
-		MainFrame.Position = UDim2.new(0, Config.PC_MargenIzquierdo, 0.5, Config.PC_OffsetVertical)
+		MainFrame.Position = UDim2.new(0, -Config.PC_Ancho, 0.5, Config.PC_OffsetVertical)
 	end
 end
 ActualizarTamanoFrame()
 
-CreateCorner(MainFrame, 12)
-CreateStroke(MainFrame, THEME_CONFIG.stroke, 1, 0.5)
+-- CanvasGroup para clipear bordes redondeados correctamente
+local ContentCanvas = Instance.new("CanvasGroup")
+ContentCanvas.Name = "ContentCanvas"
+ContentCanvas.Size = UDim2.new(1, 0, 1, 0)
+ContentCanvas.BackgroundColor3 = THEME_CONFIG.bg
+ContentCanvas.BackgroundTransparency = 0
+ContentCanvas.BorderSizePixel = 0
+ContentCanvas.Parent = MainFrame
+CreateCorner(ContentCanvas, 12)
+CreateStroke(ContentCanvas, THEME_CONFIG.stroke, 1, 0.5)
 
 -- ════════════════════════════════════════════════════════════════════════════════
--- TABS
+-- BOTÓN TOGGLE (pegado al borde derecho del panel)
 -- ════════════════════════════════════════════════════════════════════════════════
 
-local TabsContainer = Instance.new("Frame")
-TabsContainer.Name = "TabsContainer"
-TabsContainer.Size = UDim2.new(1, -16, 0, IsMobile and 28 or 34)
-TabsContainer.Position = UDim2.new(0, 8, 0, 8)
-TabsContainer.BackgroundColor3 = THEME_CONFIG.card
-TabsContainer.BackgroundTransparency = THEME_CONFIG.lightAlpha
-TabsContainer.BorderSizePixel = 0
-TabsContainer.Parent = MainFrame
-CreateCorner(TabsContainer, 8)
+local btnSize = IsMobile and 40 or 45
 
-local TabIndicator = Instance.new("Frame")
-TabIndicator.Name = "TabIndicator"
-TabIndicator.Size = UDim2.new(0.5, -4, 1, -4)
-TabIndicator.Position = UDim2.new(0, 2, 0, 2)
-TabIndicator.BackgroundColor3 = THEME_CONFIG.accent
-TabIndicator.BorderSizePixel = 0
-TabIndicator.ZIndex = 2
-TabIndicator.Parent = TabsContainer
-CreateCorner(TabIndicator, 6)
+local ToggleBtn = Instance.new("ImageButton")
+ToggleBtn.Name = "EmoteToggle"
+ToggleBtn.Size = UDim2.new(0, btnSize, 0, btnSize)
+ToggleBtn.Position = UDim2.new(1, 4, 0.5, 0)
+ToggleBtn.AnchorPoint = Vector2.new(0, 0.5)
+ToggleBtn.BackgroundColor3 = THEME_CONFIG.bg
+ToggleBtn.BackgroundTransparency = 0
+ToggleBtn.Image = ""
+ToggleBtn.AutoButtonColor = false
+ToggleBtn.ZIndex = 10
+ToggleBtn.Parent = MainFrame
+CreateCorner(ToggleBtn, btnSize / 2)
+CreateStroke(ToggleBtn, THEME_CONFIG.stroke, 1, 0.5)
 
-local TabTodos = Instance.new("TextButton")
-TabTodos.Name = "TabTodos"
-TabTodos.Size = UDim2.new(0.5, 0, 1, 0)
-TabTodos.BackgroundTransparency = 1
-TabTodos.Font = Enum.Font.GothamBold
-TabTodos.Text = "Todos"
-TabTodos.TextColor3 = THEME_CONFIG.text
-TabTodos.TextSize = IsMobile and 14 or 16
-TabTodos.ZIndex = 3
-TabTodos.Parent = TabsContainer
+local ToggleIcon = Instance.new("ImageLabel")
+ToggleIcon.Name = "Icon"
+ToggleIcon.Image = "rbxassetid://127784597936941"
+ToggleIcon.ImageColor3 = THEME_CONFIG.text
+ToggleIcon.BackgroundTransparency = 1
+ToggleIcon.Size = UDim2.new(1, -12, 1, -12)
+ToggleIcon.Position = UDim2.new(0.5, 0, 0.5, 0)
+ToggleIcon.AnchorPoint = Vector2.new(0.5, 0.5)
+ToggleIcon.ScaleType = Enum.ScaleType.Fit
+ToggleIcon.ZIndex = 11
+ToggleIcon.Parent = ToggleBtn
 
-local TabFavoritos = Instance.new("TextButton")
-TabFavoritos.Name = "TabFavoritos"
-TabFavoritos.Size = UDim2.new(0.5, 0, 1, 0)
-TabFavoritos.Position = UDim2.new(0.5, 0, 0, 0)
-TabFavoritos.BackgroundTransparency = 1
-TabFavoritos.Font = Enum.Font.GothamBold
-TabFavoritos.Text = "Favoritos"
-TabFavoritos.TextColor3 = THEME_CONFIG.muted
-TabFavoritos.TextSize = IsMobile and 14 or 16
-TabFavoritos.ZIndex = 3
-TabFavoritos.Parent = TabsContainer
+ToggleBtn.MouseEnter:Connect(function()
+	Tween(ToggleBtn, 0.15, {BackgroundColor3 = THEME_CONFIG.elevated})
+end)
+ToggleBtn.MouseLeave:Connect(function()
+	Tween(ToggleBtn, 0.15, {BackgroundColor3 = THEME_CONFIG.bg})
+end)
 
-local posY = IsMobile and 40 or 46
+-- ════════════════════════════════════════════════════════════════════════════════
+-- TABS (SubTabs con Blob Indicator)
+-- ════════════════════════════════════════════════════════════════════════════════
+
+local tabHeight = IsMobile and 28 or 34
+
+local subTabs = SubTabs.new(ContentCanvas, THEME_CONFIG, {
+	tabs = {
+		{ id = "TODOS", label =  "TODOS" },
+		{ id = "FAVORITOS", label = "FAVORITOS" },
+	},
+	height = tabHeight,
+	default = "TODOS",
+	textSize = IsMobile and 13 or 15,
+})
+
+local posY = tabHeight
 
 -- ════════════════════════════════════════════════════════════════════════════════
 -- BÚSQUEDA (ARREGLADA - sin desbordamiento de texto)
@@ -335,14 +338,12 @@ local SearchContainer, SearchBox
 if mostrarBusqueda then
 	SearchContainer = Instance.new("Frame")
 	SearchContainer.Name = "SearchContainer"
-	SearchContainer.Size = UDim2.new(1, -16, 0, IsMobile and 30 or 36)
-	SearchContainer.Position = UDim2.new(0, 8, 0, posY)
-	SearchContainer.BackgroundColor3 = THEME_CONFIG.card
-	SearchContainer.BackgroundTransparency = 0
+	SearchContainer.Size = UDim2.new(1, 0, 0, IsMobile and 30 or 36)
+	SearchContainer.Position = UDim2.new(0, 0, 0, posY)
+	SearchContainer.BackgroundTransparency = 1
 	SearchContainer.BorderSizePixel = 0
 	SearchContainer.ClipsDescendants = true
-	SearchContainer.Parent = MainFrame
-	CreateCorner(SearchContainer, 8)
+	SearchContainer.Parent = ContentCanvas
 
 	-- Icono de lupa moderno (círculo + línea)
 	local SearchIconContainer = Instance.new("Frame")
@@ -369,7 +370,7 @@ if mostrarBusqueda then
 	SearchHandle.Position = UDim2.new(0.5, IsMobile and 2 or 3, 0.5, IsMobile and 3 or 4)
 	SearchHandle.Rotation = 45
 	SearchHandle.BackgroundColor3 = THEME_CONFIG.subtle
-	SearchHandle.BackgroundTransparency = THEME_CONFIG.mediumAlpha
+	SearchHandle.BackgroundTransparency = THEME_CONFIG.overlayAlpha
 	SearchHandle.BorderSizePixel = 0
 	SearchHandle.Parent = SearchIconContainer
 	CreateCorner(SearchHandle, 2)
@@ -398,11 +399,11 @@ if mostrarBusqueda then
 	end))
 
 	TrackGlobalConnection(SearchBox.FocusLost:Connect(function()
-		Tween(circleStroke, 0.2, {Color = THEME_CONFIG.subtle, Transparency = THEME_CONFIG.mediumAlpha})
-		Tween(SearchHandle, 0.2, {BackgroundColor3 = THEME_CONFIG.subtle, BackgroundTransparency = THEME_CONFIG.mediumAlpha})
+		Tween(circleStroke, 0.2, {Color = THEME_CONFIG.subtle, Transparency = THEME_CONFIG.overlayAlpha})
+		Tween(SearchHandle, 0.2, {BackgroundColor3 = THEME_CONFIG.subtle, BackgroundTransparency = THEME_CONFIG.overlayAlpha})
 	end))
 
-	posY = posY + (IsMobile and 34 or 40)
+	posY = posY + (IsMobile and 30 or 36)
 end
 
 
@@ -413,11 +414,11 @@ end
 
 local ContentArea = Instance.new("Frame")
 ContentArea.Name = "ContentArea"
-ContentArea.Size = UDim2.new(1, -16, 1, -(posY + 8))
-ContentArea.Position = UDim2.new(0, 8, 0, posY)
+ContentArea.Size = UDim2.new(1, 0, 1, -posY)
+ContentArea.Position = UDim2.new(0, 0, 0, posY)
 ContentArea.BackgroundTransparency = 1
 ContentArea.ClipsDescendants = false
-ContentArea.Parent = MainFrame
+ContentArea.Parent = ContentCanvas
 
 -- ════════════════════════════════════════════════════════════════════════════════
 -- OVERLAY DE SINCRONIZACIÓN MODERNO
@@ -428,7 +429,7 @@ SyncOverlay.Name = "SyncOverlay"
 SyncOverlay.Size = UDim2.new(1, 0, 1, 0)
 SyncOverlay.Position = UDim2.new(0, 0, 0, 0)
 SyncOverlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-SyncOverlay.BackgroundTransparency = THEME_CONFIG.subtleAlpha
+SyncOverlay.BackgroundTransparency = THEME_CONFIG.overlayAlpha
 SyncOverlay.BorderSizePixel = 0
 SyncOverlay.Text = ""
 SyncOverlay.AutoButtonColor = false
@@ -443,7 +444,7 @@ SyncContainer.Name = "SyncContainer"
 SyncContainer.Size = UDim2.new(1, -40, 0, IsMobile and 120 or 140)
 SyncContainer.Position = UDim2.new(0, 20, 0.5, IsMobile and -60 or -70)
 SyncContainer.BackgroundColor3 = THEME_CONFIG.elevated
-SyncContainer.BackgroundTransparency = THEME_CONFIG.mediumAlpha
+SyncContainer.BackgroundTransparency = THEME_CONFIG.overlayAlpha
 SyncContainer.BorderSizePixel = 0
 SyncContainer.ZIndex = 101
 SyncContainer.Parent = SyncOverlay
@@ -507,7 +508,7 @@ SyncOverlay.BackgroundTransparency = 1
 		SyncPlayerName.Text = syncedPlayerName or "Desconocido"
 
 		-- Animaciones de entrada
-		Tween(SyncOverlay, 0.3, {BackgroundTransparency = THEME_CONFIG.mediumAlpha})
+		Tween(SyncOverlay, 0.3, {BackgroundTransparency = THEME_CONFIG.overlayAlpha})
 		Tween(SyncContainer, 0.4, {Size = UDim2.new(1, -40, 0, IsMobile and 120 or 140)}, Enum.EasingStyle.Back)
 	else
 		-- Animaciones de salida (similares a la entrada pero en reversa)
@@ -539,10 +540,10 @@ SyncOverlay.MouseEnter:Connect(function()
 end)
 
 SyncOverlay.MouseLeave:Connect(function()
-	Tween(SyncOverlay, 0.15, {BackgroundTransparency = THEME_CONFIG.mediumAlpha})
+	Tween(SyncOverlay, 0.15, {BackgroundTransparency = THEME_CONFIG.overlayAlpha})
 	Tween(SyncPlayerName, 0.15, {TextColor3 = THEME_CONFIG.accent})
-	Tween(SyncContainer, 0.15, {BackgroundTransparency = THEME_CONFIG.mediumAlpha})
-	Tween(ContainerStroke, 0.15, {Transparency = THEME_CONFIG.mediumAlpha})
+	Tween(SyncContainer, 0.15, {BackgroundTransparency = THEME_CONFIG.overlayAlpha})
+	Tween(ContainerStroke, 0.15, {Transparency = THEME_CONFIG.overlayAlpha})
 end)
 
 -- Nota: el cliente ya no usa valores en el Character; escucha `SyncUpdate` desde el servidor
@@ -727,8 +728,8 @@ end
 local ContentPadding = Instance.new("UIPadding")
 ContentPadding.PaddingTop = UDim.new(0, IsMobile and 2 or 4)
 ContentPadding.PaddingBottom = UDim.new(0, IsMobile and 4 or 10)
-ContentPadding.PaddingLeft = UDim.new(0, 0)
-ContentPadding.PaddingRight = UDim.new(0, 0)
+ContentPadding.PaddingLeft = UDim.new(0, IsMobile and 4 or 6)
+ContentPadding.PaddingRight = UDim.new(0, IsMobile and 4 or 6)
 ContentPadding.Parent = ScrollFrame
 
 local EmptyMessage = Instance.new("TextLabel")
@@ -752,31 +753,7 @@ end
 -- ════════════════════════════════════════════════════════════════════════════════
 -- CREAR TARJETA (con animación de favoritos mejorada)
 -- ════════════════════════════════════════════════════════════════════════════════
-
-local function CrearSeparador(texto, icono, color, orden)
-	local separator = Instance.new("Frame")
-	separator.Name = "Sep_" .. texto
-	separator.Size = UDim2.new(1, 0, 0, IsMobile and 18 or 24)
-	separator.BackgroundTransparency = 1
-	separator.LayoutOrder = orden
-	separator:SetAttribute("Entry", true)
-	separator.Parent = ScrollFrame
-
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.new(1, 0, 1, 0)
-	label.BackgroundTransparency = 1
-	label.Font = Enum.Font.GothamBold
-	local labelText = (icono and icono ~= "" and (icono .. " ") or "") .. texto
-	label.Text = labelText
-	label.TextColor3 = color
-	label.TextSize = IsMobile and 11 or 13
-	label.TextXAlignment = Enum.TextXAlignment.Left
-	label.Parent = separator
-
-	return separator
-end
-
-local function CrearTarjeta(nombre, id, tipo, orden, esVIP)
+local function CrearTarjeta(nombre, id, tipo, orden)
 	local esFavorito = EstaEnFavoritos(id)
 	local cardHeight = GetCardHeight()
 
@@ -878,14 +855,6 @@ local function CrearTarjeta(nombre, id, tipo, orden, esVIP)
 			return
 		end
 
-		-- Verificar VIP solo si el emote lo requiere
-		if esVIP and not TieneVIP() then
-			NotificationSystem:Warning("VIP", "Necesitas VIP para este baile", 3)
-			task.wait(0.3)
-			MarketplaceService:PromptGamePassPurchase(Jugador, VIPGamePassID)
-			return
-		end
-
 		if DanceActivated == nombre then
 			DanceActivated = nil
 			StopAnimationRemote:FireServer()
@@ -947,8 +916,8 @@ local function CrearTarjeta(nombre, id, tipo, orden, esVIP)
 			if idx then table.remove(EmotesFavs, idx) end
 			card:SetAttribute("IsFavorite", false)
 
-			if TabActual == "Favoritos" then
-				Tween(favBtn, 0.2, {ImageColor3 = THEME_CONFIG.accent, ImageTransparency = THEME_CONFIG.mediumAlpha})
+			if TabActual == "FAVORITOS" then
+				Tween(favBtn, 0.2, {ImageColor3 = THEME_CONFIG.accent, ImageTransparency = THEME_CONFIG.overlayAlpha})
 
 				CleanupCard(card)
 
@@ -970,7 +939,7 @@ local function CrearTarjeta(nombre, id, tipo, orden, esVIP)
 					end
 				end)
 			else
-				Tween(favBtn, 0.2, {ImageColor3 = THEME_CONFIG.accent, ImageTransparency = THEME_CONFIG.mediumAlpha})
+				Tween(favBtn, 0.2, {ImageColor3 = THEME_CONFIG.accent, ImageTransparency = THEME_CONFIG.overlayAlpha})
 				favBtn.Image = "rbxassetid://130993498569336"
 				-- Sincronizar otras cards
 				for _, child in ipairs(ScrollFrame:GetChildren()) do
@@ -979,7 +948,7 @@ local function CrearTarjeta(nombre, id, tipo, orden, esVIP)
 						if innerBtn then
 							innerBtn.Image = "rbxassetid://130993498569336"
 							innerBtn.ImageColor3 = THEME_CONFIG.accent
-							innerBtn.ImageTransparency = THEME_CONFIG.mediumAlpha
+							innerBtn.ImageTransparency = THEME_CONFIG.overlayAlpha
 						end
 					end
 				end
@@ -1037,39 +1006,17 @@ local function CargarTodos(filtro)
 		for _, id in ipairs(EmotesTrending) do
 			local nombre = EncontrarDatos(id)
 			if pasaFiltro(nombre) then
-				CrearTarjeta(nombre, id, "Trending", orden, false)
+				CrearTarjeta(nombre, id, "Trending", orden)
 				orden = orden + 1
 			end
 		end
 	end
 
-	-- VIP
-	if Modulo.Vip and #Modulo.Vip > 0 then
-		for _, v in ipairs(Modulo.Vip) do
-			if not table.find(EmotesTrending or {}, v.ID) and pasaFiltro(v.Nombre) then
-				CrearTarjeta(v.Nombre, v.ID, "VIP", orden, true)
-				orden = orden + 1
-			end
-		end
-	end
-
-	-- RECOMENDADOS
-	if Modulo.Recomendado and #Modulo.Recomendado > 0 then
-		for _, v in ipairs(Modulo.Recomendado) do
-			if not table.find(EmotesTrending or {}, v.ID) and pasaFiltro(v.Nombre) then
-				CrearTarjeta(v.Nombre, v.ID, "Recommended", orden, false)
-				orden = orden + 1
-			end
-		end
-	end
-
-	-- TODOS
-	if Modulo.Ids and #Modulo.Ids > 0 then
-		for _, v in ipairs(Modulo.Ids) do
-			if not table.find(EmotesTrending or {}, v.ID) and pasaFiltro(v.Nombre) then
-				CrearTarjeta(v.Nombre, v.ID, "Normal", orden, false)
-				orden = orden + 1
-			end
+	-- LISTA COMPLETA (excluyendo trending ya mostrados)
+	for _, v in ipairs(Modulo.Lista) do
+		if not table.find(EmotesTrending or {}, v.ID) and pasaFiltro(v.Nombre) then
+			CrearTarjeta(v.Nombre, v.ID, "Normal", orden)
+			orden = orden + 1
 		end
 	end
 
@@ -1089,10 +1036,10 @@ local function CargarFavoritos(filtro)
 	local hayVisibles = false
 
 	for _, id in ipairs(EmotesFavs) do
-		local nombre, esVIP = EncontrarDatos(id)
+		local nombre = EncontrarDatos(id)
 		if filtro == "" or nombre:lower():find(filtro, 1, true) then
 			local tipo = ObtenerTipo(id)
-			CrearTarjeta(nombre, id, tipo, orden, esVIP)
+			CrearTarjeta(nombre, id, tipo, orden)
 			orden = orden + 1
 			hayVisibles = true
 		end
@@ -1106,30 +1053,18 @@ local function CargarFavoritos(filtro)
 end
 
 -- ════════════════════════════════════════════════════════════════════════════════
--- CAMBIO DE TABS
+-- CAMBIO DE TABS (delegado a SubTabs con blob indicator)
 -- ════════════════════════════════════════════════════════════════════════════════
 
-local function CambiarTab(tab)
-	if tab == TabActual then return end
-	TabActual = tab
-
+subTabs.onSwitch = function(tabId)
+	TabActual = tabId
 	local filtro = SearchBox and SearchBox.Text or ""
-
-	if tab == "Todos" then
-		Tween(TabIndicator, 0.25, {Position = UDim2.new(0, 2, 0, 2)}, Enum.EasingStyle.Back)
-		TabTodos.TextColor3 = THEME_CONFIG.text
-		TabFavoritos.TextColor3 = THEME_CONFIG.muted
+	if tabId == "TODOS" then
 		CargarTodos(filtro)
 	else
-		Tween(TabIndicator, 0.25, {Position = UDim2.new(0.5, 2, 0, 2)}, Enum.EasingStyle.Back)
-		TabTodos.TextColor3 = THEME_CONFIG.muted
-		TabFavoritos.TextColor3 = THEME_CONFIG.text
 		CargarFavoritos(filtro)
 	end
 end
-
-TabTodos.MouseButton1Click:Connect(function() CambiarTab("Todos") end)
-TabFavoritos.MouseButton1Click:Connect(function() CambiarTab("Favoritos") end)
 
 -- ════════════════════════════════════════════════════════════════════════════════
 -- BÚSQUEDA
@@ -1141,7 +1076,7 @@ if SearchBox then
 		if searchDebounce then return end
 		searchDebounce = true
 		task.delay(0.25, function()
-			if TabActual == "Todos" then
+			if TabActual == "TODOS" then
 				CargarTodos(SearchBox.Text)
 			else
 				CargarFavoritos(SearchBox.Text)
@@ -1156,31 +1091,30 @@ end
 -- ════════════════════════════════════════════════════════════════════════════════
 
 local function ToggleGUI(visible)
-	-- Evitar animaciones innecesarias si ya está en el estado deseado
-	if visible == MainFrame.Visible then
+	if visible == emotesPanelOpen then
 		return
 	end
+	emotesPanelOpen = visible
 
 	local posicionFinal = IsMobile 
 		and UDim2.new(0, Config.Movil_MargenIzquierdo, 0.5, Config.Movil_OffsetVertical)
 		or UDim2.new(0, Config.PC_MargenIzquierdo, 0.5, Config.PC_OffsetVertical)
 
 	local posicionOculta = IsMobile
-		and UDim2.new(0, -(Config.Movil_Ancho + 10), 0.5, Config.Movil_OffsetVertical)
-		or UDim2.new(0, -(Config.PC_Ancho + 10), 0.5, Config.PC_OffsetVertical)
+		and UDim2.new(0, -Config.Movil_Ancho, 0.5, Config.Movil_OffsetVertical)
+		or UDim2.new(0, -Config.PC_Ancho, 0.5, Config.PC_OffsetVertical)
 
 	if visible then
-		MainFrame.Position = posicionOculta
-		MainFrame.Visible = true
 		Tween(MainFrame, 0.3, {Position = posicionFinal}, Enum.EasingStyle.Back)
 	else
-		local t = Tween(MainFrame, 0.25, {Position = posicionOculta}, Enum.EasingStyle.Quint)
-		if t then
-			t.Completed:Wait()
-		end
-		MainFrame.Visible = false
+		Tween(MainFrame, 0.25, {Position = posicionOculta}, Enum.EasingStyle.Quint)
 	end
 end
+
+-- Conectar botón toggle
+ToggleBtn.MouseButton1Click:Connect(function()
+	ToggleGUI(not emotesPanelOpen)
+end)
 
 -- ════════════════════════════════════════════════════════════════════════════════
 -- LIMPIEZA AL DESTRUIR
