@@ -48,73 +48,52 @@ local OwnershipUpdated = ShopGiftingFolder:FindFirstChild("OwnershipUpdated")
 OwnershipUpdated.Name = "OwnershipUpdated"
 
 -- ═══════════════════════════════════════════════════════════════
--- TEST USERS (por username @...)
+-- TEST USERS (datos pre-resueltos, 0 llamadas API = instantáneo)
 -- ═══════════════════════════════════════════════════════════════
 local USE_TEST_USERS = true
-local TEST_USERNAMES = {
-	"ignxts0",
-	"Jeniferx_xd",
-	"AltSocratic",
-	"AngeloGarcia",
-	"Jeny02093",
-	"User_JL11",
-	"TsAlfred",
-	"Fueg2oh",
-	"bvwdhfv",
-	"kirikin113",
-	"Krizart16",
-	"JackFox188",
-	"FranckCazou",
-	"Rach_pr",
-	"GalletaDeAgua20",
-	"adrilivn",
-	"ThealexGamesYTOF",
-	"Tfifa20",
-	"xlm_brem",
-	"itzjheiner",
-	"SCISSORSV7",
-	"Xandroquis",
-	"suzu1k",
-	"JuanMVP36",
-	"Fercho_ZP",
-	"ClasicSans738",
-	"Ismaxxx77",
-	"tulobitajanethalexa",
-	"caramandungap",
-	"ISASIO220",
+local TEST_USERS = {
+	{ userId = 8471071247,  username = "ignxts0",             displayName = "UserData" },
+	{ userId = 3126383506,  username = "Jeniferx_xd",         displayName = "Jeniferx_xd" },
+	{ userId = 9764396115,  username = "AltSocratic",          displayName = "AltSocratic" },
+	{ userId = 9673877,     username = "angelogarcia",         displayName = "angelogarcia" },
+	{ userId = 8364521132,  username = "Jeny02093",            displayName = "Jeny12" },
+	{ userId = 8342896662,  username = "TsAlfred",             displayName = "KD_AlfreD" },
+	{ userId = 2920297608,  username = "Fueg2oh",              displayName = "Alexan_L" },
+	{ userId = 4074563891,  username = "bvwdhfv",              displayName = "Manuel" },
+	{ userId = 8307337692,  username = "Krizart16",            displayName = "Arturo_KOD" },
+	{ userId = 7225573626,  username = "JackFox188",           displayName = "DemonKr" },
+	{ userId = 9333058985,  username = "FranckCazou",          displayName = "CXZOUxRAQUI" },
+	{ userId = 3931737942,  username = "Rach_pr",              displayName = "Rach" },
+	{ userId = 8109061566,  username = "GalletaDeAgua20",      displayName = "DeseadoP_INF" },
+	{ userId = 2888323694,  username = "ThealexGamesYTOF",     displayName = "DJ_Poolexx" },
+	{ userId = 1413370554,  username = "tfifa20",              displayName = "tfifa20" },
+	{ userId = 5819550352,  username = "xlm_brem",             displayName = "Owner_SoyDeLuana" },
+	{ userId = 3602855856,  username = "itzjheiner",           displayName = "OwnerJheiner_HFZ" },
+	{ userId = 5295409243,  username = "SCISSORSV7",           displayName = "Agus_ROSxREL" },
+	{ userId = 8914937246,  username = "Xandroquis",           displayName = "Xandro_CoOwnerMG" },
+	{ userId = 7247625721,  username = "suzu1k",               displayName = "suzu" },
+	{ userId = 8812902108,  username = "JuanMVP36",            displayName = "DonJuan" },
+	{ userId = 7904861114,  username = "Fercho_ZP",            displayName = "EDXXN_TKG" },
+	{ userId = 197012474,   username = "ClasicSans738",        displayName = "SL1_ClassicDev" },
+	{ userId = 5713127491,  username = "ISMAXXX77",            displayName = "uliiiii" },
+	{ userId = 1629407842,  username = "tulobitajanethalexa",   displayName = "ale_nena" },
+	{ userId = 9458202259,  username = "caramandungap",        displayName = "JzzzxHellen_MG" },
 }
-
-local function normalizeUsername(raw)
-	if type(raw) ~= "string" then return nil end
-	local cleaned = raw:gsub("@", ""):gsub("%s+", "")
-	if cleaned == "" then return nil end
-	return cleaned
-end
 
 local function getTestUsersForGifting(requestingPlayer)
 	local out = {}
-	for _, rawName in ipairs(TEST_USERNAMES) do
-		local username = normalizeUsername(rawName)
-		if username then
-			local ok, userId = pcall(function()
-				return Players:GetUserIdFromNameAsync(username)
-			end)
-			if ok and userId and userId > 0 and userId ~= requestingPlayer.UserId then
-				table.insert(out, {
-					userId = userId,
-					username = username,
-					displayName = username,
-				})
-			else
-				warn("[ShopGifting] Usuario de prueba inválido/no resuelto:", tostring(rawName))
-			end
+	for _, user in ipairs(TEST_USERS) do
+		if user.userId ~= requestingPlayer.UserId then
+			table.insert(out, {
+				userId      = user.userId,
+				username    = user.username,
+				displayName = user.displayName,
+			})
 		end
 	end
-
 	table.sort(out, function(a, b)
-		return (a.displayName or ""):lower() < (b.displayName or ""):lower()
+		return a.displayName:lower() < b.displayName:lower()
 	end)
-
 	return out
 end
 
@@ -122,7 +101,7 @@ end
 -- CACHE
 -- ═══════════════════════════════════════════════════════════════
 local ownershipCache = {} -- [userId-itemId] = {owns = bool, timestamp = tick()}
-local CACHE_DURATION = 30 -- segundos
+local CACHE_DURATION = 300 -- 5 minutos (se invalida por eventos de compra/regalo)
 
 local function getCacheKey(userId, itemId)
 	return userId .. "-" .. itemId
@@ -187,6 +166,38 @@ local function checkTitleOwnership(userId, titleGamepassId)
 	-- Los títulos también son gamepasses
 	return checkGamepassOwnership(userId, titleGamepassId)
 end
+
+-- ═══════════════════════════════════════════════════════════════
+-- PRE-CACHE: Calentar ownership al entrar un jugador
+-- ═══════════════════════════════════════════════════════════════
+local ALL_ITEM_IDS = {}
+do
+	for _, gp in pairs(Configuration.Gamepasses) do
+		table.insert(ALL_ITEM_IDS, gp.id)
+	end
+	for _, title in ipairs(TitleConfig) do
+		if title.gamepassId then
+			table.insert(ALL_ITEM_IDS, title.gamepassId)
+		end
+	end
+end
+
+local function warmOwnershipCache(player)
+	for _, itemId in ipairs(ALL_ITEM_IDS) do
+		task.spawn(function()
+			checkGamepassOwnership(player.UserId, itemId)
+		end)
+	end
+end
+
+-- Calentar para jugadores que ya estén en el servidor
+for _, player in ipairs(Players:GetPlayers()) do
+	task.spawn(warmOwnershipCache, player)
+end
+
+Players.PlayerAdded:Connect(function(player)
+	task.spawn(warmOwnershipCache, player)
+end)
 
 -- ═══════════════════════════════════════════════════════════════
 -- GET PLAYERS WITHOUT ITEM
@@ -306,6 +317,10 @@ Players.PlayerRemoving:Connect(function(player)
 	-- Limpiar rate limit del jugador
 	if _G.shopGiftingRateLimit then
 		_G.shopGiftingRateLimit[player.UserId .. "_shopGifting"] = nil
+	end
+	-- Limpiar cache de ownership del jugador
+	for _, itemId in ipairs(ALL_ITEM_IDS) do
+		ownershipCache[getCacheKey(player.UserId, itemId)] = nil
 	end
 end)
 

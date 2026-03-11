@@ -227,9 +227,9 @@ function PlayerList:_build()
 	loadingText.Size = UDim2.new(1, 0, 1, 0)
 	loadingText.BackgroundTransparency = 1
 	loadingText.Font = Enum.Font.Gotham
-	loadingText.TextSize = 13
+	loadingText.TextSize = 15
 	loadingText.TextColor3 = THEME.muted
-	loadingText.Text = "⏳ Cargando jugadores..."
+	loadingText.Text = "Cargando jugadores..."
 	loadingText.Parent = self.loadingFrame
 	
 	-- Empty state
