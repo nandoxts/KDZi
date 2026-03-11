@@ -14,13 +14,12 @@ local DataStoreService   = game:GetService("DataStoreService")
 -- ── Modules ──────────────────────────────────────────────────
 local Configuration      = require(ReplicatedStorage.Config.Configuration)
 local AdminConfig        = require(ReplicatedStorage.Config.AdminConfig)
-local TitleConfig        = require(ReplicatedStorage.Config.TitleConfig)
 local ShopManager        = require(script.Parent.ShopManager)
 local CentralPurchaseHandler = require(script.Parent.ManagerProcess)
 
 local RemotesGlobal      = ReplicatedStorage:WaitForChild("RemotesGlobal")
 local GiftingFolder      = RemotesGlobal:WaitForChild("Gamepass Gifting")
-local GiftingConfig      = require(GiftingFolder:WaitForChild("Modules"):WaitForChild("Config"))
+local GiftingConfig      = require(ReplicatedStorage.Config.GiftingConfig)
 
 local DataStoreQueueMgr  = require(ReplicatedStorage.Systems.DataStore.DataStoreQueueManager)
 local GiftDataStore      = DataStoreService:GetDataStore("Gifting.1")
@@ -58,13 +57,8 @@ local function getAllPurchaseables()
 	for _, gp in ipairs(GiftingConfig.Gamepasses) do
 		table.insert(all, gp)
 	end
-	for _, tool in ipairs(GiftingConfig.Tools) do
-		table.insert(all, tool)
-	end
-	for _, title in ipairs(TitleConfig) do
-		if title.gamepassId then
-			table.insert(all, { title.gamepassId, title.gamepassId })
-		end
+	for _, title in ipairs(GiftingConfig.Titles) do
+		table.insert(all, title)
 	end
 	return all
 end

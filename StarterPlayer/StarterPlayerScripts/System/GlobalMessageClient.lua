@@ -1,4 +1,4 @@
--- GlobalMessageClient.lua - Handler para mensajes de evento
+-- GlobalMessageClient.lua - Universal message handler for all system messages
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TextChatService = game:GetService("TextChatService")
 local StarterGui = game:GetService("StarterGui")
@@ -6,9 +6,14 @@ local StarterGui = game:GetService("StarterGui")
 local remotesGlobal = ReplicatedStorage:WaitForChild("RemotesGlobal", 10)
 local commandsFolder = remotesGlobal:WaitForChild("Commands", 10)
 
-local EVENT_COLOR = { hex = "#00D4FF", rgb = Color3.fromRGB(0, 212, 255) }
+-- Colores para diferentes tipos de mensajes
+local MESSAGE_COLORS = {
+	tone = { hex = "#FFC800", rgb = Color3.fromRGB(255, 200, 0) },      -- Amarillo/Dorado
+	event = { hex = "#00D4FF", rgb = Color3.fromRGB(0, 212, 255) },      -- Azul/Cian
+}
 
 local function displayMessage(message, colorInfo)
+	-- Intentar con TextChatService (nuevo chat)
 	local textChannels = TextChatService:WaitForChild("TextChannels", 5)
 	if textChannels then
 		local systemChannel = textChannels:FindFirstChild("RBXSystem")
@@ -19,6 +24,7 @@ local function displayMessage(message, colorInfo)
 		end
 	end
 
+	-- Fallback: chat legacy
 	pcall(function()
 		StarterGui:SetCore("ChatMakeSystemMessage", {
 			Text = message,
@@ -28,10 +34,25 @@ local function displayMessage(message, colorInfo)
 	end)
 end
 
+-- Handler para ToneMessage
+local toneMessageEvent = commandsFolder:WaitForChild("ToneMessage", 10)
+if toneMessageEvent then
+	toneMessageEvent.OnClientEvent:Connect(function(message)
+		displayMessage(message, MESSAGE_COLORS.tone)
+	end)
+else
+	warn("[CLIENT] ToneMessage NO encontrado!")
+end
+
+-- Handler para EventMessage
 local eventMessageEvent = commandsFolder:WaitForChild("EventMessage", 10)
 if eventMessageEvent then
 	eventMessageEvent.OnClientEvent:Connect(function(message)
-		displayMessage(message, EVENT_COLOR)
+		displayMessage(message, MESSAGE_COLORS.event)
 	end)
+else
+	warn("[CLIENT] EventMessage NO encontrado!")
 end
+
+
 
