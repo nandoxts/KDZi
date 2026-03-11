@@ -28,42 +28,26 @@ end
 
 local remoteFunction = ReplicatedStorage.Chat.CheckGamePass
 
--- Función optimizada para verificar gamepasses (tu código integrado)
+-- ID del gamepass VIP (fuente única: Configuration.Gamepasses)
+local VIP_GAMEPASS_ID = configuration.Gamepasses.VIP.id
+
+-- Función optimizada para verificar gamepasses
 local function checkPlayerGamepasses(userId)
-	-- Si ya está en cache, devolverlo
 	if GamepassCache[userId] then
 		return GamepassCache[userId]
 	end
 
 	local cacheEntry = {
-		status = nil, -- "VIPPLUS", "VIP" o nil
+		status = nil, -- "VIP" o nil
 		lastChecked = os.time()
 	}
 
-	-- 1. Verificar VIPPLUS primero (máxima prioridad)
-	local successVIPPlus, hasVIPPlus = pcall(function()
-		-- Primero verificar compra directa
-		if MarketplaceService:UserOwnsGamePassAsync(userId, configuration.VIPPLUS) then
-			return true
-		end
-		-- Si no tiene comprado, verificar regalo
-		return GiftedGamepassesData:GetAsync(userId .. "-" .. configuration.VIPPLUS)
-	end)
-
-	if successVIPPlus and hasVIPPlus then
-		cacheEntry.status = "VIPPLUS"
-		GamepassCache[userId] = cacheEntry
-		return cacheEntry
-	end
-
-	-- 2. Solo verificar VIP si no tiene VIPPLUS
+	-- Verificar VIP (compra directa o regalo)
 	local successVIP, hasVIP = pcall(function()
-		-- Primero verificar compra directa
-		if MarketplaceService:UserOwnsGamePassAsync(userId, configuration.VIP) then
+		if MarketplaceService:UserOwnsGamePassAsync(userId, VIP_GAMEPASS_ID) then
 			return true
 		end
-		-- Si no tiene comprado, verificar regalo
-		return GiftedGamepassesData:GetAsync(userId .. "-" .. configuration.VIP)
+		return GiftedGamepassesData:GetAsync(userId .. "-" .. VIP_GAMEPASS_ID)
 	end)
 
 	if successVIP and hasVIP then
@@ -72,7 +56,6 @@ local function checkPlayerGamepasses(userId)
 		return cacheEntry
 	end
 
-	-- 3. No tiene ninguno
 	cacheEntry.status = nil
 	GamepassCache[userId] = cacheEntry
 	return cacheEntry
@@ -157,15 +140,7 @@ local function calculatePlayerTag(player)
 			-- 3. VIP GamePass
 			local gamepassInfo = checkPlayerGamepasses(userId)
 
-			if gamepassInfo and gamepassInfo.status == "VIPPLUS" then
-				tagInfo = {
-					Prefix = "<font color='#FF330F'>[👑]</font> <font color='#FF330F'>[ VIP PLUS ]</font> ",
-					TextColor = "#FF330F",
-					Priority = 8,
-					HasSpecialTag = true,
-					Source = "VIPPLUS_GAMEPASS"
-				}
-			elseif gamepassInfo and gamepassInfo.status == "VIP" then
+			if gamepassInfo and gamepassInfo.status == "VIP" then
 				tagInfo = {
 					Prefix = "<font color='#D92B0D'>[👑]</font> <font color='#D92B0D'>[ VIP ]</font> ",
 					TextColor = "#D92B0D",
@@ -198,7 +173,7 @@ local function setupPlayer(player)
 	checkPlayerGamepasses(player.UserId)
 
 	-- Esperar un poco para que cargue completamente
-	wait(2)
+	task.wait(2)
 
 	-- 1. Calcular tag del nuevo jugador
 	local tagInfo = calculatePlayerTag(player)
@@ -224,7 +199,7 @@ local function setupPlayer(player)
 		GamepassCache[player.UserId] = nil
 
 		-- Recalcular después de un pequeño delay
-		wait(1)
+		task.wait(1)
 		local newTagInfo = calculatePlayerTag(player)
 		tagDataEvent:FireAllClients(player.UserId, newTagInfo)
 
@@ -249,7 +224,7 @@ end)
 
 -- Para jugadores ya conectados cuando se inicia el script
 for _, player in ipairs(Players:GetPlayers()) do
-	spawn(function()
+	task.spawn(function()
 		-- Calcular tag para jugador existente
 		local tagInfo = calculatePlayerTag(player)
 

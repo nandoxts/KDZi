@@ -29,7 +29,7 @@ local function createSettingItem(parent, setting, THEME)
 	local container = UI.frame({
 		size    = UDim2.new(1, 0, 0, itemHeight),
 		bg      = THEME.card,
-		bgT     = THEME.frameAlpha,
+		bgT     = 0.3,
 		z       = 104,
 		parent  = parent,
 		corner  = 10,
@@ -308,7 +308,7 @@ local function createCreditsPage(container, THEME)
 			local devCard = UI.frame({
 				size    = UDim2.new(1, 0, 0, 66),
 				bg      = THEME.card,
-				bgT     = THEME.frameAlpha,
+				bgT     = 0.3,
 				z       = 106,
 				parent  = devsGrid,
 				corner  = 12,
@@ -333,7 +333,7 @@ local function createCreditsPage(container, THEME)
 			local avatarWrapper = UI.frame({
 				size   = UDim2.new(0, AVATAR_SIZE, 0, AVATAR_SIZE),
 				pos    = UDim2.new(0.5, 0, 0.5, 0),
-				bg     = THEME.surface,
+				bg     = THEME.elevated,
 				z      = 108,
 				parent = avatarRing,
 				corner = AVATAR_SIZE / 2,
@@ -502,7 +502,7 @@ function SettingsCreator.CreateSettingsModal(panel, THEME)
 	headerLine.Size                   = UDim2.new(1, -20, 0, 1)
 	headerLine.Position               = UDim2.new(0, 10, 1, -1)
 	headerLine.BackgroundColor3       = THEME.stroke
-	headerLine.BackgroundTransparency = THEME.mediumAlpha
+	headerLine.BackgroundTransparency = 0.5
 	headerLine.BorderSizePixel        = 0
 	headerLine.ZIndex                 = 152
 	headerLine.Parent                 = contentHeader

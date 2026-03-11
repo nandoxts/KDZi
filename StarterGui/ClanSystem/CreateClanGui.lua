@@ -8,16 +8,13 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
 -- Módulos externos
 local UI = require(ReplicatedStorage:WaitForChild("Core"):WaitForChild("UI"))
 local THEME = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("ThemeConfig"))
 local AdminConfig = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("AdminConfig"))
-local ClanSystemConfig = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("ClanSystemConfig"))
 local ClanClient = require(ReplicatedStorage:WaitForChild("Systems"):WaitForChild("ClanSystem"):WaitForChild("ClanClient"))
-local GlobalModalManager = require(ReplicatedStorage:WaitForChild("Systems"):WaitForChild("GlobalModalManager"))
 local ModalManager = require(ReplicatedStorage:WaitForChild("Modal"):WaitForChild("ModalManager"))
 local SearchModern = require(ReplicatedStorage:WaitForChild("UIComponents"):WaitForChild("SearchModern"))
 local SubTabs = require(ReplicatedStorage:WaitForChild("UIComponents"):WaitForChild("SubTabs"))
@@ -153,7 +150,14 @@ if isAdmin then
 end
 
 -- ════════════════════════════════════════════════════════════════
--- TAB SWITCHING
+-- REGISTRAR PÁGINAS EN SUBTABS (slide automático)
+-- ════════════════════════════════════════════════════════════════
+subTabs:register("TuClan", pageTuClan)
+subTabs:register("Disponibles", pageDisponibles)
+if isAdmin and pageAdmin then subTabs:register("Admin", pageAdmin) end
+
+-- ════════════════════════════════════════════════════════════════
+-- TAB SWITCHING (solo carga de datos, SubTabs maneja la UI)
 -- ════════════════════════════════════════════════════════════════
 switchTab = function(tabName, forceLoad)
 	if State.currentPage == tabName and not forceLoad then return end
@@ -163,13 +167,6 @@ switchTab = function(tabName, forceLoad)
 
 	State.currentPage = tabName
 	State.currentView = "main"
-
-	-- Actualizar título del header
-	local TAB_TITLES = { TuClan = "TU CLAN", Disponibles = "DISPONIBLES", Admin = "ADMINISTRADOR" }
-	if contentTitle then contentTitle.Text = TAB_TITLES[tabName] or tabName end
-
-	local pageFrame = pagesContainer:FindFirstChild(tabName)
-	if pageFrame then pageLayout:JumpTo(pageFrame) end
 
 	task.delay(0.05, function()
 		if State.currentPage ~= tabName then return end
@@ -187,6 +184,10 @@ switchTab = function(tabName, forceLoad)
 	end)
 end
 
+subTabs.onSwitch = function(tabId)
+	switchTab(tabId)
+end
+
 -- ════════════════════════════════════════════════════════════════
 -- OPEN/CLOSE FUNCTIONS
 -- ════════════════════════════════════════════════════════════════
@@ -200,8 +201,10 @@ local function openUI()
 		task.spawn(function() ClanClient:Initialize() end) 
 	end
 
-	sidebarNavInstance:selectItem("TuClan")
-	switchTab("TuClan", true)
+	-- Reset y seleccionar TuClan (SubTabs maneja slide + blob)
+	for id, p in pairs(subTabs.panels) do p.Visible = false end
+	subTabs.activeId = nil
+	subTabs:select("TuClan")
 end
 
 local function closeUI()
@@ -221,6 +224,8 @@ local function closeUI()
 	State.currentPage = nil
 	State.clanData = nil
 	State.playerRole = nil
+
+	subTabs.activeId = nil
 
 	modal:close()
 end

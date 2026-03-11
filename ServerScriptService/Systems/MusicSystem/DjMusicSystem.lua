@@ -17,7 +17,7 @@ local ShopManager = require(Systems:WaitForChild("GiftManager"):WaitForChild("Sh
 -- ════════════════════════════════════════════════════════════════
 -- CONSTANTS
 -- ════════════════════════════════════════════════════════════════
-local VIP_ID            = Configuration.VIP
+local VIP_ID            = Configuration.Gamepasses.VIP.id
 local DEV_USER_ID       = 8387751399
 local DEV_DISPLAY_NAME  = "Sistema"
 local ASSET_PREFIX      = "rbxassetid://"

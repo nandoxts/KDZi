@@ -65,7 +65,7 @@ function SidebarNav.new(opts)
 	local stroke = Instance.new("UIStroke")
 	stroke.Color              = THEME.stroke
 	stroke.Thickness          = 1
-	stroke.Transparency       = THEME.mediumAlpha
+	stroke.Transparency       = 0.5
 	stroke.ApplyStrokeMode    = Enum.ApplyStrokeMode.Border
 	stroke.Parent             = sidebar
 
@@ -75,7 +75,7 @@ function SidebarNav.new(opts)
 	divider.Size                    = UDim2.new(0, 1, 1, -20)
 	divider.Position                = UDim2.new(1, 0, 0, 10)
 	divider.BackgroundColor3        = THEME.stroke
-	divider.BackgroundTransparency  = THEME.mediumAlpha
+	divider.BackgroundTransparency  = 0.5
 	divider.BorderSizePixel         = 0
 	divider.ZIndex                  = 201
 	divider.Parent                  = sidebar
@@ -103,7 +103,7 @@ function SidebarNav.new(opts)
 		decoLine.Size                   = UDim2.new(0.55, 0, 0, 1)
 		decoLine.Position               = UDim2.new(0.225, 0, 0, headerHeight)
 		decoLine.BackgroundColor3       = THEME.accent
-		decoLine.BackgroundTransparency = THEME.mediumAlpha
+		decoLine.BackgroundTransparency = 0.5
 		decoLine.BorderSizePixel        = 0
 		decoLine.ZIndex                 = 202
 		decoLine.Parent                 = sidebar
@@ -167,7 +167,7 @@ function SidebarNav.new(opts)
 			size   = UDim2.new(0, ICON_SIZE, 0, ICON_SIZE),
 			pos    = UDim2.new(0.5, -ICON_SIZE / 2, 0, 0),
 			bg     = THEME.card,
-			bgT    = THEME.frameAlpha,
+			bgT    = 0.3,
 			z      = 203, parent = btn, corner = ICON_SIZE / 2,
 		})
 		self._iconFrames[item.id] = iconFrame
@@ -237,8 +237,8 @@ function SidebarNav.new(opts)
 		-- Hover: solo stroke accent + texto accent (sin fondo)
 		clickBtn.MouseEnter:Connect(function()
 			if self._selected ~= capturedId then
-				TweenService:Create(iconStroke, TW_FAST, { Color = THEME.accentHover or THEME.accent, Transparency = THEME.mediumAlpha }):Play()
-				TweenService:Create(lbl, TW_FAST, { TextColor3 = THEME.accentHover or THEME.accent }):Play()
+				TweenService:Create(iconStroke, TW_FAST, { Color = THEME.accent, Transparency = 0.5 }):Play()
+				TweenService:Create(lbl, TW_FAST, { TextColor3 = THEME.accent }):Play()
 			end
 		end)
 		clickBtn.MouseLeave:Connect(function()

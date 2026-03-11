@@ -16,13 +16,11 @@ function Credits.build(parent, THEME)
 	--  • names = {"a","b"}          → nombres centrados, uno por línea
 	--  • pairs = {{"a","b"}, …}     → dos columnas por fila
 	local SECTIONS = {
-		{ title = "Desarrollo",             names = {"Mambo Kingz Studios"} },
-		{ title = "Creadores",              pairs = {{"Jheiner", "Insano"}} },
+		{ title = "Creador",                names = {"AngeloGarciia"} },
 		{ title = "Programador",            names = {"ignxts"} },
 		{ title = "UI Designer",            names = {"ignxts"} },
-		{ title = "Diseñador del mapa",     names = {"Suetam"} },
-		{ title = "Moderación",             pairs = {{"LeviZ", "Zummer"}, {"Seigm", ""}} },
-		{ title = "DJs",                    pairs = {{"Leche", "Answer"}, {"Newbryan", "Leo"}} },
+		{ title = "Diseñador del mapa",     names = {"Manuel"} },
+		{ title = "DJs",                    pairs = {{"DJ Alex", "DJ Insano"}, {"DJ Sparta", "DJ Angelisai"}, {"DJ Poolex", ""}} },
 	}
 	-- ══════════════════════════════════════════════════════════
 

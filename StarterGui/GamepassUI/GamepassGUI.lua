@@ -73,7 +73,7 @@ local CONFIG = {
 
 	-- ── Transparencias ──
 	alpha = {
-		frame  = THEME.frameAlpha,
+		frame  = 0.3,
 		light  = THEME.lightAlpha,
 		stroke = 0.5,
 	},
@@ -264,7 +264,7 @@ local modal = ModalManager.new({
 
 local panel = modal:getPanel()
 panel.BackgroundColor3       = THEME.bg
-panel.BackgroundTransparency = THEME.mediumAlpha
+panel.BackgroundTransparency = 0.5
 
 local CONTAINER = modal:getCanvas()
 
@@ -420,7 +420,7 @@ local function bindCardHover(card, cardOverlay, cStroke, buyFrame, buyClick)
 
 	card.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseMovement then
-			tw(card,        TW.fast, { BackgroundTransparency = THEME.subtleAlpha })
+			tw(card,        TW.fast, { BackgroundTransparency = 0.15 })
 			tw(cardOverlay, TW.fast, { BackgroundTransparency = THEME.lightAlpha })
 			tw(cStroke,     TW.fast, { Color = THEME.accent, Transparency = THEME.lightAlpha })
 		end
@@ -428,13 +428,13 @@ local function bindCardHover(card, cardOverlay, cStroke, buyFrame, buyClick)
 	card.InputEnded:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseMovement then
 			tw(card,        TW.fast, { BackgroundTransparency = 0 })
-			tw(cardOverlay, TW.fast, { BackgroundTransparency = THEME.frameAlpha })
-			tw(cStroke,     TW.fast, { Color = THEME.stroke, Transparency = THEME.mediumAlpha })
+			tw(cardOverlay, TW.fast, { BackgroundTransparency = 0.3 })
+			tw(cStroke,     TW.fast, { Color = THEME.stroke, Transparency = 0.5 })
 		end
 	end)
 
 	buyClick.MouseEnter:Connect(function()
-		tw(buyFrame, TW.fast, { BackgroundTransparency = THEME.subtleAlpha })
+		tw(buyFrame, TW.fast, { BackgroundTransparency = 0.15 })
 	end)
 	buyClick.MouseLeave:Connect(function()
 		tw(buyFrame, TW.fast, { BackgroundTransparency = 0 })
@@ -461,7 +461,7 @@ local function createCardBase(product, cardW, cardH, posX, posY, parentScroll, h
 	local cStroke = Instance.new("UIStroke")
 	cStroke.Color        = THEME.stroke
 	cStroke.Thickness    = 1
-	cStroke.Transparency = THEME.mediumAlpha
+	cStroke.Transparency = 0.5
 	cStroke.Parent       = card
 
 	-- Fondo imagen
@@ -480,7 +480,7 @@ local function createCardBase(product, cardW, cardH, posX, posY, parentScroll, h
 	local cardOverlay = UI.frame({
 		name = "CardOverlay",
 		size = UDim2.new(1, 0, 1, 0),
-		bg   = THEME.card, bgT = THEME.mediumAlpha, z = 104,
+		bg   = THEME.card, bgT = 0.5, z = 104,
 		parent = card, corner = 12,
 	})
 
@@ -574,7 +574,7 @@ local function renderNormalCardContent(card, product, cardW, accent)
 	local cIcoStroke = Instance.new("UIStroke")
 	cIcoStroke.Color        = accent
 	cIcoStroke.Thickness    = 1
-	cIcoStroke.Transparency = THEME.mediumAlpha
+	cIcoStroke.Transparency = 0.5
 	cIcoStroke.Parent       = cIco
 
 	local cIcoImg = Instance.new("ImageLabel")
@@ -638,7 +638,7 @@ local function renderAuraPackContent(card, product, cardW, accent)
 	local aIcoStroke = Instance.new("UIStroke")
 	aIcoStroke.Color        = accent
 	aIcoStroke.Thickness    = 1
-	aIcoStroke.Transparency = THEME.mediumAlpha
+	aIcoStroke.Transparency = 0.5
 	aIcoStroke.Parent       = aIco
 
 	local aIcoImg = Instance.new("ImageLabel")
@@ -849,7 +849,7 @@ local headerLine = Instance.new("Frame")
 headerLine.Size                 = UDim2.new(1, -20, 0, 1)
 headerLine.Position             = UDim2.new(0, 10, 1, -1)
 headerLine.BackgroundColor3     = THEME.stroke
-headerLine.BackgroundTransparency = THEME.mediumAlpha
+headerLine.BackgroundTransparency = 0.5
 headerLine.BorderSizePixel      = 0
 headerLine.ZIndex               = 152
 headerLine.Parent               = contentHeader

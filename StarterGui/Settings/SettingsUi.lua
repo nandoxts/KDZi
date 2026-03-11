@@ -33,7 +33,7 @@ local modal = ModalManager.new({
 -- Igual que GamepassShop: colorear panel + usar canvas
 local panel = modal:getPanel()
 panel.BackgroundColor3 = THEME.bg
-panel.BackgroundTransparency = THEME.mediumAlpha
+panel.BackgroundTransparency = 0.5
 
 local CONTAINER = modal:getCanvas()  -- recorta hijos respetando UICorner
 

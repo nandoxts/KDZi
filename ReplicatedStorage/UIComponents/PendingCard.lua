@@ -39,7 +39,7 @@ function PendingCard:_build()
 	self.frame = UI.frame({
 		size    = UDim2.new(1, 0, 0, 56),
 		bg      = THEME.card,
-		bgT     = THEME.frameAlpha,
+		bgT     = 0.3,
 		z       = 108,
 		parent  = self.parent,
 		corner  = 10,
@@ -164,14 +164,14 @@ function PendingCard:_build()
 		local rejectBtn = UI.button({
 			size    = UDim2.new(0, 72, 0, 38),
 			pos     = UDim2.new(1, -80, 0.5, -19),
-			bg      = THEME.btnDanger,
+			bg      = THEME.danger,
 			text    = "Rechazar",
 			textSize = 12,
 			z       = 109,
 			parent  = self.frame,
 			corner  = 8,
 		})
-		UI.hover(rejectBtn, THEME.btnDanger, UI.brighten(THEME.btnDanger, 1.15))
+		UI.hover(rejectBtn, THEME.danger, UI.brighten(THEME.danger, 1.15))
 
 		local rejectConn = rejectBtn.MouseButton1Click:Connect(function()
 			rejectBtn.Text = "..."

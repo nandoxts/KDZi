@@ -682,7 +682,7 @@ totalTimeLabel = makeLabel({
 local quickAddFrame = makeFrame({
 	dim = UDim2.new(1, 0, 0, 40),
 	pos = UDim2.new(0, 0, 0, mob and 36 or 44),
-	bg = THEME.card, bgT = THEME.frameAlpha or 0.3,
+	bg = THEME.card, bgT = 0.3,
 	z = 113, parent = centerSection,
 })
 UI.rounded(quickAddFrame, 8)
@@ -769,7 +769,7 @@ else
 end
 
 local volSlot = makeFrame({
-	dim = UDim2.new(0, 60, 0, 36), bg = THEME.card, bgT = THEME.frameAlpha,
+	dim = UDim2.new(0, 60, 0, 36), bg = THEME.card, bgT = 0.3,
 	z = 114, name = "VolSlot", parent = volFrame,
 })
 volSlot.LayoutOrder = 2
@@ -815,9 +815,9 @@ local function setAddButtonState(state, customMessage)
 	if loadingTween then loadingTween:Cancel(); loadingTween = nil end
 
 	local states = {
-		loading   = {adding = true,  bg = THEME.surface, stroke = THEME.accent, auto = false},
+		loading   = {adding = true,  bg = THEME.elevated, stroke = THEME.accent, auto = false},
 		success   = {adding = false, bg = Color3.fromRGB(72, 187, 120), stroke = Color3.fromRGB(72, 187, 120), clear = true, delay = 2},
-		error     = {adding = false, bg = THEME.btnDanger, stroke = THEME.btnDanger, clear = true, placeholder = customMessage, delay = 3},
+		error     = {adding = false, bg = THEME.danger, stroke = THEME.danger, clear = true, placeholder = customMessage, delay = 3},
 		duplicate = {adding = false, bg = THEME.warn, stroke = THEME.warn, clear = true, placeholder = customMessage or "La canción ya está en la cola", delay = 3},
 		default   = {adding = false, bg = THEME.accent, stroke = THEME.stroke, auto = true, placeholder = "Input ID"},
 	}
@@ -1075,7 +1075,7 @@ end)
 local queueEmptyLabel = nil
 
 local function createQueueCard()
-	local card = makeFrame({dim = UDim2.new(1, 0, 0, 54), bg = THEME.card, bgT = THEME.frameAlpha, z = 101})
+	local card = makeFrame({dim = UDim2.new(1, 0, 0, 54), bg = THEME.card, bgT = 0.3, z = 101})
 	card.Visible = false
 	UI.rounded(card, 8)
 
@@ -1115,7 +1115,7 @@ local function createQueueCard()
 	if isAdmin then
 		local removeBtn = makeBtn({
 			dim = UDim2.new(0, 28, 0, 28), pos = UDim2.new(1, -32, 0.5, -14),
-			bg = THEME.btnDanger, z = 103, round = 8, name = "RemoveBtn", parent = card,
+			bg = THEME.danger, z = 103, round = 8, name = "RemoveBtn", parent = card,
 		})
 		makeImage({
 			dim = UDim2.new(0.7, 0, 0.7, 0), pos = UDim2.new(0.15, 0, 0.15, 0),
@@ -1242,7 +1242,7 @@ local function drawQueue()
 		card.LayoutOrder = i
 		card:SetAttribute("QueueIndex", i)
 		card.BackgroundColor3 = isActive and THEME.accent or THEME.card
-		card.BackgroundTransparency = isActive and THEME.subtleAlpha or THEME.frameAlpha
+		card.BackgroundTransparency = isActive and 0.15 or 0.3
 		card.Visible = true
 		table.insert(activeQueueCards, card)
 
@@ -1355,7 +1355,7 @@ local function createSongCard()
 	card.Name = "SongCard"
 	card.Size = UDim2.new(1, -8, 0, CARD_HEIGHT)
 	card.BackgroundColor3 = THEME.card
-	card.BackgroundTransparency = THEME.frameAlpha
+	card.BackgroundTransparency = 0.3
 	card.Visible = false
 	UI.stroked(card, 0.3)
 
@@ -1401,7 +1401,7 @@ local function createSongCard()
 				end)
 			end
 
-			addBtn.BackgroundColor3 = THEME.surface
+			addBtn.BackgroundColor3 = THEME.elevated
 			addBtn.AutoButtonColor = false
 			if R.Add then R.Add:FireServer(songId) end
 		end
@@ -1460,7 +1460,7 @@ local function updateSongCard(card, data, index, inQueue)
 
 		if isPending then
 			-- Keep loading state
-			ab.BackgroundColor3 = THEME.surface
+			ab.BackgroundColor3 = THEME.elevated
 			ab.AutoButtonColor = false
 			if icon then icon.Visible = false end
 			if loadingIcon then loadingIcon.Visible = true end
@@ -1676,7 +1676,7 @@ local function drawDJs()
 		card.Name = "DJCard"
 		card.Size = UDim2.new(1, 0, 0, 68)
 		card.BackgroundColor3 = THEME.card
-		card.BackgroundTransparency = THEME.frameAlpha
+		card.BackgroundTransparency = 0.3
 		local stroke = make("UIStroke", {Color = isSel and THEME.accent or THEME.stroke, Thickness = isSel and 1.5 or 1, Transparency = isSel and 0.2 or 0.7, ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Name = "CardStroke", Parent = card})
 
 		if isSel then selectedDJCard = card end

@@ -159,7 +159,7 @@ function ConfirmationModal:_createModal()
 	local cancelBtn = Instance.new("TextButton")
 	cancelBtn.Size = UDim2.new(0, 170, 1, 0)
 	cancelBtn.Position = UDim2.new(0, 0, 0, 0)
-	cancelBtn.BackgroundColor3 = self.theme.head
+	cancelBtn.BackgroundColor3 = self.theme.elevated
 	cancelBtn.Text = self.cancelText
 	cancelBtn.TextColor3 = self.theme.text
 	cancelBtn.Font = Enum.Font.GothamBold
@@ -178,7 +178,7 @@ function ConfirmationModal:_createModal()
 	if self.inputText ~= nil then
 		confirmBtn.BackgroundColor3 = self.theme.accent
 	else
-		confirmBtn.BackgroundColor3 = self.theme.btnDanger
+		confirmBtn.BackgroundColor3 = self.theme.danger
 	end
 	confirmBtn.Text = self.confirmText
 	confirmBtn.TextColor3 = Color3.new(1, 1, 1)

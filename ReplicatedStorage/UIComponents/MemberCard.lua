@@ -46,7 +46,7 @@ function MemberCard:_build()
 	self.frame = UI.frame({
 		size   = UDim2.new(1, 0, 0, 56),
 		bg     = THEME.card,
-		bgT    = THEME.frameAlpha,
+		bgT    = 0.3,
 		z      = 106,
 		parent = self.parent,
 		corner = 10,
@@ -135,7 +135,7 @@ function MemberCard:_build()
 			parent  = self.frame,
 			corner  = 8,
 		})
-		UI.hover(roleBtn, THEME.accent, THEME.accentHover)
+		UI.hover(roleBtn, THEME.accent, UI.brighten(THEME.accent, 1.15))
 
 		table.insert(self.connections, roleBtn.MouseButton1Click:Connect(function()
 			self:_showRoleMenu()
@@ -145,14 +145,14 @@ function MemberCard:_build()
 		local kickBtn = UI.button({
 			size    = UDim2.new(0, 44, 0, 38),
 			pos     = UDim2.new(1, -52, 0.5, -19),
-			bg      = THEME.btnDanger,
+			bg      = THEME.danger,
 			text    = "Kick",
 			textSize = 12,
 			z       = 107,
 			parent  = self.frame,
 			corner  = 8,
 		})
-		UI.hover(kickBtn, THEME.btnDanger, UI.brighten(THEME.btnDanger, 1.15))
+		UI.hover(kickBtn, THEME.danger, UI.brighten(THEME.danger, 1.15))
 
 		table.insert(self.connections, kickBtn.MouseButton1Click:Connect(function()
 			self:_confirmKick()

@@ -40,7 +40,7 @@ end
 
 -- ── Constants ────────────────────────────────────────────────
 local BADGE_GIFT     = Configuration.BADGES_Gift
-local VIP_GAMEPASS   = Configuration.VIP
+local VIP_GAMEPASS   = Configuration.Gamepasses.VIP.id
 local GAME_NAME      = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name or "Experiencia"
 local WEBHOOK_URL    = "https://discord.com/api/webhooks/1479279603896815618/ptCDNX6y0LLLqIpSx6SzFLLoJvXCYNJ4StdZfAHBa78C_IxK3ihrCzToE29hlJKZQ_x8"
 local DEFAULT_AVATAR = "https://t3.rbxcdn.com/9fc30fe577bf95e045c9a3d4abaca05d"
