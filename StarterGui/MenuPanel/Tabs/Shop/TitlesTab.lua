@@ -124,21 +124,22 @@ function TitlesTab.build(parent, THEME, state, screenGui)
 		if plr ~= player or not bought then return end
 		listApi.markOwned(passId)
 	end)
-	-- ── Pre-check ownership al abrir ─────────────────────────────────
-	task.spawn(function()
-		if not ownershipRemote then task.wait(1.5) end
-		if not ownershipRemote then return end
-		for _, item in ipairs(items) do
-			task.spawn(function()
-				local ok, owned = pcall(function()
-					return ownershipRemote:InvokeServer(item.id)
+	-- ── Ownership check al cargar ─────────────────────────────────
+	for _, item in ipairs(items) do
+		task.spawn(function()
+			local owned = false
+			if ownershipRemote then
+				local ok, res = pcall(function() return ownershipRemote:InvokeServer(item.id) end)
+				owned = ok and res or false
+			else
+				local ok, res = pcall(function()
+					return MarketplaceService:UserOwnsGamePassAsync(player.UserId, item.id)
 				end)
-				if ok and owned then
-					listApi.markOwned(item.id)
-				end
-			end)
-		end
-	end)
+				owned = ok and res or false
+			end
+			if owned then listApi.markOwned(item.id) end
+		end)
+	end
 	-- ── OwnershipUpdated ──────────────────────────────────────────
 	task.spawn(function()
 		task.wait(1)

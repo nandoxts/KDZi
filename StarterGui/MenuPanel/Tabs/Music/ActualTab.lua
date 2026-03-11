@@ -319,6 +319,9 @@ function ActualTab.build(parent, THEME, state, R, H)
 
 	-- Queue card factory (usa Card compartido)
 	local QC_H = 62
+	local QC_GAP = 3
+	local QUEUE_TOP_OFFSET = 28
+	local QUEUE_BOTTOM_PAD = 16
 
 	local function createQueueCard()
 		local c = Card.new(queueContainer, {
@@ -418,7 +421,7 @@ function ActualTab.build(parent, THEME, state, R, H)
 			cardObj.imageLabel.Image = song.djCover or ""
 		end
 
-		listaSection.Size = UDim2.new(1, 0, 0, count * 61 + 32)
+		listaSection.Size = UDim2.new(1, 0, 0, QUEUE_TOP_OFFSET + count * (QC_H + QC_GAP) - QC_GAP + QUEUE_BOTTOM_PAD)
 	end
 
 	function api.updateProgress()

@@ -33,6 +33,7 @@ local TAB_PAD = 15
 local ICON_GAP = 3
 local BORDER_R = 14
 local TOPBAR_H = 62 -- espacio libre para el topbar de MENU
+local BOTTOMBAR_H = 10 -- espacio libre inferior del panel (ajustable)
 
 local TW_SNAP   = TweenInfo.new(0.18, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 local TW_SMOOTH = TweenInfo.new(0.28, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
@@ -41,6 +42,7 @@ local TW_SLIDE  = TweenInfo.new(0.34, Enum.EasingStyle.Quint, Enum.EasingDirecti
 -- Panel empieza debajo del topbar, border radius visible en todas las esquinas
 local POS_OPEN   = UDim2.new(1, 0, 0, TOPBAR_H)
 local POS_CLOSED = UDim2.new(1, PANEL_W + 10, 0, TOPBAR_H)
+local PANEL_H_OFFSET = TOPBAR_H + BOTTOMBAR_H
 
 local TABS = {
 	{ id = "music",    label = "MUSICA",   icon = "rbxassetid://128030996841410" },
@@ -74,7 +76,7 @@ overlay.ZIndex = 200; overlay.Visible = false; overlay.AutoButtonColor = false; 
 
 -- Panel
 local panel = Instance.new("TextButton")
-panel.Name = "MenuPanel"; panel.Size = UDim2.new(0, PANEL_W, 1, -TOPBAR_H)
+panel.Name = "MenuPanel"; panel.Size = UDim2.new(0, PANEL_W, 1, -PANEL_H_OFFSET)
 panel.Position = POS_CLOSED; panel.AnchorPoint = Vector2.new(1, 0)
 panel.BackgroundColor3 = THEME.bg; panel.BorderSizePixel = 0; panel.ZIndex = 201
 panel.Active = true; panel.AutoButtonColor = false; panel.Text = ""
