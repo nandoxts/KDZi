@@ -357,7 +357,7 @@ function GamepassTab.build(parent, THEME, state, screenGui)
 	end
 
 	-- Purchase callback
-	MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(plr, passId, bought)
+	local mpConn = MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(plr, passId, bought)
 		if plr ~= player or not bought then return end
 		gpCache[passId] = true
 		local btn = shopCards[passId]
@@ -366,6 +366,7 @@ function GamepassTab.build(parent, THEME, state, screenGui)
 			btn.BackgroundColor3 = Color3.fromRGB(40, 180, 80)
 		end
 	end)
+	table.insert(connections, mpConn)
 
 	-- ═══════════════════════════════════════════════════════════════
 	-- VIEW 2: GIFT VIEW (lista de jugadores con header + back)

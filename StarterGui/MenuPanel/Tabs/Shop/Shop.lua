@@ -55,12 +55,14 @@ function Shop.build(parent, THEME, sharedState)
 	subTabs:register("titles", titlesResult.panel)
 
 	-- ══════════════════════════════════════════════════════════════
-	-- CLEANUP (si el panel se destruye)
+	-- LIFECYCLE
 	-- ══════════════════════════════════════════════════════════════
-	sharedState.shopCleanup = function()
+	local function onClose()
 		if gamepassResult.cleanup then gamepassResult.cleanup() end
 		if titlesResult.cleanup then titlesResult.cleanup() end
 	end
+
+	return { onOpen = function() end, onClose = onClose }
 end
 
 return Shop

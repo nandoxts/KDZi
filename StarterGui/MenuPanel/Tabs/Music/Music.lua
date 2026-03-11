@@ -145,6 +145,7 @@ function Music.build(parent, THEME, sharedState)
 	end)
 
 	-- ── PROCESS UPDATE ──
+	local _isActive = false
 	local lastUpdateTime = 0
 	local pendingUpdate  = nil
 
@@ -152,6 +153,9 @@ function Music.build(parent, THEME, sharedState)
 		state.playQueue     = data.queue or {}
 		state.currentSong   = data.currentSong
 		state.currentSoundObj = workspace:FindFirstChild("QueueSound")
+
+		-- Skip expensive UI work when tab is not visible
+		if not _isActive then return end
 
 		actual.updateCover(state.currentSong)
 		actual.drawQueue()
@@ -198,15 +202,19 @@ function Music.build(parent, THEME, sharedState)
 		if R.GetDJs then
 			R.GetDJs.OnClientEvent:Connect(function(d)
 				state.allDJs = (d and (d.djs or d)) or state.allDJs
-				dj.drawDJs()
+				if _isActive then dj.drawDJs() end
 			end)
 		end
 
 		if R.GetSongRange then
-			R.GetSongRange.OnClientEvent:Connect(function(data) dj.handleSongRange(data) end)
+			R.GetSongRange.OnClientEvent:Connect(function(data)
+				if _isActive then dj.handleSongRange(data) end
+			end)
 		end
 		if R.SearchSongs then
-			R.SearchSongs.OnClientEvent:Connect(function(data) dj.handleSearchResults(data) end)
+			R.SearchSongs.OnClientEvent:Connect(function(data)
+				if _isActive then dj.handleSearchResults(data) end
+			end)
 		end
 
 		if R.AddResponse then
@@ -227,11 +235,13 @@ function Music.build(parent, THEME, sharedState)
 					end
 				end
 
-				-- Actualizar iconos de song cards en DJTab directamente
-				dj.updatePendingCard(response, songId, isSuccess)
-				dj.updateVisibleCards()
-				actual.handleAddResponse(response, songId, isSuccess)
-				actual.drawQueue()
+				-- Actualizar UI solo si la tab está activa
+				if _isActive then
+					dj.updatePendingCard(response, songId, isSuccess)
+					dj.updateVisibleCards()
+					actual.handleAddResponse(response, songId, isSuccess)
+					actual.drawQueue()
+				end
 			end)
 		end
 		if R.RemoveResponse then
@@ -257,14 +267,17 @@ function Music.build(parent, THEME, sharedState)
 	local progressConn = nil
 
 	local function onOpen()
+		_isActive = true
 		if progressConn then progressConn:Disconnect() end
 		progressConn = RunService.Heartbeat:Connect(function() actual.updateProgress() end)
+		actual.updateCover(state.currentSong)
 		actual.drawQueue()
 		if R.GetDJs then pcall(function() R.GetDJs:FireServer() end) end
 		if #state.allDJs > 0 then dj.drawDJs() end
 	end
 
 	local function onClose()
+		_isActive = false
 		if progressConn then progressConn:Disconnect(); progressConn = nil end
 	end
 

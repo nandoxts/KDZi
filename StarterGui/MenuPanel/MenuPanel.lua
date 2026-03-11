@@ -226,8 +226,9 @@ local function closePanel()
 	task.delay(0.40, function()
 		if not isOpen then overlay.Visible = false end
 	end)
-	if activeTabId and tabAPIs[activeTabId] and tabAPIs[activeTabId].onClose then
-		pcall(tabAPIs[activeTabId].onClose)
+	-- Notificar cierre a TODAS las tabs que tengan onClose
+	for _, api in pairs(tabAPIs) do
+		if api.onClose then pcall(api.onClose) end
 	end
 	-- Reset ALL tab frames para evitar páginas combinadas al reabrir
 	for _, frame in pairs(tabFrames) do
@@ -398,7 +399,7 @@ end
 
 -- Build tab modules
 tabAPIs["music"] = MusicTab.build(tabFrames["music"], THEME, sharedState) or {}
-ShopTab.build(tabFrames["shop"], THEME, sharedState); tabAPIs["shop"] = {}
+tabAPIs["shop"] = ShopTab.build(tabFrames["shop"], THEME, sharedState) or {}
 SettingsTab.build(tabFrames["settings"], THEME); tabAPIs["settings"] = {}
 CreditsTab.build(tabFrames["credits"], THEME); tabAPIs["credits"] = {}
 

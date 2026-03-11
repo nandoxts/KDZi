@@ -241,22 +241,32 @@ function Settings.build(parent, THEME)
 		dragBtn.ZIndex                 = 209
 		dragBtn.Parent                 = track
 
-		dragBtn.MouseButton1Down:Connect(function() dragging = true end)
+		-- Conectar input global SOLO mientras se arrastra el slider
+		local dragConns = {}
 
-		UserInputService.InputChanged:Connect(function(input)
-			if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-				local tX = track.AbsolutePosition.X
-				local tW = track.AbsoluteSize.X
-				if tW > 0 then
-					setVol(math.clamp((input.Position.X - tX) / tW, 0, 1) * 100)
+		local function stopDrag()
+			dragging = false
+			for _, c in ipairs(dragConns) do c:Disconnect() end
+			dragConns = {}
+		end
+
+		dragBtn.MouseButton1Down:Connect(function()
+			if dragging then return end
+			dragging = true
+			table.insert(dragConns, UserInputService.InputChanged:Connect(function(input)
+				if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+					local tX = track.AbsolutePosition.X
+					local tW = track.AbsoluteSize.X
+					if tW > 0 then
+						setVol(math.clamp((input.Position.X - tX) / tW, 0, 1) * 100)
+					end
 				end
-			end
-		end)
-
-		UserInputService.InputEnded:Connect(function(input)
-			if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-				dragging = false
-			end
+			end))
+			table.insert(dragConns, UserInputService.InputEnded:Connect(function(input)
+				if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+					stopDrag()
+				end
+			end))
 		end)
 
 		-- Click-to-set
