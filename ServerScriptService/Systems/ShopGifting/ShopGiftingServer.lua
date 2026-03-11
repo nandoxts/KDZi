@@ -52,27 +52,27 @@ OwnershipUpdated.Name = "OwnershipUpdated"
 -- ═══════════════════════════════════════════════════════════════
 local USE_TEST_USERS = true
 local TEST_USERS = {
-	{ userId = 8471071247,  username = "ignxts0",             displayName = "UserData" },
-	{ userId = 3126383506,  username = "Jeniferx_xd",         displayName = "Jeniferx_xd" },
+	{ userId = 8471071247,  username = "ignxts0",             displayName = "UserData",          isPremium = true },
+	{ userId = 3126383506,  username = "Jeniferx_xd",         displayName = "Jeniferx_xd",      isPremium = true },
 	{ userId = 9764396115,  username = "AltSocratic",          displayName = "AltSocratic" },
 	{ userId = 9673877,     username = "angelogarcia",         displayName = "angelogarcia" },
-	{ userId = 8364521132,  username = "Jeny02093",            displayName = "Jeny12" },
+	{ userId = 8364521132,  username = "Jeny02093",            displayName = "Jeny12",            isPremium = true },
 	{ userId = 8342896662,  username = "TsAlfred",             displayName = "KD_AlfreD" },
-	{ userId = 2920297608,  username = "Fueg2oh",              displayName = "Alexan_L" },
+	{ userId = 2920297608,  username = "Fueg2oh",              displayName = "Alexan_L",          isPremium = true },
 	{ userId = 4074563891,  username = "bvwdhfv",              displayName = "Manuel" },
-	{ userId = 8307337692,  username = "Krizart16",            displayName = "Arturo_KOD" },
+	{ userId = 8307337692,  username = "Krizart16",            displayName = "Arturo_KOD",        isPremium = true },
 	{ userId = 7225573626,  username = "JackFox188",           displayName = "DemonKr" },
 	{ userId = 9333058985,  username = "FranckCazou",          displayName = "CXZOUxRAQUI" },
-	{ userId = 3931737942,  username = "Rach_pr",              displayName = "Rach" },
+	{ userId = 3931737942,  username = "Rach_pr",              displayName = "Rach",              isPremium = true },
 	{ userId = 8109061566,  username = "GalletaDeAgua20",      displayName = "DeseadoP_INF" },
 	{ userId = 2888323694,  username = "ThealexGamesYTOF",     displayName = "DJ_Poolexx" },
-	{ userId = 1413370554,  username = "tfifa20",              displayName = "tfifa20" },
+	{ userId = 1413370554,  username = "tfifa20",              displayName = "tfifa20",           isPremium = true },
 	{ userId = 5819550352,  username = "xlm_brem",             displayName = "Owner_SoyDeLuana" },
 	{ userId = 3602855856,  username = "itzjheiner",           displayName = "OwnerJheiner_HFZ" },
 	{ userId = 5295409243,  username = "SCISSORSV7",           displayName = "Agus_ROSxREL" },
 	{ userId = 8914937246,  username = "Xandroquis",           displayName = "Xandro_CoOwnerMG" },
 	{ userId = 7247625721,  username = "suzu1k",               displayName = "suzu" },
-	{ userId = 8812902108,  username = "JuanMVP36",            displayName = "DonJuan" },
+	{ userId = 8812902108,  username = "JuanMVP36",            displayName = "DonJuan",           isPremium = true },
 	{ userId = 7904861114,  username = "Fercho_ZP",            displayName = "EDXXN_TKG" },
 	{ userId = 197012474,   username = "ClasicSans738",        displayName = "SL1_ClassicDev" },
 	{ userId = 5713127491,  username = "ISMAXXX77",            displayName = "uliiiii" },
@@ -88,6 +88,7 @@ local function getTestUsersForGifting(requestingPlayer)
 				userId      = user.userId,
 				username    = user.username,
 				displayName = user.displayName,
+				isPremium   = user.isPremium or false,
 			})
 		end
 	end
@@ -236,6 +237,7 @@ local function getPlayersWithoutItem(requestingPlayer, itemType, itemId)
 					userId = targetPlayer.UserId,
 					username = targetPlayer.Name,
 					displayName = targetPlayer.DisplayName or targetPlayer.Name,
+					isPremium = targetPlayer.MembershipType == Enum.MembershipType.Premium,
 				})
 			end
 		end

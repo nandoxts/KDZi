@@ -26,7 +26,7 @@ local TweenService      = game:GetService("TweenService")
 
 local UI              = require(ReplicatedStorage:WaitForChild("Core"):WaitForChild("UI"))
 local ModernScrollbar = require(ReplicatedStorage:WaitForChild("UIComponents"):WaitForChild("ModernScrollbar"))
-local PlayerList      = require(ReplicatedStorage:WaitForChild("UIComponents"):WaitForChild("PlayerList"))
+local PlayerList      = require(script.Parent:WaitForChild("PlayerList"))
 local SlideHeader     = require(script.Parent:WaitForChild("SlideHeader"))
 
 local ROBUX_CHAR = utf8.char(0xE002)
@@ -292,7 +292,7 @@ function ShopItemList.build(props)
         emptyText   = props.emptyListText or "No hay jugadores disponibles",
         accentColor = THEME.accent,
         buttonText  = "REGALAR",
-        buttonIcon  = "",
+        buttonIcon  = nil,
         showSearch  = true,
         searchGap   = 0,
         searchOptions = {
