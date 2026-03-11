@@ -19,7 +19,6 @@ local CentralPurchaseHandler = require(script.Parent.ManagerProcess)
 
 local RemotesGlobal      = ReplicatedStorage:WaitForChild("RemotesGlobal")
 local GiftingFolder      = RemotesGlobal:WaitForChild("Gamepass Gifting")
-local GiftingConfig      = require(ReplicatedStorage.Config.GiftingConfig)
 
 local EventMessage       = RemotesGlobal:WaitForChild("Commands"):WaitForChild("EventMessage")
 
@@ -53,17 +52,18 @@ local pendingGifts = {}
 
 local function getAllPurchaseables()
 	local all = {}
-	for _, gp in ipairs(GiftingConfig.Gamepasses) do
-		table.insert(all, gp)
-	end
-	for _, title in ipairs(GiftingConfig.Titles) do
-		table.insert(all, title)
+	for _, gp in pairs(Configuration.Gamepasses) do
+		if gp.id and gp.devId then
+			table.insert(all, { gp.id, gp.devId })
+		end
 	end
 	return all
 end
 
 local function getItemName(gamepassId)
-	local ok, asset = pcall(MarketplaceService.GetProductInfo, MarketplaceService, gamepassId, Enum.InfoType.GamePass)
+	local ok, asset = pcall(function()
+		return MarketplaceService:GetProductInfoAsync(gamepassId, Enum.InfoType.GamePass)
+	end)
 	return ok and asset and asset.Name or nil
 end
 
