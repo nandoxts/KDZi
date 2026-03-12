@@ -11,14 +11,19 @@ function Settings.build(parent, THEME)
 	local Lighting          = game:GetService("Lighting")
 	local StarterGui        = game:GetService("StarterGui")
 	local Players           = game:GetService("Players")
+	local SoundService      = game:GetService("SoundService")
 	local ReplicatedStorage = game:GetService("ReplicatedStorage")
 	local ModernScrollbar   = require(ReplicatedStorage:WaitForChild("UIComponents"):WaitForChild("ModernScrollbar"))
 
 	local TW = TweenInfo.new(0.22, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 
+	-- Leer volumen real del MusicSoundGroup (no del QueueSound que el servidor resetea)
+	local musicSG = SoundService:FindFirstChild("MusicSoundGroup")
+	local initVol = musicSG and math.clamp(math.floor(musicSG.Volume * 100 + 0.5), 0, 100) or 100
+
 	-- State
 	local state = {
-		volume = 50,
+		volume = initVol,
 		lowPerformance = false,
 		globalShadows = true,
 		sunRays = true,
@@ -227,8 +232,10 @@ function Settings.build(parent, THEME)
 			fill.Size = UDim2.new(pct / 100, 0, 1, 0)
 			thumb.Position = UDim2.new(pct / 100, -9, 0.5, -10)
 			local vol = pct / 100
-			local snd = workspace:FindFirstChild("QueueSound")
-			if snd then snd.Volume = vol end
+			-- Usar MusicSoundGroup para que el servidor no sobreescriba al cambiar canción
+			if musicSG then
+				musicSG.Volume = vol
+			end
 			_G.MusicVolume = vol
 		end
 
