@@ -492,7 +492,7 @@ local function SetSyncOverlay(synced, syncedPlayerName)
 	IsSynced = synced
 	if synced then
 		SyncOverlay.Visible = true
-SyncOverlay.BackgroundTransparency = 1
+		SyncOverlay.BackgroundTransparency = 1
 		SyncContainer.Size = UDim2.new(1, -40, 0, 0)
 
 		-- Actualizar nombre del jugador
@@ -551,7 +551,7 @@ ScrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
 ScrollFrame.ScrollingDirection = Enum.ScrollingDirection.Y
 ScrollFrame.Parent = ContentArea
 
-ModernScrollbar.setup(ScrollFrame, ContentArea, THEME_CONFIG, { color = THEME_CONFIG.accent, offset = 1 })
+ModernScrollbar.setup(ScrollFrame, ContentArea, THEME_CONFIG, { color = THEME_CONFIG.accent, offset = -6, transparency = 0 })
 
 local ListLayout = Instance.new("UIListLayout")
 ListLayout.SortOrder = Enum.SortOrder.LayoutOrder

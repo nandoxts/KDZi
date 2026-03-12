@@ -24,6 +24,8 @@
 ]]
 
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 
 local ModernScrollbar = {}
 
@@ -101,6 +103,7 @@ function ModernScrollbar.setup(scrollFrame, parentFrame, THEME, options)
 	thumb.Name = "Thumb"
 	thumb.Size = UDim2.new(1, 0, 0.3, 0)
 	thumb.Position = UDim2.new(0, 0, 0, 0)
+	thumb.Active = true
 	thumb.BackgroundColor3 = color
 	thumb.BackgroundTransparency = 1
 	thumb.BorderSizePixel = 0
@@ -110,14 +113,20 @@ function ModernScrollbar.setup(scrollFrame, parentFrame, THEME, options)
 	thumbCorner.CornerRadius = UDim.new(0, 4)
 	thumbCorner.Parent = thumb
 
+	track.Active = true
+
 	-- ── Update + Auto-hide logic ───────────────────────────────────
 	local needsScroll  = false
 	local hoverScroll  = false   -- mouse sobre el scrollFrame
 	local hoverBar     = false   -- mouse sobre track/thumb
 	local hideThread   = nil     -- debounce para evitar flicker
+	local dragging     = false
+	local dragStartY   = 0
+	local dragStartCanvasY = 0
+	local connections  = {}      -- para cleanup global
 
 	local function refreshFade()
-		local show = needsScroll and (hoverScroll or hoverBar)
+		local show = needsScroll and (hoverScroll or hoverBar or dragging)
 		if show then
 			TweenService:Create(track, TweenInfo.new(0.15), { BackgroundTransparency = 0.7 }):Play()
 			TweenService:Create(thumb, TweenInfo.new(0.15), {
@@ -151,6 +160,59 @@ function ModernScrollbar.setup(scrollFrame, parentFrame, THEME, options)
 		thumb.Position = UDim2.new(0, 0, scrollPct * (1 - thumbRatio), 0)
 	end
 
+	local function setCanvasFromThumbDelta(deltaY)
+		local canvasH = scrollFrame.AbsoluteCanvasSize.Y
+		local windowH = scrollFrame.AbsoluteWindowSize.Y
+		local maxScroll = canvasH - windowH
+		local travelPixels = math.max(container.AbsoluteSize.Y - thumb.AbsoluteSize.Y, 1)
+		if maxScroll <= 0 then return end
+
+		local nextCanvasY = dragStartCanvasY + (deltaY / travelPixels) * maxScroll
+		scrollFrame.CanvasPosition = Vector2.new(
+			scrollFrame.CanvasPosition.X,
+			math.clamp(nextCanvasY, 0, maxScroll)
+		)
+	end
+
+	local function setCanvasFromAbsolutePosition(absoluteY, animate)
+		local canvasH = scrollFrame.AbsoluteCanvasSize.Y
+		local windowH = scrollFrame.AbsoluteWindowSize.Y
+		local maxScroll = canvasH - windowH
+		local travelPixels = math.max(container.AbsoluteSize.Y - thumb.AbsoluteSize.Y, 1)
+		if maxScroll <= 0 then return end
+
+		local relativeY = absoluteY - container.AbsolutePosition.Y - (thumb.AbsoluteSize.Y / 2)
+		local thumbY = math.clamp(relativeY, 0, travelPixels)
+		local scrollPct = thumbY / travelPixels
+		local targetY = math.clamp(scrollPct * maxScroll, 0, maxScroll)
+
+		if animate then
+			-- Animación suave al hacer click en el track
+			local startY = scrollFrame.CanvasPosition.Y
+			local dist = math.abs(targetY - startY)
+			local duration = math.clamp(dist / 1500, 0.08, 0.25)
+			local startTime = tick()
+			local conn
+			conn = RunService.RenderStepped:Connect(function()
+				local alpha = math.clamp((tick() - startTime) / duration, 0, 1)
+				-- EaseOutQuad
+				local ease = 1 - (1 - alpha) * (1 - alpha)
+				scrollFrame.CanvasPosition = Vector2.new(
+					scrollFrame.CanvasPosition.X,
+					startY + (targetY - startY) * ease
+				)
+				if alpha >= 1 or dragging then
+					conn:Disconnect()
+				end
+			end)
+		else
+			scrollFrame.CanvasPosition = Vector2.new(
+				scrollFrame.CanvasPosition.X,
+				targetY
+			)
+		end
+	end
+
 	scrollFrame:GetPropertyChangedSignal("CanvasPosition"):Connect(update)
 	scrollFrame:GetPropertyChangedSignal("AbsoluteCanvasSize"):Connect(update)
 	scrollFrame:GetPropertyChangedSignal("AbsoluteWindowSize"):Connect(update)
@@ -176,7 +238,7 @@ function ModernScrollbar.setup(scrollFrame, parentFrame, THEME, options)
 	end)
 	scrollFrame.MouseLeave:Connect(function()
 		hoverScroll = false
-		-- Pequeño delay para evitar flicker al mover mouse hacia la barra
+		if dragging then return end
 		hideThread = task.delay(0.12, function()
 			hideThread = nil
 			refreshFade()
@@ -196,15 +258,75 @@ function ModernScrollbar.setup(scrollFrame, parentFrame, THEME, options)
 	local function onBarLeave()
 		hoverBar = false
 		refreshFade()
-		TweenService:Create(container, TweenInfo.new(0.2), {
-			Size = UDim2.new(0, width, 1, -paddingV * 2)
-		}):Play()
+		if not dragging then
+			TweenService:Create(container, TweenInfo.new(0.2), {
+				Size = UDim2.new(0, width, 1, -paddingV * 2)
+			}):Play()
+		end
 	end
 
 	track.MouseEnter:Connect(onBarEnter)
 	thumb.MouseEnter:Connect(onBarEnter)
 	track.MouseLeave:Connect(onBarLeave)
 	thumb.MouseLeave:Connect(onBarLeave)
+
+	thumb.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = true
+			dragStartY = input.Position.Y
+			dragStartCanvasY = scrollFrame.CanvasPosition.Y
+			onBarEnter()
+		end
+	end)
+
+	track.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			-- Calcular posición destino antes de animar
+			local canvasH = scrollFrame.AbsoluteCanvasSize.Y
+			local windowH = scrollFrame.AbsoluteWindowSize.Y
+			local maxScroll = canvasH - windowH
+			local travelPx = math.max(container.AbsoluteSize.Y - thumb.AbsoluteSize.Y, 1)
+			local relY = input.Position.Y - container.AbsolutePosition.Y - (thumb.AbsoluteSize.Y / 2)
+			local targetCanvasY = math.clamp((math.clamp(relY, 0, travelPx) / travelPx) * maxScroll, 0, maxScroll)
+
+			setCanvasFromAbsolutePosition(input.Position.Y, true)
+			dragging = true
+			dragStartY = input.Position.Y
+			dragStartCanvasY = targetCanvasY
+			onBarEnter()
+		end
+	end)
+
+	-- Global: mover mientras se arrastra (MouseMovement/Touch son objetos distintos al de InputBegan)
+	connections[#connections + 1] = UserInputService.InputChanged:Connect(function(input)
+		if not dragging then return end
+		local t = input.UserInputType
+		if t == Enum.UserInputType.MouseMovement or t == Enum.UserInputType.Touch then
+			setCanvasFromThumbDelta(input.Position.Y - dragStartY)
+		end
+	end)
+
+	-- Global: soltar botón/touch → terminar drag
+	connections[#connections + 1] = UserInputService.InputEnded:Connect(function(input)
+		if not dragging then return end
+		local t = input.UserInputType
+		if t == Enum.UserInputType.MouseButton1 or t == Enum.UserInputType.Touch then
+			dragging = false
+			if not hoverBar then
+				TweenService:Create(container, TweenInfo.new(0.2), {
+					Size = UDim2.new(0, width, 1, -paddingV * 2)
+				}):Play()
+			end
+			refreshFade()
+		end
+	end)
+
+	-- Cleanup: si el mirror se destruye, desconectar eventos globales
+	mirror.Destroying:Connect(function()
+		for _, conn in connections do
+			conn:Disconnect()
+		end
+	end)
 
 	update()
 
