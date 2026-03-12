@@ -46,7 +46,7 @@ return {
 	AUTOSAVE_INTERVAL = 300,
 	-- GRUPO --
 	GroupID = 35712251,
-	
+
 	-- ANIMATION LEADERBOARD
 	DONATIONS_EMOTE = 112420346955388,
 	DONATOR_EMOTE = 134559477567523,
@@ -94,16 +94,16 @@ return {
 	--  GROUP ROLES
 	-- ══════════════════════════════════════
 	GroupRoles = {
-		[255] = {Name = "[ Creador ]", Color = Color3.fromRGB(255, 255, 0), Icon = " "},
-		[254] = { Name = "[ Developer ]",     Color = Color3.fromRGB(0, 255, 170),   Icon = " "},
-		[253] = { Name = "[ Co-Owner ]",      Color = Color3.fromRGB(0, 0, 255),    Icon = "♛"   },
-		[252] = { Name = "[ Help Creator ]",  Color = Color3.fromRGB(255, 85, 255), Icon = "⚜️"  },
-		[251] = { Name = "[ Lead Admin ]",    Color = Color3.fromRGB(85, 85, 255),  Icon = "🔱"  },
-		[250] = { Name = "[ Head Admin ]",    Color = Color3.fromRGB(255, 200, 4),  Icon = "🔰"  },
-		[249] = { Name = "[ Administrador ]", Color = Color3.fromRGB(179, 0, 0),    Icon = "🚨"  },
-		[248] = { Name = "[ Moderador ]",     Color = Color3.fromRGB(38, 225, 0),   Icon = "🛡️"  },
-		[247] = { Name = "[ DJ ]",            Color = Color3.fromRGB(0, 0, 255),    Icon = "🎧"  },
-		[246] = { Name = "[ Influencer ]",    Color = Color3.fromRGB(0, 213, 255),  Icon = "⭐"  },
-		[245] = { Name = "[ Socio ]",         Color = Color3.fromRGB(0, 0, 255),    Icon = "🤝"  },
+		[255] = {Name = "[Creador]", Color = Color3.fromRGB(255, 255, 0), Icon = " "},
+		[254] = { Name = "[Developer ]",     Color = Color3.fromRGB(0, 255, 170),   Icon = " "},
+		[253] = { Name = "[Co-Creador ]",      Color = Color3.fromRGB(0, 0, 255),    Icon = "♛"   },
+		[252] = { Name = "[Help Creator ]",  Color = Color3.fromRGB(255, 85, 255), Icon = "⚜️"  },
+		[251] = { Name = "[Lead Admin ]",    Color = Color3.fromRGB(85, 85, 255),  Icon = "🔱"  },
+		[250] = { Name = "[Head Admin ]",    Color = Color3.fromRGB(255, 200, 4),  Icon = "🔰"  },
+		[249] = { Name = "[Administrador]", Color = Color3.fromRGB(179, 0, 0),    Icon = "🚨"  },
+		[248] = { Name = "[Moderador]",     Color = Color3.fromRGB(38, 225, 0),   Icon = "🛡️"  },
+		[247] = { Name = "[DJ]",            Color = Color3.fromRGB(0, 0, 255),    Icon = "🎧"  },
+		[246] = { Name = "[Influencer]",    Color = Color3.fromRGB(0, 213, 255),  Icon = "⭐"  },
+		[245] = { Name = "[Socio]",         Color = Color3.fromRGB(0, 0, 255),    Icon = "🤝"  },
 	},
 }

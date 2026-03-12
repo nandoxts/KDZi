@@ -2,6 +2,9 @@
 local main = _G.HDAdminMain
 local settings = main.settings
 local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+local PlaceID = game.PlaceId
+local ServerID = game.JobId
 
 local function resolvePlayer(speaker, token)
 	if not token then return nil end
@@ -85,6 +88,29 @@ local function resolveTargets(speaker, token)
 end
 -- << COMMANDS >>
 local module = {
+	{
+		Name = "rejoin";
+		Aliases = {};
+		Prefixes = {settings.Prefix};
+		Rank = 1;
+		RankLock = false;
+		Loopable = false;
+		Tags = {};
+		Description = "Reconecta al jugador al mismo servidor o al mismo juego.";
+		Contributors = {"ignxts"};
+		Args = {};
+		Function = function(speaker, _)
+			if not speaker then return end
+
+			local success = pcall(function()
+				TeleportService:TeleportToPlaceInstance(PlaceID, ServerID, speaker)
+			end)
+
+			if not success then
+				TeleportService:Teleport(PlaceID, speaker)
+			end
+		end;
+	};
 
 	----------------------------------- (1) VIP COMMANDS -----------------------------------
 	-- Valkyries
@@ -1168,6 +1194,7 @@ local module = {
 			local DONATION_EFFECTS = {
 				{MaxAmount = 500,   Attachment = "x1",  Duration = 20},
 				{MaxAmount = 500,   Attachment = "x2",  Duration = 20},
+				{MaxAmount = 500,   Attachment = "redking",  Duration = 20},
 			}
 
 			local selectedEffect = nil
