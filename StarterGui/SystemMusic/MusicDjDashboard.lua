@@ -950,6 +950,7 @@ local function updateVolume(volume)
 	player:SetAttribute("MusicVolume", currentVolume)
 	local sg = SoundService:FindFirstChild("MusicSoundGroup")
 	if sg then sg.Volume = isMusicMuted() and 0 or currentVolume end
+	_G.MusicVolume = currentVolume
 	if R.ChangeVolume then pcall(function() R.ChangeVolume:FireServer(currentVolume) end) end
 end
 
@@ -964,6 +965,12 @@ local function onMuteStateChanged()
 		if musicSoundGroup then
 			musicSoundGroup.Volume = muted and 0 or currentVolume
 		end
+		updateVolumeDisplay()
+	end
+	-- Sincronizar con cambios externos del slider de Settings
+	if not muted and _G.MusicVolume and _G.MusicVolume ~= currentVolume then
+		currentVolume = math.clamp(_G.MusicVolume, minVolume, maxVolume)
+		if musicSoundGroup then musicSoundGroup.Volume = currentVolume end
 		updateVolumeDisplay()
 	end
 end

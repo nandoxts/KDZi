@@ -90,6 +90,11 @@ return {
 	CHECK_TIME_FOLLOWER = 300, -- Tiempo de comprobación de seguidores
 	BILLBOARD_NAME = "Dance_Leader",
 
+	-- UI ICONS
+	UIIcons = {
+		Premium = "rbxassetid://13600832988",
+	},
+
 	-- ══════════════════════════════════════
 	--  GROUP ROLES
 	-- ══════════════════════════════════════

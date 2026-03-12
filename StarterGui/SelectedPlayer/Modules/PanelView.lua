@@ -18,6 +18,7 @@ local PanelView = {}
 local Config, State, Utils, Remotes
 local Services, NotificationSystem, ColorEffects, THEME
 local player, playerGui
+local PREMIUM_ICON = "rbxassetid://13600832988"
 
 -- Cache de layout por sesión de panel (evita recalcular)
 local cachedLayout = nil
@@ -33,6 +34,7 @@ function PanelView.init(config, state, utils, remotes)
 	NotificationSystem = remotes.Systems.NotificationSystem
 	ColorEffects = remotes.Systems.ColorEffects
 	THEME = config.THEME
+	PREMIUM_ICON = config.PREMIUM_ICON or PREMIUM_ICON
 	player = Services.Player
 	playerGui = Services.PlayerGui
 end
@@ -167,22 +169,6 @@ function Admin.applyBorderGradient(stroke, speed, baseColor)
 	return gradient
 end
 
-function Admin.applyTextShimmer(label, baseColor)
-	baseColor = baseColor or THEME.accent
-	local dark = Color3.new(baseColor.R * 0.5, baseColor.G * 0.5, baseColor.B * 0.5)
-	local gradient = Instance.new("UIGradient")
-	gradient.Parent = label
-	gradient.Color = ColorSequence.new({
-		ColorSequenceKeypoint.new(0, baseColor),
-		ColorSequenceKeypoint.new(0.4, dark),
-		ColorSequenceKeypoint.new(0.6, baseColor),
-		ColorSequenceKeypoint.new(1, baseColor),
-	})
-	gradient.Offset = Vector2.new(-1, 0)
-	TweenService:Create(gradient, TweenInfo.new(2.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { Offset = Vector2.new(1, 0) }):Play()
-	return gradient
-end
-
 function Admin.createBadge(parent, badgeInfo, L)
 	local badge = Utils.createFrame({ Size = UDim2.new(0, 48, 0, 18), BackgroundColor3 = badgeInfo.color, BackgroundTransparency = 0.45, Parent = parent })
 	Utils.addCorner(badge, 9)
@@ -251,17 +237,23 @@ local function closeDonationOverlay()
 		return
 	end
 
+	if content:GetAttribute("Closing") then return end
+	content:SetAttribute("Closing", true)
+
 	local L = getLayout()
-	local pY = L.dragHandleH + 4
-	local targetY = pY + L.panelHeight / 2 + 30
+	local contentH = L.cardSize + 86
+	-- Sale por abajo del CanvasGroup (se recorta automáticamente)
+	local hideY = L.panelHeight + contentH
 
 	safeTween(content, {
-		Position = UDim2.new(0.5, 0, 0, targetY),
-	}, 0.28, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
+		Position = UDim2.new(0.5, 0, 0, hideY),
+	}, 0.55, Enum.EasingStyle.Quint, Enum.EasingDirection.InOut)
 
-	task.delay(0.3, function()
+	task.delay(0.57, function()
 		if content and content.Parent then content:Destroy() end
-		State.donationOverlay = nil
+		if State.donationOverlay == content then
+			State.donationOverlay = nil
+		end
 		State.isLoadingDynamic = false
 	end)
 end
@@ -271,16 +263,16 @@ local function showDonationOverlay(items, targetName, playerColor)
 
 	if State.donationOverlay then
 		closeDonationOverlay()
-		task.wait(0.32)
+		task.wait(0.6)
 	end
 
-	local parent = State.container
+	local parent = State.panelContainer
 	if not parent then return end
 
-	local pY = L.dragHandleH + 4
 	local contentH = L.cardSize + 86
-	local centerY = pY + L.panelHeight / 2
-	local startY = centerY + 30
+	-- Posiciones relativas al panelContainer (CanvasGroup que recorta)
+	local centerY = L.panelHeight / 2
+	local startY = L.panelHeight + contentH
 
 	-- Panel flotante directo (sin overlay backdrop)
 	local content = Utils.create("CanvasGroup", {
@@ -433,11 +425,11 @@ local function showDonationOverlay(items, targetName, playerColor)
 		end
 	end
 
-	-- Animación de entrada: slide-up + fade con Back easing
+	-- Animación de entrada: sube desde fuera del panel hasta el centro (igual que el panel principal)
 	safeTween(content, {
 		Position = UDim2.new(0.5, 0, 0, centerY),
-	}, 0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-	task.delay(0.45, function() State.isLoadingDynamic = false end)
+	}, 0.65, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+	task.delay(0.65, function() State.isLoadingDynamic = false end)
 end
 
 -- ═══════════════════════════════════════════════════════════════
@@ -504,6 +496,7 @@ end
 local function createAvatarSection(panel, data, playerColor)
 	local L = getLayout()
 	local isAdmin = Admin.isAdmin(data.username)
+	local isPremium = (data and data.isPremium == true) or (State.target and State.target.MembershipType == Enum.MembershipType.Premium)
 	local badgeInfo = Admin.getBadgeInfo(data.username, playerColor)
 	local LikesSystem = require(script.Parent.LikesSystem)
 
@@ -527,11 +520,11 @@ local function createAvatarSection(panel, data, playerColor)
 
 	Utils.create("UIListLayout", { FillDirection = Enum.FillDirection.Vertical, HorizontalAlignment = Enum.HorizontalAlignment.Center, VerticalAlignment = Enum.VerticalAlignment.Center, Padding = UDim.new(0, 4), Parent = statsBar })
 
-	for _, stat in ipairs({ { key = "followers", label = "Seguidores" }, { key = "friends", label = "Amigos" }, { key = "likes", label = "Likes" } }) do
+	for _, stat in ipairs({ { key = "followers", label = "FOLLOW" }, { key = "friends", label = "FRIENDS" }, { key = "likes", label = "LIKES" } }) do
 		local sc = Utils.createFrame({ Size = UDim2.new(1, -8, 0, Config.STATS_ITEM_HEIGHT), ZIndex = 11, Parent = statsBar })
 		Utils.addCorner(sc, 6)
-		State.statsLabels[stat.key] = Utils.createLabel({ Size = UDim2.new(1, 0, 0, 22), Position = UDim2.new(0, 0, 0, 4), Text = tostring(data[stat.key] or 0), TextColor3 = THEME.text, TextSize = L.fontSize.stat, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 11, Parent = sc })
-		Utils.createLabel({ Size = UDim2.new(1, 0, 0, 14), Position = UDim2.new(0, 0, 0, 26), Text = stat.label, TextColor3 = THEME.muted, TextSize = L.fontSize.statLabel, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 11, Parent = sc })
+		State.statsLabels[stat.key] = Utils.createLabel({ Size = UDim2.new(1, 0, 0, 22), Position = UDim2.new(0, 0, 0, 4), Text = tostring(data[stat.key] or 0), TextColor3 = THEME.text, TextSize = L.fontSize.stat, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Center, TextStrokeColor3 = Color3.fromRGB(0, 0, 0), TextStrokeTransparency = 0.75, ZIndex = 11, Parent = sc })
+		Utils.createLabel({ Size = UDim2.new(1, 0, 0, 14), Position = UDim2.new(0, 0, 0, 26), Text = stat.label, TextColor3 = THEME.muted, TextSize = L.fontSize.statLabel + 1, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Center, TextStrokeColor3 = Color3.fromRGB(0, 0, 0), TextStrokeTransparency = 0.82, ZIndex = 11, Parent = sc })
 	end
 
 	-- Nombres
@@ -540,20 +533,32 @@ local function createAvatarSection(panel, data, playerColor)
 	Utils.create("UIListLayout", { FillDirection = Enum.FillDirection.Vertical, HorizontalAlignment = Enum.HorizontalAlignment.Left, VerticalAlignment = Enum.VerticalAlignment.Top, Padding = UDim.new(0, 0), Parent = nameMain })
 
 	local nameCont = Utils.createFrame({ Size = UDim2.new(1, 0, 0, 20), BackgroundTransparency = 1, LayoutOrder = 1, Parent = nameMain })
-	Utils.create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Left, VerticalAlignment = Enum.VerticalAlignment.Center, Padding = UDim.new(0, 4), Parent = nameCont })
+	Utils.create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Left, VerticalAlignment = Enum.VerticalAlignment.Center, Padding = UDim.new(0, 2), Parent = nameCont })
 
 	local dnLabel = Utils.createLabel({ Size = UDim2.new(0, 0, 1, 0), AutomaticSize = Enum.AutomaticSize.X, Text = data.displayName, TextColor3 = playerColor, TextSize = L.fontSize.title, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, LayoutOrder = 1, Parent = nameCont })
 
+	if isPremium then
+		local premiumSize = math.max(L.fontSize.title + 2, 16)
+		Utils.create("ImageLabel", {
+			Size = UDim2.new(0, premiumSize, 0, premiumSize),
+			BackgroundTransparency = 1,
+			Image = PREMIUM_ICON,
+			ImageColor3 = playerColor,
+			ScaleType = Enum.ScaleType.Fit,
+			LayoutOrder = 2,
+			Parent = nameCont,
+		})
+	end
+
 	if isAdmin then
-		Admin.applyTextShimmer(dnLabel, playerColor)
-		Utils.createLabel({ Size = UDim2.new(0, 0, 1, 0), AutomaticSize = Enum.AutomaticSize.X, Text = "", TextColor3 = playerColor, TextSize = L.fontSize.title, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Left, LayoutOrder = 2, Parent = nameCont })
+		Utils.createLabel({ Size = UDim2.new(0, 0, 1, 0), AutomaticSize = Enum.AutomaticSize.X, Text = "", TextColor3 = playerColor, TextSize = L.fontSize.title, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Left, LayoutOrder = 3, Parent = nameCont })
 	end
 
 	Utils.createLabel({ Size = UDim2.new(1, 0, 0, 16), Text = "@" .. data.username, TextColor3 = THEME.muted, TextSize = L.fontSize.subtitle + 3, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, LayoutOrder = 2, Parent = nameMain })
 
 	if isAdmin and badgeInfo then
 		local badge = Admin.createBadge(avatarSection, badgeInfo, L)
-		badge.Position = UDim2.new(0, 10, 1, nameY - 20); badge.ZIndex = 26
+		badge.Position = UDim2.new(0, 10, 1, nameY - 24); badge.ZIndex = 26
 	end
 
 	-- Like buttons
@@ -643,6 +648,7 @@ function PanelView.createPanel(data)
 
 	local panelStroke = Utils.addStroke(panelContainer, THEME.stroke, 1.6, 0.25)
 	State.panelStroke = panelStroke
+	State.panelContainer = panelContainer
 
 	-- Vignette lateral izquierdo (igual que MenuPanel)
 	local edgeL = Utils.createFrame({ Size = UDim2.new(0, 30, 1, 0), Position = UDim2.new(0, 0, 0, 0), BackgroundColor3 = THEME.bg, BackgroundTransparency = 0, ZIndex = 10, Parent = panelContainer })

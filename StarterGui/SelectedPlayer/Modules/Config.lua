@@ -10,6 +10,9 @@ local configFolder = ReplicatedStorage:FindFirstChild("Config") or ReplicatedSto
 local THEME = pcall(function()
 	return require(configFolder:FindFirstChild("ThemeConfig") or configFolder:WaitForChild("ThemeConfig", 2))
 end) and require(configFolder:FindFirstChild("ThemeConfig") or configFolder:WaitForChild("ThemeConfig", 2)) or {}
+local GLOBAL_CFG = pcall(function()
+	return require(configFolder:FindFirstChild("Configuration") or configFolder:WaitForChild("Configuration", 2))
+end) and require(configFolder:FindFirstChild("Configuration") or configFolder:WaitForChild("Configuration", 2)) or {}
 
 local UserInputService = game:GetService("UserInputService")
 
@@ -82,5 +85,8 @@ return {
 	SELECTED_CURSOR = "rbxassetid://84923889690331",
 
 	-- Tema
-	THEME = THEME
+	THEME = THEME,
+
+	-- UI icons
+	PREMIUM_ICON = (GLOBAL_CFG.UIIcons and GLOBAL_CFG.UIIcons.Premium) or "rbxassetid://13600832988"
 }

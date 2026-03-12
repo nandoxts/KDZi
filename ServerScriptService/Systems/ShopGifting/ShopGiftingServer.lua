@@ -47,12 +47,28 @@ OwnershipUpdated.Name = "OwnershipUpdated"
 local ownershipCache = {} -- [userId-itemId] = {owns = bool, timestamp = tick()}
 local CACHE_DURATION = 300
 
+-- Lista pre-computada: playersWithout[itemId][userId] = playerInfo
+-- Se construye al entrar cada jugador y se sirve instantáneamente
+local playersWithout = {}
+
 local function getCacheKey(userId, itemId)
 	return userId .. "-" .. itemId
 end
 
+local function buildPlayerInfo(plr)
+	return {
+		userId = plr.UserId,
+		username = plr.Name,
+		displayName = plr.DisplayName or plr.Name,
+		isPremium = plr.MembershipType == Enum.MembershipType.Premium,
+	}
+end
+
 local function invalidateCache(userId, itemId)
 	ownershipCache[getCacheKey(userId, itemId)] = nil
+	if playersWithout[itemId] then
+		playersWithout[itemId][userId] = nil
+	end
 end
 
 local function checkOwnership(userId, itemId)
@@ -81,10 +97,18 @@ do
 	end
 end
 
-local function warmCache(player)
+local function warmCache(plr)
+	local info = buildPlayerInfo(plr)
+	local uid = plr.UserId
 	for _, itemId in ipairs(ALL_ITEM_IDS) do
 		task.spawn(function()
-			checkOwnership(player.UserId, itemId)
+			local owns = checkOwnership(uid, itemId)
+			if not playersWithout[itemId] then playersWithout[itemId] = {} end
+			if not owns then
+				playersWithout[itemId][uid] = info
+			else
+				playersWithout[itemId][uid] = nil
+			end
 		end)
 	end
 end
@@ -105,31 +129,26 @@ local function getPlayersWithoutItem(requestingPlayer, itemType, itemId)
 		return { success = false, error = "Parámetros inválidos" }
 	end
 
-	local playersWithout = {}
-	local allPlayers = Players:GetPlayers()
+	-- Lectura instantánea desde lista pre-computada (0 llamadas async)
+	local cached = playersWithout[itemId]
+	local result = {}
 
-	for _, targetPlayer in ipairs(allPlayers) do
-		if targetPlayer.UserId ~= requestingPlayer.UserId then
-			if not checkOwnership(targetPlayer.UserId, itemId) then
-				table.insert(playersWithout, {
-					userId = targetPlayer.UserId,
-					username = targetPlayer.Name,
-					displayName = targetPlayer.DisplayName or targetPlayer.Name,
-					isPremium = targetPlayer.MembershipType == Enum.MembershipType.Premium,
-				})
+	if cached then
+		for uid, info in pairs(cached) do
+			if uid ~= requestingPlayer.UserId then
+				table.insert(result, info)
 			end
 		end
 	end
 
-	-- Ordenar alfabéticamente por displayName
-	table.sort(playersWithout, function(a, b)
+	table.sort(result, function(a, b)
 		return (a.displayName or ""):lower() < (b.displayName or ""):lower()
 	end)
 
 	return {
 		success = true,
-		players = playersWithout,
-		total = #playersWithout
+		players = result,
+		total = #result
 	}
 end
 
@@ -175,13 +194,15 @@ end
 -- CLEANUP
 -- ═══════════════════════════════════════════════════════════════
 Players.PlayerRemoving:Connect(function(player)
-	-- Limpiar rate limit del jugador
+	local uid = player.UserId
 	if _G.shopGiftingRateLimit then
-		_G.shopGiftingRateLimit[player.UserId .. "_shopGifting"] = nil
+		_G.shopGiftingRateLimit[uid .. "_shopGifting"] = nil
 	end
-	-- Limpiar cache de ownership del jugador
 	for _, itemId in ipairs(ALL_ITEM_IDS) do
-		ownershipCache[getCacheKey(player.UserId, itemId)] = nil
+		ownershipCache[getCacheKey(uid, itemId)] = nil
+		if playersWithout[itemId] then
+			playersWithout[itemId][uid] = nil
+		end
 	end
 end)
 

@@ -136,6 +136,10 @@ function Music.build(parent, THEME, sharedState)
 		if volCheckAccum < 2 then return end
 		volCheckAccum = 0
 		if musicGroup and sharedState then
+			-- Sincronizar con _G.MusicVolume (slider de Settings)
+			if _G.MusicVolume and _G.MusicVolume ~= state.currentVolume then
+				state.currentVolume = _G.MusicVolume
+			end
 			if sharedState.isMuted then
 				musicGroup.Volume = 0
 			elseif musicGroup.Volume ~= state.currentVolume then

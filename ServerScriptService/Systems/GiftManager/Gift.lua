@@ -47,20 +47,14 @@ local DEFAULT_AVATAR = "https://t3.rbxcdn.com/9fc30fe577bf95e045c9a3d4abaca05d"
 -- pendingGifts[donorUserId] = { recipientId, donorName, donorId }
 local pendingGifts = {}
 
+-- Lista unificada de items regalables (se construye una sola vez desde GiftingConfig)
+local ALL_ITEMS = {}
+for _, gp in ipairs(GiftingConfig.Gamepasses) do table.insert(ALL_ITEMS, gp) end
+for _, title in ipairs(GiftingConfig.Titles) do table.insert(ALL_ITEMS, title) end
+
 -- ═══════════════════════════════════════════════════════════════
 -- HELPERS
 -- ═══════════════════════════════════════════════════════════════
-
-local function getAllPurchaseables()
-	local all = {}
-	for _, gp in ipairs(GiftingConfig.Gamepasses) do
-		table.insert(all, gp)
-	end
-	for _, title in ipairs(GiftingConfig.Titles) do
-		table.insert(all, title)
-	end
-	return all
-end
 
 local function getItemName(gamepassId)
 	local ok, asset = pcall(MarketplaceService.GetProductInfo, MarketplaceService, gamepassId, Enum.InfoType.GamePass)
@@ -215,7 +209,7 @@ GiftingRemote.OnServerEvent:Connect(function(player, gamepass, userId, username,
 	local ok = pcall(function() recipientName = Players:GetNameFromUserIdAsync(userId) end)
 	if not ok or not recipientName then return end
 
-	for _, item in ipairs(getAllPurchaseables()) do
+	for _, item in ipairs(ALL_ITEMS) do
 		if item[1] == gamepass[1] and item[2] == gamepass[2] then
 			if player.UserId == userId then return end
 
@@ -249,7 +243,7 @@ Players.PlayerAdded:Connect(function(player)
 	local folder = ensureFolder(player)
 
 	local function syncOwnership()
-		for _, item in ipairs(getAllPurchaseables()) do
+		for _, item in ipairs(ALL_ITEMS) do
 			local id = item[1]
 			if id and type(id) == "number" then
 				local owns = ShopManager.HasGamepassByUserId(player.UserId, id)
@@ -274,12 +268,17 @@ MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, gamep
 
 	-- Verificar que es uno de nuestros items
 	local isOurs = false
-	for _, item in ipairs(getAllPurchaseables()) do
+	for _, item in ipairs(ALL_ITEMS) do
 		if item[1] == gamepassId then isOurs = true; break end
 	end
 	if not isOurs then return end
 
 	grantToOnlinePlayer(player.UserId, gamepassId)
+
+	-- Actualizar cache de ShopGifting (quitar de lista "sin pase")
+	if _G.ShopGifting_OnItemGifted then
+		pcall(_G.ShopGifting_OnItemGifted, player.UserId, "gamepass", gamepassId)
+	end
 end)
 
 -- ═══════════════════════════════════════════════════════════════
@@ -287,7 +286,7 @@ end)
 -- ═══════════════════════════════════════════════════════════════
 
 local function handleGiftPurchase(receiptInfo)
-	for _, item in ipairs(getAllPurchaseables()) do
+	for _, item in ipairs(ALL_ITEMS) do
 		if receiptInfo.ProductId == item[2] then
 			local giftInfo = pendingGifts[receiptInfo.PlayerId]
 			if not giftInfo then return Enum.ProductPurchaseDecision.NotProcessedYet end

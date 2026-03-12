@@ -90,6 +90,7 @@ local function closePanel()
 	State.playerColor = nil
 	State.panelBgImage = nil
 	State.panelStroke = nil
+	State.panelContainer = nil
 
 	-- Animar cierre visualmente (sobre las referencias capturadas)
 	if closingContainer and closingContainer.Parent then
@@ -131,6 +132,7 @@ local function openPanel(target)
 		userId      = target.UserId,
 		username    = target.Name,
 		displayName = target.DisplayName,
+		isPremium   = (target.MembershipType == Enum.MembershipType.Premium),
 		avatar      = Utils.getAvatarImage(target.UserId),
 		followers   = 0,
 		friends     = 0,
