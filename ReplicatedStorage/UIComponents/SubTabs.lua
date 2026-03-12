@@ -19,7 +19,6 @@ function SubTabs.new(parent, THEME, config)
 	local height = config.height or 38
 	local defaultTab = config.default or (tabs[1] and tabs[1].id)
 	local z = config.z or 215
-	local textSize = config.textSize or 13
 	local tabCount = #tabs
 	local btnScale = tabCount > 0 and (1 / tabCount) or 1
 
@@ -67,7 +66,7 @@ function SubTabs.new(parent, THEME, config)
 		btn.Position = UDim2.new(btnScale * (idx - 1), 0, 0, 0)
 		btn.BackgroundTransparency = 1
 		btn.Font = Enum.Font.GothamBold
-		btn.TextSize = textSize
+		btn.TextSize = 13
 		btn.TextColor3 = THEME.muted
 		btn.Text = tabDef.label
 		btn.BorderSizePixel = 0
@@ -193,3 +192,4 @@ function SubTabs:getActiveId()
 end
 
 return SubTabs
+
