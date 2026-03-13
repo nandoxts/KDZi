@@ -166,7 +166,7 @@ local btnScale = 1 / TAB_COUNT
 
 local blobIndicator = BlobIndicator.new(tabBar, {
 	tabCount     = TAB_COUNT,
-	bgColor      = THEME.subtle,
+	bgColor      = THEME.accent,
 	padding      = 4,
 	cornerRadius = 8,
 	zIndex       = 204,

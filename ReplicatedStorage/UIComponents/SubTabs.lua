@@ -52,7 +52,7 @@ function SubTabs.new(parent, THEME, config)
 	-- ── BLOB INDICATOR (reutilizable) ──
 	self._blobIndicator = BlobIndicator.new(bar, {
 		tabCount     = tabCount,
-		bgColor      = THEME.subtle,
+		bgColor      = THEME.accent,
 		padding      = 4,
 		cornerRadius = 8,
 		zIndex       = z + 1,
