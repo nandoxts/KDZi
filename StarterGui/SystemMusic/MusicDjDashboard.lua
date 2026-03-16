@@ -364,7 +364,8 @@ local canvas = modal:getCanvas()
 -- MAIN LAYOUT
 -- ════════════════════════════════════════════════════════════════
 local contentArea = makeFrame({
-	dim = UDim2.new(1, 0, 1, -BOTTOM_BAR_H),
+	dim = UDim2.new(1, -SIDEBAR_W, 1, 0),
+	pos = UDim2.new(0, SIDEBAR_W, 0, 0),
 	z = 100, clip = true, name = "ContentArea", parent = canvas,
 })
 
@@ -374,7 +375,7 @@ do
 		dim = UDim2.new(1, 0, 0, BOTTOM_BAR_H),
 		pos = UDim2.new(0, 0, 1, -BOTTOM_BAR_H),
 		bg = Color3.fromRGB(14, 14, 18), bgT = 0,
-		z = 110, name = "BottomBar", parent = canvas,
+		z = 110, name = "BottomBar", parent = contentArea,
 	})
 	make("UIGradient", {
 		Color = ColorSequence.new{
@@ -402,7 +403,7 @@ do
 	local sidebar = makeFrame({
 		dim = UDim2.new(0, SIDEBAR_W, 1, 0),
 		bg = THEME.deep, bgT = THEME.lightAlpha,
-		z = 101, name = "Sidebar", parent = contentArea,
+		z = 105, name = "Sidebar", parent = canvas,
 	})
 
 	-- Queue Toggle Button
@@ -488,8 +489,8 @@ end
 -- MAIN PANEL
 -- ════════════════════════════════════════════════════════════════
 _ui.mainPanel = makeFrame({
-	dim = UDim2.new(1, -SIDEBAR_W, 1, 0),
-	pos = UDim2.new(0, SIDEBAR_W, 0, 0),
+	dim = UDim2.new(1, 0, 1, -BOTTOM_BAR_H),
+	pos = UDim2.new(0, 0, 0, 0),
 	z = 100, clip = true, name = "MainPanel", parent = contentArea,
 })
 

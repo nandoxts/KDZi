@@ -1,38 +1,45 @@
 -- ════════════════════════════════════════════════════════════════
--- THEME v8.0 — FULL BLACK · SIN ALIASES
+-- THEME CONFIGURATION v2.0 - PROFESSIONAL DARK
+-- Paleta madura estilo Discord/Spotify
 -- by ignxts
 -- ════════════════════════════════════════════════════════════════
 
 local THEME = {
-	-- ═══ FONDOS (3 niveles + subtle) ═══
-	bg       = Color3.fromRGB(6,   6,   6),   -- fondo base
-	card     = Color3.fromRGB(18,  18,  18),   -- tarjetas, contenedores
-	elevated = Color3.fromRGB(32,  32,  32),   -- hover, items activos
-	subtle   = Color3.fromRGB(55,  55,  55),   -- bordes suaves, placeholders
+	-- Modern dark background palette (Neutro oscuro, sin tinte morado)
+	bg       = Color3.fromRGB(18, 18, 21),      -- Fondo principal / profundo
+	card     = Color3.fromRGB(28, 28, 32),      -- Cards / paneles
+	surface  = Color3.fromRGB(30, 30, 35),      -- Superficies interactivas
+	elevated = Color3.fromRGB(35, 35, 40),      -- Elementos elevados (hover)
 
-	-- ═══ TEXTO (3 niveles) ═══
-	text     = Color3.fromRGB(255, 255, 255),  -- blanco puro
-	dim      = Color3.fromRGB(160, 160, 160),  -- texto suave
-	muted    = Color3.fromRGB(90,  90,  90),   -- texto apagado
+	-- Text colors
+	text     = Color3.fromRGB(236, 240, 241),   -- Texto principal (casi blanco)
+	muted    = Color3.fromRGB(132, 142, 151),   -- Texto secundario
+	subtle   = Color3.fromRGB(95, 100, 110),    -- Texto muy sutil
+	dim      = Color3.fromRGB(95, 100, 110),    -- Alias de subtle (iconos/texto apagado)
 
-	-- ═══ BORDE ═══
-	stroke   = Color3.fromRGB(38,  38,  38),
+	-- Accent (purple)
+	accent      = Color3.fromRGB(147, 76, 255),  -- Morado vibrante
+	accentHover = Color3.fromRGB(186, 129, 255), -- Hover más claro
 
-	-- ═══ ACENTO ═══
-	accent   = Color3.fromRGB(104, 104, 104),  
+	-- Buttons
+	warn       = Color3.fromRGB(251, 140, 0),    -- Orange suave
+	warnMuted  = Color3.fromRGB(88, 56, 20),     -- Orange muted más oscuro
+	btnDanger  = Color3.fromRGB(229, 57, 53),    -- Rojo profundo
+	success    = Color3.fromRGB(76, 175, 80),    -- Verde suave (Spotify-like)
 
-	-- ═══ ESTADOS ═══
-	danger   = Color3.fromRGB(220, 50,  50),
-	success  = Color3.fromRGB(0, 211, 53),
-	warn     = Color3.fromRGB(255, 170, 50),
+	-- UI elements
+	stroke = Color3.fromRGB(40, 44, 52),
+	hover  = Color3.fromRGB(45, 50, 58),
 
-	-- ═══ ALPHA ═══
-	overlayAlpha = 0.6,
-	lightAlpha   = 0.2,
+	-- Transparencies
+	subtleAlpha = 0.1,  -- Muy poco transparente
+	lightAlpha  = 0.3,  -- Ligeramente transparente
+	frameAlpha  = 0.4,  -- Frames principales
+	mediumAlpha = 0.6,  -- Medio transparente
 
-	-- ═══ LAYOUT ═══
-	panelWidth  = 390,
-	panelHeight = 500,
+	-- Panel sizes
+	panelWidth  = 780,
+	panelHeight = 650,
 }
 
 return THEME
