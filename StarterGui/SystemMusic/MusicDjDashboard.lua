@@ -1,11 +1,9 @@
 --[[ Music Dashboard - Professional (Sidebar Layout)
 	by ignxts- Nando
-	Layout refactor: Sidebar + Main Area (FIXED)
+	Layout refactor: Sidebar + Main Area (LOCAL REGISTER FIX)
+	NOTE: Forward-declared UI refs consolidated into _ui table
+	      to stay under Luau's 200 local register limit.
 ]]
-
-print("[MusicDashboard] ╔════════════════════════════════════════════════════════════╗")
-print("[MusicDashboard] ║  INICIANDO CARGA DEL MUSIC DASHBOARD                      ║")
-print("[MusicDashboard] ╚════════════════════════════════════════════════════════════╝")
 
 -- ════════════════════════════════════════════════════════════════
 -- SERVICES
@@ -21,31 +19,16 @@ local SoundService = game:GetService("SoundService")
 -- ════════════════════════════════════════════════════════════════
 -- MODULES
 -- ════════════════════════════════════════════════════════════════
-print("[MusicDashboard] Iniciando carga de módulos...")
-
 local ModalManager = require(ReplicatedStorage:WaitForChild("Modal"):WaitForChild("ModalManager"))
-print("[MusicDashboard] ✓ ModalManager cargado")
-
 local GlobalModalManager = require(ReplicatedStorage:WaitForChild("Systems"):WaitForChild("GlobalModalManager"))
-print("[MusicDashboard] ✓ GlobalModalManager cargado")
-
 local Notify = require(ReplicatedStorage:WaitForChild("Systems"):WaitForChild("NotificationSystem"):WaitForChild("NotificationSystem"))
-print("[MusicDashboard] ✓ NotificationSystem cargado")
-
 local UI = require(ReplicatedStorage:WaitForChild("Core"):WaitForChild("UI"))
-print("[MusicDashboard] ✓ UI cargado")
-
 local SearchModern = require(ReplicatedStorage:WaitForChild("UIComponents"):WaitForChild("SearchModern"))
-print("[MusicDashboard] ✓ SearchModern cargado")
-
 local ModernScrollbar = require(ReplicatedStorage:WaitForChild("UIComponents"):WaitForChild("ModernScrollbar"))
-print("[MusicDashboard] ✓ ModernScrollbar cargado")
-
 local THEME = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("ThemeConfig"))
-print("[MusicDashboard] ✓ ThemeConfig cargado")
 
 -- ════════════════════════════════════════════════════════════════
--- INSTANCE HELPER — Identical to original
+-- INSTANCE HELPER
 -- ════════════════════════════════════════════════════════════════
 local function make(className, props, children)
 	local inst = Instance.new(className)
@@ -97,7 +80,6 @@ local function makeBtn(props)
 	return btn
 end
 
--- FIX #1: makeFrame WITHOUT Visible — matches original exactly
 local function makeFrame(props)
 	return make("Frame", {
 		Size = props.dim or UDim2.new(1, 0, 1, 0),
@@ -130,23 +112,16 @@ local function makeImage(props)
 	})
 end
 
--- Scroll reutilizable con scrollbar y layout
 local function makeScrollColumn(parent, offsetY, paddingOpts, theme)
 	local scroll = make("ScrollingFrame", {
 		Size = UDim2.new(1, paddingOpts.sizeXOff or -8, 1, -(offsetY + (paddingOpts.bottomOff or 8))),
 		Position = UDim2.new(0, paddingOpts.posX or 4, 0, offsetY),
-		BackgroundTransparency = 1,
-		BorderSizePixel = 0,
-		ScrollBarThickness = 0,
-		ScrollBarImageTransparency = 1,
+		BackgroundTransparency = 1, BorderSizePixel = 0,
+		ScrollBarThickness = 0, ScrollBarImageTransparency = 1,
 		CanvasSize = UDim2.new(0, 0, 0, 0),
-		ClipsDescendants = true,
-		ZIndex = 101,
-		Parent = parent,
+		ClipsDescendants = true, ZIndex = 101, Parent = parent,
 	})
-
-	local scrollbar = ModernScrollbar.setup(scroll, parent, theme, {transparency = 0})
-
+	ModernScrollbar.setup(scroll, parent, theme, {transparency = 0})
 	if paddingOpts.padding then
 		make("UIPadding", {
 			PaddingLeft = UDim.new(0, paddingOpts.padding),
@@ -156,21 +131,16 @@ local function makeScrollColumn(parent, offsetY, paddingOpts, theme)
 			Parent = scroll,
 		})
 	end
-
 	local layout = make("UIListLayout", {
 		Padding = UDim.new(0, paddingOpts.gap or 4),
-		SortOrder = Enum.SortOrder.LayoutOrder,
-		Parent = scroll,
+		SortOrder = Enum.SortOrder.LayoutOrder, Parent = scroll,
 	})
-
 	layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
 		scroll.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 12)
 	end)
-
-	return scroll, layout, scrollbar
+	return scroll, layout
 end
 
--- CanvasGroup helper — recorta hijos respetando UICorner
 local function makeCanvas(parent, corner, z)
 	local canvas = Instance.new("CanvasGroup")
 	canvas.Name = "Canvas"
@@ -180,18 +150,14 @@ local function makeCanvas(parent, corner, z)
 	canvas.GroupTransparency = 0
 	canvas.ZIndex = z or 103
 	canvas.Parent = parent
-	local c = Instance.new("UICorner")
-	c.CornerRadius = UDim.new(0, corner or 8)
-	c.Parent = canvas
+	Instance.new("UICorner", canvas).CornerRadius = UDim.new(0, corner or 8)
 	return canvas
 end
 
--- Tween helper
 local function tween(obj, duration, props)
 	TweenService:Create(obj, TweenInfo.new(duration), props):Play()
 end
 
--- Hover helper para botones
 local function addHover(btn, hoverColor, defaultColor, defaultTransparency)
 	btn.MouseEnter:Connect(function()
 		tween(btn, 0.15, {BackgroundColor3 = hoverColor, BackgroundTransparency = 0})
@@ -229,20 +195,11 @@ local ResponseMessages = {
 -- CONFIG
 -- ════════════════════════════════════════════════════════════════
 local player = Players.LocalPlayer
-print("[MusicDashboard] ✓ Player obtenido:", player.Name)
-
 local MusicSystemConfig = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("MusicSystemConfig"))
-print("[MusicDashboard] ✓ MusicSystemConfig cargado")
-
-local SHOW_ADMIN_UI = true
-local isAdmin = MusicSystemConfig:IsAdmin(player) and SHOW_ADMIN_UI
-print("[MusicDashboard] isAdmin:", isAdmin)
-
-local R_PANEL, R_CTRL = 12, 10
-local ENABLE_BLUR, BLUR_SIZE = true, 14
+local isAdmin = MusicSystemConfig:IsAdmin(player) and true
 
 local CARD_HEIGHT, CARD_PADDING = 54, 6
-local VISIBLE_BUFFER, BATCH_SIZE, MAX_POOL_SIZE = 3, 15, 25
+local VISIBLE_BUFFER, MAX_POOL_SIZE = 3, 25
 local MAX_QUEUE_POOL = 30
 
 local ICONS = {
@@ -261,21 +218,28 @@ local VISUALIZER = {
 }
 
 -- ════════════════════════════════════════════════════════════════
--- STATE
+-- STATE — consolidated into tables to save local registers
 -- ════════════════════════════════════════════════════════════════
-local playQueue, currentSong = {}, nil
-local allDJs, selectedDJ, selectedDJInfo = {}, nil, nil
-local currentSoundObject, progressConnection, visualizerConnection = nil, nil, nil
-local isAddingToQueue = false
-local loadingDotsThread, loadingTween = nil, nil
-local cardPool, cardsIndex = {}, {}
-local selectedDJCard = nil
-local currentHeaderCover = ""
-local pendingCardSongIds = {}
-local queueCardPool, activeQueueCards = {}, {}
-local activeEffectThreads = {}
-local scrollDebounceThread = nil
-local SCROLL_DEBOUNCE_INTERVAL = 0.03
+local state = {
+	playQueue = {}, currentSong = nil,
+	allDJs = {}, selectedDJ = nil, selectedDJInfo = nil,
+	currentSoundObject = nil, progressConnection = nil, visualizerConnection = nil,
+	isAddingToQueue = false,
+	loadingDotsThread = nil, loadingTween = nil,
+	cardPool = {}, cardsIndex = {},
+	selectedDJCard = nil, currentHeaderCover = "",
+	pendingCardSongIds = {},
+	queueCardPool = {}, activeQueueCards = {},
+	activeEffectThreads = {},
+	scrollDebounceThread = nil, scrollConnection = nil,
+	currentView = "queue",
+	queueEmptyLabel = nil,
+	avatarCache = {},
+	progressTween = nil, progressAccum = 0,
+	searchDebounce = nil,
+	lastUpdateTime = 0, pendingUpdate = nil,
+	lastSkipTime = 0,
+}
 
 local virtualScrollState = {
 	totalSongs = 0, songData = {}, visibleCards = {},
@@ -284,23 +248,8 @@ local virtualScrollState = {
 	pendingRequests = {},
 }
 
--- UI refs
-local quickAddBtn, quickInput, qiStroke
-local quickAddBtnImg, quickAddBtnLoading
-local songsScroll, songsContainer, searchInput, loadingIndicator, songCountLabel
-local headerDJName, headerSongID, songTitle, songIdDisplay
-local miniCover, bottomBarBg
-local songsPlaceholder, songsTitle
-local progressFill, currentTimeLabel, totalTimeLabel
-local volLabelText, volInput
-
--- Layout refs
-local mainPanel, mainHeader, mainHeaderCoverImg
-local songsView, queueView
-local queueBtnStroke
-local currentView = "queue"
-local clearB = nil
-local headerGradientFrame
+-- UI refs — single table instead of ~30 individual locals
+local _ui = {}
 
 -- ════════════════════════════════════════════════════════════════
 -- HELPERS
@@ -341,7 +290,7 @@ local function showNotification(response)
 end
 
 local function isInQueue(songId)
-	for _, song in ipairs(playQueue) do
+	for _, song in ipairs(state.playQueue) do
 		if song.id == songId then return true end
 	end
 	return false
@@ -352,43 +301,41 @@ local function isMusicMuted() return _G.MusicMutedState or false end
 -- ════════════════════════════════════════════════════════════════
 -- REMOTES
 -- ════════════════════════════════════════════════════════════════
-local remoteNames = {
-	"NextSong", "PlaySong", "StopSong", "AddToQueue", "AddToQueueResponse",
-	"RemoveFromQueue", "RemoveFromQueueResponse", "ClearQueue", "ClearQueueResponse",
-	"UpdateUI", "GetDJs", "GetSongsByDJ", "GetSongRange", "SearchSongs",
-	"GetSongMetadata", "ChangeVolume",
-}
-local shortNames = {
-	NextSong = "Next", PlaySong = "Play", StopSong = "Stop",
-	AddToQueue = "Add", AddToQueueResponse = "AddResponse",
-	RemoveFromQueue = "Remove", RemoveFromQueueResponse = "RemoveResponse",
-	ClearQueue = "Clear", ClearQueueResponse = "ClearResponse",
-	UpdateUI = "Update",
-}
 local R = {}
-for _, name in ipairs(remoteNames) do
-	R[shortNames[name] or name] = getRemote(name)
+do
+	local remoteNames = {
+		"NextSong", "PlaySong", "StopSong", "AddToQueue", "AddToQueueResponse",
+		"RemoveFromQueue", "RemoveFromQueueResponse", "ClearQueue", "ClearQueueResponse",
+		"UpdateUI", "GetDJs", "GetSongsByDJ", "GetSongRange", "SearchSongs",
+		"GetSongMetadata", "ChangeVolume",
+	}
+	local shortNames = {
+		NextSong = "Next", PlaySong = "Play", StopSong = "Stop",
+		AddToQueue = "Add", AddToQueueResponse = "AddResponse",
+		RemoveFromQueue = "Remove", RemoveFromQueueResponse = "RemoveResponse",
+		ClearQueue = "Clear", ClearQueueResponse = "ClearResponse",
+		UpdateUI = "Update",
+	}
+	for _, name in ipairs(remoteNames) do
+		R[shortNames[name] or name] = getRemote(name)
+	end
 end
 
 -- ════════════════════════════════════════════════════════════════
 -- ROOT GUI
 -- ════════════════════════════════════════════════════════════════
-print("[MusicDashboard] Creando ScreenGui...")
 local screenGui = make("ScreenGui", {
 	Name = "MusicDashboardUI", ResetOnSpawn = false,
 	IgnoreGuiInset = true, ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 	Parent = player:WaitForChild("PlayerGui"),
 })
-print("[MusicDashboard] ✓ ScreenGui creado")
 
 task.wait(0.5)
-local isMobileDevice = UserInputService.TouchEnabled
-local mob = isMobileDevice
+local mob = UserInputService.TouchEnabled
 
 -- ════════════════════════════════════════════════════════════════
 -- LAYOUT CONSTANTS
 -- ════════════════════════════════════════════════════════════════
-print("[MusicDashboard] Calculando constantes de layout...")
 local PANEL_W = mob and THEME.panelWidth or math.max(THEME.panelWidth, 1100)
 local PANEL_H = mob and THEME.panelHeight or math.max(THEME.panelHeight, 620)
 local SIDEBAR_W = mob and 80 or 105
@@ -396,129 +343,123 @@ local BOTTOM_BAR_H = mob and 80 or 100
 local MAIN_HEADER_H = mob and 120 or 170
 local QUEUE_BTN_H = mob and 70 or 82
 local DJ_THUMB_H = mob and 90 or 108
-print("[MusicDashboard] ✓ Constantes calculadas")
 
 -- ════════════════════════════════════════════════════════════════
 -- MODAL
 -- ════════════════════════════════════════════════════════════════
-print("[MusicDashboard] Creando Modal...")
 local modal = ModalManager.new({
 	screenGui = screenGui, panelName = "MusicDashboard",
 	panelWidth = PANEL_W, panelHeight = PANEL_H,
-	cornerRadius = R_PANEL, enableBlur = ENABLE_BLUR, blurSize = BLUR_SIZE,
+	cornerRadius = 12, enableBlur = true, blurSize = 14,
 	isMobile = mob,
 	onClose = function()
-		if progressConnection then progressConnection:Disconnect(); progressConnection = nil end
-		if visualizerConnection then visualizerConnection:Disconnect(); visualizerConnection = nil end
+		if state.progressConnection then state.progressConnection:Disconnect(); state.progressConnection = nil end
+		if state.visualizerConnection then state.visualizerConnection:Disconnect(); state.visualizerConnection = nil end
 	end,
 })
-print("[MusicDashboard] ✓ Modal creado")
 
-local panel = modal:getPanel()
 local canvas = modal:getCanvas()
-print("[MusicDashboard] ✓ Panel y Canvas obtenidos")
 
 -- ════════════════════════════════════════════════════════════════
--- MAIN LAYOUT — Sidebar + MainPanel + BottomBar
+-- MAIN LAYOUT
 -- ════════════════════════════════════════════════════════════════
-print("[MusicDashboard] Creando estructura principal de layout...")
 local contentArea = makeFrame({
 	dim = UDim2.new(1, 0, 1, -BOTTOM_BAR_H),
 	z = 100, clip = true, name = "ContentArea", parent = canvas,
 })
 
-local bottomBar = makeFrame({
-	dim = UDim2.new(1, 0, 0, BOTTOM_BAR_H),
-	pos = UDim2.new(0, 0, 1, -BOTTOM_BAR_H),
-	bg = Color3.fromRGB(14, 14, 18), bgT = 0,
-	z = 110, name = "BottomBar", parent = canvas,
-})
-print("[MusicDashboard] ✓ ContentArea y BottomBar creados")
-
-make("UIGradient", {
-	Color = ColorSequence.new{
-		ColorSequenceKeypoint.new(0, Color3.fromRGB(22, 22, 28)),
-		ColorSequenceKeypoint.new(0.15, Color3.fromRGB(14, 14, 18)),
-		ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 10, 14)),
-	},
-	Rotation = 90, Parent = bottomBar,
-})
-
-make("UIStroke", {
-	Color = THEME.stroke, Thickness = 1, Transparency = 0.6,
-	ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = bottomBar,
-})
-
-bottomBarBg = makeImage({
-	dim = UDim2.new(1, 0, 1, 0), z = 110, imageT = 0.6,
-	name = "BottomBarBg", parent = bottomBar,
-})
-
--- ════════════════════════════════════════════════════════════════
--- SIDEBAR (Queue Button + DJ Thumbnails)
--- ════════════════════════════════════════════════════════════════
-local sidebar = makeFrame({
-	dim = UDim2.new(0, SIDEBAR_W, 1, 0),
-	bg = THEME.deep, bgT = THEME.lightAlpha,
-	z = 101, name = "Sidebar", parent = contentArea,
-})
-
--- FIX #2: Queue Toggle Button
-local queueBtnContainer = makeFrame({
-	dim = UDim2.new(1, 0, 0, QUEUE_BTN_H),
-	bg = THEME.card, bgT = THEME.frameAlpha,
-	z = 102, name = "QueueBtnContainer", parent = sidebar,
-})
-
--- Hamburger icon (3 horizontal lines)
-local hamburgerFrame = makeFrame({
-	dim = UDim2.new(0, 28, 0, 22),
-	pos = UDim2.new(0.5, -14, 0, mob and 10 or 14),
-	z = 103, parent = queueBtnContainer,
-})
-for lineIdx = 0, 2 do
-	local line = Instance.new("Frame")
-	line.Size = UDim2.new(1, 0, 0, 3)
-	line.Position = UDim2.new(0, 0, 0, lineIdx * 9)
-	line.BackgroundColor3 = Color3.new(1, 1, 1)
-	line.BackgroundTransparency = 0
-	line.BorderSizePixel = 0
-	line.ZIndex = 104
-	line.Parent = hamburgerFrame
+-- ── Bottom Bar ──
+do
+	local bottomBar = makeFrame({
+		dim = UDim2.new(1, 0, 0, BOTTOM_BAR_H),
+		pos = UDim2.new(0, 0, 1, -BOTTOM_BAR_H),
+		bg = Color3.fromRGB(14, 14, 18), bgT = 0,
+		z = 110, name = "BottomBar", parent = canvas,
+	})
+	make("UIGradient", {
+		Color = ColorSequence.new{
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(22, 22, 28)),
+			ColorSequenceKeypoint.new(0.15, Color3.fromRGB(14, 14, 18)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 10, 14)),
+		},
+		Rotation = 90, Parent = bottomBar,
+	})
+	make("UIStroke", {
+		Color = THEME.stroke, Thickness = 1, Transparency = 0.6,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = bottomBar,
+	})
+	_ui.bottomBarBg = makeImage({
+		dim = UDim2.new(1, 0, 1, 0), z = 110, imageT = 0.6,
+		name = "BottomBarBg", parent = bottomBar,
+	})
+	_ui.bottomBar = bottomBar
 end
 
-makeLabel({
-	text = "Queue", font = Enum.Font.GothamBold, size = mob and 10 or 12,
-	dim = UDim2.new(1, 0, 0, 16),
-	pos = UDim2.new(0, 0, 1, mob and -20 or -22),
-	color = THEME.text,
-	alignX = Enum.TextXAlignment.Center,
-	z = 103, parent = queueBtnContainer,
-})
-
-queueBtnStroke = make("UIStroke", {
-	Color = THEME.accent, Thickness = 1.5, Transparency = 0.2,
-	ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-	Name = "QueueBtnStroke", Parent = queueBtnContainer,
-})
-
-local queueClickBtn = makeBtn({
-	dim = UDim2.new(1, 0, 1, 0), z = 110,
-	name = "QueueClickBtn", parent = queueBtnContainer,
-})
-queueClickBtn.BackgroundTransparency = 1
-
--- Divider under queue button
-makeFrame({
-	dim = UDim2.new(1, -16, 0, 1),
-	pos = UDim2.new(0, 8, 0, QUEUE_BTN_H),
-	bg = THEME.stroke, bgT = 0.5, z = 102, parent = sidebar,
-})
-
--- DJ Thumbnails Scroll
-local djsScroll = nil
+-- ════════════════════════════════════════════════════════════════
+-- SIDEBAR
+-- ════════════════════════════════════════════════════════════════
 do
-	djsScroll = make("ScrollingFrame", {
+	local sidebar = makeFrame({
+		dim = UDim2.new(0, SIDEBAR_W, 1, 0),
+		bg = THEME.deep, bgT = THEME.lightAlpha,
+		z = 101, name = "Sidebar", parent = contentArea,
+	})
+
+	-- Queue Toggle Button
+	local queueBtnContainer = makeFrame({
+		dim = UDim2.new(1, 0, 0, QUEUE_BTN_H),
+		bg = THEME.card, bgT = THEME.frameAlpha,
+		z = 102, name = "QueueBtnContainer", parent = sidebar,
+	})
+
+	-- Hamburger icon
+	do
+		local hf = makeFrame({
+			dim = UDim2.new(0, 28, 0, 22),
+			pos = UDim2.new(0.5, -14, 0, mob and 10 or 14),
+			z = 103, parent = queueBtnContainer,
+		})
+		for li = 0, 2 do
+			local line = Instance.new("Frame")
+			line.Size = UDim2.new(1, 0, 0, 3)
+			line.Position = UDim2.new(0, 0, 0, li * 9)
+			line.BackgroundColor3 = Color3.new(1, 1, 1)
+			line.BackgroundTransparency = 0
+			line.BorderSizePixel = 0
+			line.ZIndex = 104
+			line.Parent = hf
+		end
+	end
+
+	makeLabel({
+		text = "Queue", font = Enum.Font.GothamBold, size = mob and 10 or 12,
+		dim = UDim2.new(1, 0, 0, 16),
+		pos = UDim2.new(0, 0, 1, mob and -20 or -22),
+		color = THEME.text, alignX = Enum.TextXAlignment.Center,
+		z = 103, parent = queueBtnContainer,
+	})
+
+	_ui.queueBtnStroke = make("UIStroke", {
+		Color = THEME.accent, Thickness = 1.5, Transparency = 0.2,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		Name = "QueueBtnStroke", Parent = queueBtnContainer,
+	})
+
+	_ui.queueClickBtn = makeBtn({
+		dim = UDim2.new(1, 0, 1, 0), z = 110,
+		name = "QueueClickBtn", parent = queueBtnContainer,
+	})
+	_ui.queueClickBtn.BackgroundTransparency = 1
+
+	-- Divider
+	makeFrame({
+		dim = UDim2.new(1, -16, 0, 1),
+		pos = UDim2.new(0, 8, 0, QUEUE_BTN_H),
+		bg = THEME.stroke, bgT = 0.5, z = 102, parent = sidebar,
+	})
+
+	-- DJ Thumbnails Scroll
+	_ui.djsScroll = make("ScrollingFrame", {
 		Size = UDim2.new(1, 0, 1, -(QUEUE_BTN_H + 6)),
 		Position = UDim2.new(0, 0, 0, QUEUE_BTN_H + 6),
 		BackgroundTransparency = 1, BorderSizePixel = 0,
@@ -526,58 +467,54 @@ do
 		CanvasSize = UDim2.new(0, 0, 0, 0),
 		ClipsDescendants = true, ZIndex = 101, Parent = sidebar,
 	})
-	ModernScrollbar.setup(djsScroll, sidebar, THEME, {transparency = 0})
+	ModernScrollbar.setup(_ui.djsScroll, sidebar, THEME, {transparency = 0})
 
 	local djsLayout = make("UIListLayout", {
 		Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder,
 		HorizontalAlignment = Enum.HorizontalAlignment.Center,
-		Parent = djsScroll,
+		Parent = _ui.djsScroll,
 	})
 	make("UIPadding", {
 		PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 6),
 		PaddingTop = UDim.new(0, 4), PaddingBottom = UDim.new(0, 4),
-		Parent = djsScroll,
+		Parent = _ui.djsScroll,
 	})
-
 	djsLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-		djsScroll.CanvasSize = UDim2.new(0, 0, 0, djsLayout.AbsoluteContentSize.Y + 12)
+		_ui.djsScroll.CanvasSize = UDim2.new(0, 0, 0, djsLayout.AbsoluteContentSize.Y + 12)
 	end)
 end
 
 -- ════════════════════════════════════════════════════════════════
--- MAIN PANEL (Header + Songs/Queue Views)
+-- MAIN PANEL
 -- ════════════════════════════════════════════════════════════════
-mainPanel = makeFrame({
+_ui.mainPanel = makeFrame({
 	dim = UDim2.new(1, -SIDEBAR_W, 1, 0),
 	pos = UDim2.new(0, SIDEBAR_W, 0, 0),
 	z = 100, clip = true, name = "MainPanel", parent = contentArea,
 })
 
--- FIX #2: Divider as FIRST child of mainPanel (left edge), NOT inside clipped sidebar
+-- Divider
 makeFrame({
 	dim = UDim2.new(0, 1, 1, -20), pos = UDim2.new(0, 0, 0, 10),
-	bg = THEME.stroke, bgT = 0.5, z = 105, name = "ColumnDivider", parent = mainPanel,
+	bg = THEME.stroke, bgT = 0.5, z = 105, parent = _ui.mainPanel,
 })
 
--- ── Main Header with Gradient Banner ──
-mainHeader = makeFrame({
+-- ── Main Header ──
+_ui.mainHeader = makeFrame({
 	dim = UDim2.new(1, 0, 0, MAIN_HEADER_H),
 	bg = Color3.fromRGB(18, 18, 22), bgT = 0,
-	z = 101, clip = true, name = "MainHeader", parent = mainPanel,
+	z = 101, clip = true, name = "MainHeader", parent = _ui.mainPanel,
 })
 
--- Header background cover image
-mainHeaderCoverImg = makeImage({
+_ui.mainHeaderCoverImg = makeImage({
 	dim = UDim2.new(1, 0, 1, 0), z = 102,
-	imageT = 1, -- FIX #3: Start fully transparent, only show when DJ selected
-	name = "HeaderCoverImg", parent = mainHeader,
+	imageT = 1, name = "HeaderCoverImg", parent = _ui.mainHeader,
 })
 
--- Gradient color overlay (accent → transparent)
-headerGradientFrame = makeFrame({
+_ui.headerGradientFrame = makeFrame({
 	dim = UDim2.new(1, 0, 1, 0),
 	bg = THEME.accent, bgT = 0.6,
-	z = 103, name = "HeaderGradient", parent = mainHeader,
+	z = 103, name = "HeaderGradient", parent = _ui.mainHeader,
 })
 
 make("UIGradient", {
@@ -587,415 +524,385 @@ make("UIGradient", {
 		NumberSequenceKeypoint.new(0.7, 0.85),
 		NumberSequenceKeypoint.new(1, 0.98),
 	},
-	Parent = headerGradientFrame,
+	Parent = _ui.headerGradientFrame,
 })
 
--- Dark vignette from bottom for text readability
-local headerVignette = makeFrame({
-	dim = UDim2.new(1, 0, 0.6, 0), pos = UDim2.new(0, 0, 0.4, 0),
-	bg = Color3.new(0, 0, 0), bgT = 0.2,
-	z = 104, name = "HeaderVignette", parent = mainHeader,
-})
-make("UIGradient", {
-	Transparency = NumberSequence.new{
-		NumberSequenceKeypoint.new(0, 1),
-		NumberSequenceKeypoint.new(0.6, 0.5),
-		NumberSequenceKeypoint.new(1, 0.15),
-	},
-	Rotation = 90, Parent = headerVignette,
-})
+-- Vignette
+do
+	local hv = makeFrame({
+		dim = UDim2.new(1, 0, 0.6, 0), pos = UDim2.new(0, 0, 0.4, 0),
+		bg = Color3.new(0, 0, 0), bgT = 0.2,
+		z = 104, parent = _ui.mainHeader,
+	})
+	make("UIGradient", {
+		Transparency = NumberSequence.new{
+			NumberSequenceKeypoint.new(0, 1),
+			NumberSequenceKeypoint.new(0.6, 0.5),
+			NumberSequenceKeypoint.new(1, 0.15),
+		},
+		Rotation = 90, Parent = hv,
+	})
+end
 
--- Header Title
-songsTitle = makeLabel({
+_ui.songsTitle = makeLabel({
 	text = "PLAYLIST QUEUE", font = Enum.Font.GothamBlack,
 	size = mob and 22 or 32,
 	dim = UDim2.new(1, -32, 0, mob and 30 or 40),
 	pos = UDim2.new(0, 16, 0, mob and 16 or 24),
 	truncate = Enum.TextTruncate.AtEnd,
-	z = 106, name = "MainHeaderTitle", parent = mainHeader,
+	z = 106, name = "MainHeaderTitle", parent = _ui.mainHeader,
 })
 
--- Song count label
-songCountLabel = makeLabel({
+_ui.songCountLabel = makeLabel({
 	dim = UDim2.new(0, 120, 0, 22),
 	pos = UDim2.new(0, 16, 0, mob and 48 or 68),
 	color = THEME.accent, font = Enum.Font.GothamBold,
 	size = mob and 11 or 13,
-	z = 106, visible = false,
-	name = "SongCountLabel", parent = mainHeader,
+	z = 106, visible = false, parent = _ui.mainHeader,
 })
 
--- FIX #4: Search bar — create BEFORE setting visibility
-local searchContainer
-searchContainer, searchInput = SearchModern.new(mainHeader, {
-	placeholder = "Buscar por ID o nombre...",
-	size = UDim2.new(1, 0, 0, 28),
-	bg = THEME.card, corner = 8, z = 106, inputName = "SearchInput",
-})
-searchContainer.Position = UDim2.new(0, 16, 1, mob and -34 or -38)
-searchContainer.Size = UDim2.new(1, -32, 0, mob and 26 or 30)
--- Visibility is controlled by switchView, default hidden for queue view
-searchContainer.Visible = false
+do
+	local sc
+	sc, _ui.searchInput = SearchModern.new(_ui.mainHeader, {
+		placeholder = "Buscar por ID o nombre...",
+		size = UDim2.new(1, 0, 0, 28),
+		bg = THEME.card, corner = 8, z = 106, inputName = "SearchInput",
+	})
+	sc.Position = UDim2.new(0, 16, 1, mob and -34 or -38)
+	sc.Size = UDim2.new(1, -32, 0, mob and 26 or 30)
+	sc.Visible = false
+	_ui.searchContainer = sc
+end
 
--- Admin CLEAR button
 if isAdmin then
-	clearB = makeBtn({
+	_ui.clearB = makeBtn({
 		dim = UDim2.new(0, 60, 0, 28),
 		pos = UDim2.new(1, -76, 0, mob and 16 or 26),
 		bg = Color3.fromRGB(161, 124, 72), text = "CLEAR", textSize = 11,
-		z = 107, round = 6, name = "ClearBtn", parent = mainHeader,
+		z = 107, round = 6, parent = _ui.mainHeader,
 	})
 end
 
--- ── Songs View (virtual scroll) ──
-songsView = makeFrame({
+-- ── Songs View ──
+_ui.songsView = makeFrame({
 	dim = UDim2.new(1, 0, 1, -MAIN_HEADER_H),
 	pos = UDim2.new(0, 0, 0, MAIN_HEADER_H),
-	z = 101, clip = true, name = "SongsView", parent = mainPanel,
+	z = 101, clip = true, name = "SongsView", parent = _ui.mainPanel,
 })
--- FIX #1: Set Visible AFTER creation, not in makeFrame props
-songsView.Visible = false
+_ui.songsView.Visible = false
 
-songsScroll = make("ScrollingFrame", {
+_ui.songsScroll = make("ScrollingFrame", {
 	Size = UDim2.new(1, -16, 1, -8),
 	Position = UDim2.new(0, 8, 0, 4),
 	BackgroundTransparency = 1, BorderSizePixel = 0,
 	ScrollBarThickness = 0, ScrollBarImageTransparency = 1,
 	CanvasSize = UDim2.new(0, 0, 0, 0),
-	ClipsDescendants = true, ZIndex = 101, Parent = songsView,
+	ClipsDescendants = true, ZIndex = 101, Parent = _ui.songsView,
 })
-ModernScrollbar.setup(songsScroll, songsView, THEME, {transparency = 0})
+ModernScrollbar.setup(_ui.songsScroll, _ui.songsView, THEME, {transparency = 0})
 
-songsContainer = makeFrame({name = "SongsContainer", dim = UDim2.new(1, 0, 0, 0), z = 101, parent = songsScroll})
+_ui.songsContainer = makeFrame({name = "SongsContainer", dim = UDim2.new(1, 0, 0, 0), z = 101, parent = _ui.songsScroll})
 
-loadingIndicator = makeLabel({
+_ui.loadingIndicator = makeLabel({
 	dim = UDim2.new(1, 0, 0, 40), text = "Cargando...",
-	color = THEME.muted, size = 15, z = 102, visible = false, parent = songsScroll,
+	color = THEME.muted, size = 15, z = 102, visible = false, parent = _ui.songsScroll,
 })
 
-songsPlaceholder = makeLabel({
+_ui.songsPlaceholder = makeLabel({
 	dim = UDim2.new(1, -40, 0, 80), pos = UDim2.new(0, 20, 0.35, 0),
 	text = "Selecciona un DJ\npara ver sus canciones",
 	color = THEME.muted, size = 16, wrap = true, z = 102,
 	alignX = Enum.TextXAlignment.Center,
-	name = "Placeholder", parent = songsView,
+	name = "Placeholder", parent = _ui.songsView,
 })
 
 -- ── Queue View ──
-queueView = makeFrame({
+_ui.queueView = makeFrame({
 	dim = UDim2.new(1, 0, 1, -MAIN_HEADER_H),
 	pos = UDim2.new(0, 0, 0, MAIN_HEADER_H),
-	z = 101, clip = true, name = "QueueView", parent = mainPanel,
+	z = 101, clip = true, name = "QueueView", parent = _ui.mainPanel,
 })
--- Starts visible (default view is queue)
 
-local queueScroll, queueList = makeScrollColumn(queueView, 4, {
+_ui.queueScroll = makeScrollColumn(_ui.queueView, 4, {
 	sizeXOff = -12, posX = 6, bottomOff = 8, padding = 6, paddingTop = 6, gap = 6,
 }, THEME)
-print("[MusicDashboard] ✓ QueueScroll creado")
 
 -- ════════════════════════════════════════════════════════════════
 -- VIEW SWITCHING
 -- ════════════════════════════════════════════════════════════════
 local function switchView(view)
-	if currentView == view then return end
-	currentView = view
+	if state.currentView == view then return end
+	state.currentView = view
 
 	if view == "queue" then
-		songsView.Visible = false
-		queueView.Visible = true
-		songsTitle.Text = "PLAYLIST QUEUE"
-		songCountLabel.Visible = false
-		searchContainer.Visible = false
-		if clearB then clearB.Visible = true end
-
-		-- Fade out header cover for queue view
-		tween(mainHeaderCoverImg, 0.3, {ImageTransparency = 1})
-		headerGradientFrame.BackgroundColor3 = THEME.accent
-		tween(headerGradientFrame, 0.3, {BackgroundTransparency = 0.6})
-
-		-- Highlight queue button
-		tween(queueBtnStroke, 0.2, {Color = THEME.accent, Transparency = 0.2, Thickness = 1.5})
-
-		-- Dim DJ card in sidebar
-		if selectedDJCard then
-			local ps = selectedDJCard:FindFirstChild("CardStroke")
+		_ui.songsView.Visible = false
+		_ui.queueView.Visible = true
+		_ui.songsTitle.Text = "PLAYLIST QUEUE"
+		_ui.songCountLabel.Visible = false
+		_ui.searchContainer.Visible = false
+		if _ui.clearB then _ui.clearB.Visible = true end
+		tween(_ui.mainHeaderCoverImg, 0.3, {ImageTransparency = 1})
+		_ui.headerGradientFrame.BackgroundColor3 = THEME.accent
+		tween(_ui.headerGradientFrame, 0.3, {BackgroundTransparency = 0.6})
+		tween(_ui.queueBtnStroke, 0.2, {Color = THEME.accent, Transparency = 0.2, Thickness = 1.5})
+		if state.selectedDJCard then
+			local ps = state.selectedDJCard:FindFirstChild("CardStroke")
 			if ps then tween(ps, 0.2, {Color = THEME.stroke, Transparency = 0.7, Thickness = 1}) end
-			local pn = selectedDJCard:FindFirstChild("DJNameLabel")
+			local pn = state.selectedDJCard:FindFirstChild("DJNameLabel")
 			if pn then tween(pn, 0.2, {TextColor3 = Color3.fromRGB(180, 180, 190)}) end
 		end
-	else -- "songs"
-		songsView.Visible = true
-		queueView.Visible = false
-		if clearB then clearB.Visible = false end
-		searchContainer.Visible = true
-
-		-- Dim queue button
-		tween(queueBtnStroke, 0.2, {Color = THEME.stroke, Transparency = 0.7, Thickness = 1})
+	else
+		_ui.songsView.Visible = true
+		_ui.queueView.Visible = false
+		if _ui.clearB then _ui.clearB.Visible = false end
+		_ui.searchContainer.Visible = true
+		tween(_ui.queueBtnStroke, 0.2, {Color = THEME.stroke, Transparency = 0.7, Thickness = 1})
 	end
 end
 
--- Connect queue button
-queueClickBtn.MouseButton1Click:Connect(function()
-	switchView("queue")
-end)
-
-queueClickBtn.MouseEnter:Connect(function()
-	if currentView ~= "queue" then
-		tween(queueBtnStroke, 0.15, {Color = THEME.accent, Transparency = 0.4, Thickness = 1.5})
+_ui.queueClickBtn.MouseButton1Click:Connect(function() switchView("queue") end)
+_ui.queueClickBtn.MouseEnter:Connect(function()
+	if state.currentView ~= "queue" then
+		tween(_ui.queueBtnStroke, 0.15, {Color = THEME.accent, Transparency = 0.4, Thickness = 1.5})
 	end
 end)
-queueClickBtn.MouseLeave:Connect(function()
-	if currentView ~= "queue" then
-		tween(queueBtnStroke, 0.15, {Color = THEME.stroke, Transparency = 0.7, Thickness = 1})
+_ui.queueClickBtn.MouseLeave:Connect(function()
+	if state.currentView ~= "queue" then
+		tween(_ui.queueBtnStroke, 0.15, {Color = THEME.stroke, Transparency = 0.7, Thickness = 1})
 	end
 end)
 
 -- ════════════════════════════════════════════════════════════════
 -- BOTTOM BAR CONTENT
 -- ════════════════════════════════════════════════════════════════
-local bottomContent = makeFrame({
-	dim = UDim2.new(1, -24, 1, 0), pos = UDim2.new(0, 12, 0, 0),
-	z = 111, parent = bottomBar,
-})
-
--- ═══ LEFT: Now Playing ═══
-local nowPlaying = makeFrame({
-	dim = UDim2.new(0.30, -10, 1, 0), z = 112, name = "NowPlaying", parent = bottomContent,
-})
-
-local MINI_COVER = mob and 48 or 70
-miniCover = makeImage({
-	dim = UDim2.new(0, MINI_COVER, 0, MINI_COVER),
-	pos = UDim2.new(0, 0, 0.5, -MINI_COVER/2),
-	z = 113, name = "MiniCover", parent = nowPlaying,
-})
-miniCover.ClipsDescendants = true
-UI.rounded(miniCover, 6)
-make("UIStroke", {Color = THEME.accent, Thickness = 1.5, Transparency = 0.5, Parent = miniCover})
-
-local infoX = MINI_COVER + 10
-local infoDim = UDim2.new(1, -MINI_COVER - 12, 0, 18)
-
-songTitle = makeLabel({
-	dim = infoDim, pos = UDim2.new(0, infoX, 0, mob and 8 or 12),
-	text = "No song playing", font = Enum.Font.GothamBold, size = mob and 13 or 15,
-	truncate = Enum.TextTruncate.AtEnd, z = 113, name = "SongTitle", parent = nowPlaying,
-})
-
-headerDJName = makeLabel({
-	dim = UDim2.new(1, -MINI_COVER - 12, 0, 14),
-	pos = UDim2.new(0, infoX, 0, mob and 26 or 32),
-	color = THEME.muted, font = Enum.Font.GothamMedium, size = mob and 10 or 12,
-	truncate = Enum.TextTruncate.AtEnd, z = 113, name = "DJName", parent = nowPlaying,
-})
-
-headerSongID = makeLabel({
-	dim = UDim2.new(1, -MINI_COVER - 12, 0, 16),
-	pos = UDim2.new(0, infoX, 0, mob and 40 or 48),
-	color = THEME.accent, font = Enum.Font.GothamBold, size = mob and 12 or 14,
-	z = 113, name = "SongID", parent = nowPlaying,
-})
-
--- ═══ CENTER: Progress + Visualizer + Quick Add ═══
-local centerSection = makeFrame({
-	dim = UDim2.new(0.40, -20, 1, 0), pos = UDim2.new(0.30, 10, 0, 0),
-	z = 112, clip = true, name = "CenterSection", parent = bottomContent,
-})
-
--- Visualizer
-local visualizerContainer = makeFrame({
-	dim = UDim2.new(1, 0, 0, mob and 52 or 82),
-	pos = UDim2.new(0, 0, 1, -(mob and 52 or 82)),
-	z = 111, clip = true, name = "VisualizerContainer", parent = centerSection,
-})
-
-local visualizerBars = {}
-local totalVisualizerWidth = VISUALIZER.BAR_COUNT * (VISUALIZER.BAR_WIDTH + VISUALIZER.BAR_GAP)
-
-for i = 1, VISUALIZER.BAR_COUNT do
-	local barX = (i - 1) * (VISUALIZER.BAR_WIDTH + VISUALIZER.BAR_GAP)
-	local bar = makeFrame({
-		dim = UDim2.new(0, VISUALIZER.BAR_WIDTH, 0, VISUALIZER.BAR_MIN_H),
-		pos = UDim2.new(0.5, barX - math.floor(totalVisualizerWidth / 2), 1, -VISUALIZER.BAR_MIN_H),
-		bg = VISUALIZER.COLOR_LOW, bgT = 0.5,
-		z = 112, name = "Bar" .. i, parent = visualizerContainer,
+do
+	local bottomContent = makeFrame({
+		dim = UDim2.new(1, -24, 1, 0), pos = UDim2.new(0, 12, 0, 0),
+		z = 111, parent = _ui.bottomBar,
 	})
-	UI.rounded(bar, 1)
-	visualizerBars[i] = {
-		frame = bar, currentH = VISUALIZER.BAR_MIN_H, targetH = VISUALIZER.BAR_MIN_H,
-		phase = math.random() * math.pi * 2,
-		freqWeight = math.abs((i - VISUALIZER.BAR_COUNT / 2) / (VISUALIZER.BAR_COUNT / 2)),
-	}
-end
 
--- Progress
-local progressContainer = makeFrame({
-	dim = UDim2.new(1, 0, 0, 28), pos = UDim2.new(0, 0, 0, mob and 4 or 8),
-	z = 113, parent = centerSection,
-})
+	-- LEFT: Now Playing
+	local nowPlaying = makeFrame({
+		dim = UDim2.new(0.30, -10, 1, 0), z = 112, name = "NowPlaying", parent = bottomContent,
+	})
 
-currentTimeLabel = makeLabel({
-	dim = UDim2.new(0, 44, 1, 0), text = "0:00",
-	color = THEME.muted, font = Enum.Font.GothamBold, size = mob and 13 or 15,
-	alignX = Enum.TextXAlignment.Right, z = 114, parent = progressContainer,
-})
+	local MINI_COVER = mob and 48 or 70
+	_ui.miniCover = makeImage({
+		dim = UDim2.new(0, MINI_COVER, 0, MINI_COVER),
+		pos = UDim2.new(0, 0, 0.5, -MINI_COVER/2),
+		z = 113, name = "MiniCover", parent = nowPlaying,
+	})
+	_ui.miniCover.ClipsDescendants = true
+	UI.rounded(_ui.miniCover, 6)
+	make("UIStroke", {Color = THEME.accent, Thickness = 1.5, Transparency = 0.5, Parent = _ui.miniCover})
 
-local progressBar = makeFrame({
-	dim = UDim2.new(1, -108, 0, mob and 6 or 10),
-	pos = UDim2.new(0, 52, 0.5, mob and -3 or -5),
-	bg = Color3.fromRGB(40, 40, 48), bgT = 0, z = 113, parent = progressContainer,
-})
-UI.rounded(progressBar, 5)
+	local infoX = MINI_COVER + 10
 
-progressFill = makeFrame({
-	dim = UDim2.new(0, 0, 1, 0), bg = THEME.accent, bgT = 0, z = 114, parent = progressBar,
-})
-UI.rounded(progressFill, 5)
+	_ui.songTitle = makeLabel({
+		dim = UDim2.new(1, -MINI_COVER - 12, 0, 18), pos = UDim2.new(0, infoX, 0, mob and 8 or 12),
+		text = "No song playing", font = Enum.Font.GothamBold, size = mob and 13 or 15,
+		truncate = Enum.TextTruncate.AtEnd, z = 113, parent = nowPlaying,
+	})
 
-local progressDot = makeFrame({
-	dim = UDim2.new(0, 0, 0, 0), bg = Color3.new(1,1,1), bgT = 1,
-	z = 115, name = "ProgressDot", parent = progressFill,
-})
+	_ui.headerDJName = makeLabel({
+		dim = UDim2.new(1, -MINI_COVER - 12, 0, 14),
+		pos = UDim2.new(0, infoX, 0, mob and 26 or 32),
+		color = THEME.muted, font = Enum.Font.GothamMedium, size = mob and 10 or 12,
+		truncate = Enum.TextTruncate.AtEnd, z = 113, parent = nowPlaying,
+	})
 
-totalTimeLabel = makeLabel({
-	dim = UDim2.new(0, 44, 1, 0), pos = UDim2.new(1, -44, 0, 0),
-	text = "0:00", color = THEME.muted, font = Enum.Font.GothamBold,
-	size = mob and 13 or 15, alignX = Enum.TextXAlignment.Left, z = 114,
-	parent = progressContainer,
-})
+	_ui.headerSongID = makeLabel({
+		dim = UDim2.new(1, -MINI_COVER - 12, 0, 16),
+		pos = UDim2.new(0, infoX, 0, mob and 40 or 48),
+		color = THEME.accent, font = Enum.Font.GothamBold, size = mob and 12 or 14,
+		z = 113, parent = nowPlaying,
+	})
 
--- Quick Add Input
-local quickAddFrame = makeFrame({
-	dim = UDim2.new(1, 0, 0, 40),
-	pos = UDim2.new(0, 0, 0, mob and 36 or 44),
-	bg = THEME.card, bgT = THEME.frameAlpha or 0.3,
-	z = 113, parent = centerSection,
-})
-UI.rounded(quickAddFrame, 8)
-qiStroke = UI.stroked(quickAddFrame, 0.4)
+	-- CENTER: Progress + Visualizer + Quick Add
+	local centerSection = makeFrame({
+		dim = UDim2.new(0.40, -20, 1, 0), pos = UDim2.new(0.30, 10, 0, 0),
+		z = 112, clip = true, name = "CenterSection", parent = bottomContent,
+	})
 
-quickInput = make("TextBox", {
-	Size = UDim2.new(1, -50, 0, 34), Position = UDim2.new(0, 10, 0.5, -17),
-	BackgroundTransparency = 1, Text = "", PlaceholderText = "Input ID",
-	TextColor3 = THEME.text, PlaceholderColor3 = THEME.muted,
-	Font = Enum.Font.GothamMedium, TextSize = 13,
-	TextXAlignment = Enum.TextXAlignment.Left,
-	ClearTextOnFocus = false, ZIndex = 114, Parent = quickAddFrame,
-})
+	-- Visualizer
+	local vizContainer = makeFrame({
+		dim = UDim2.new(1, 0, 0, mob and 52 or 82),
+		pos = UDim2.new(0, 0, 1, -(mob and 52 or 82)),
+		z = 111, clip = true, parent = centerSection,
+	})
 
-quickInput:GetPropertyChangedSignal("Text"):Connect(function()
-	if #quickInput.Text > 19 then quickInput.Text = string.sub(quickInput.Text, 1, 19) end
-end)
+	_ui.visualizerBars = {}
+	local totalVizW = VISUALIZER.BAR_COUNT * (VISUALIZER.BAR_WIDTH + VISUALIZER.BAR_GAP)
+	for i = 1, VISUALIZER.BAR_COUNT do
+		local barX = (i - 1) * (VISUALIZER.BAR_WIDTH + VISUALIZER.BAR_GAP)
+		local bar = makeFrame({
+			dim = UDim2.new(0, VISUALIZER.BAR_WIDTH, 0, VISUALIZER.BAR_MIN_H),
+			pos = UDim2.new(0.5, barX - math.floor(totalVizW / 2), 1, -VISUALIZER.BAR_MIN_H),
+			bg = VISUALIZER.COLOR_LOW, bgT = 0.5,
+			z = 112, parent = vizContainer,
+		})
+		UI.rounded(bar, 1)
+		_ui.visualizerBars[i] = {
+			frame = bar, currentH = VISUALIZER.BAR_MIN_H, targetH = VISUALIZER.BAR_MIN_H,
+			phase = math.random() * math.pi * 2,
+			freqWeight = math.abs((i - VISUALIZER.BAR_COUNT / 2) / (VISUALIZER.BAR_COUNT / 2)),
+		}
+	end
 
-quickAddBtn = makeBtn({
-	dim = UDim2.new(0, 40, 0, 34), pos = UDim2.new(1, -44, 0.5, -17),
-	bg = THEME.accent, z = 114, round = 6, parent = quickAddFrame,
-})
+	-- Progress
+	local progContainer = makeFrame({
+		dim = UDim2.new(1, 0, 0, 28), pos = UDim2.new(0, 0, 0, mob and 4 or 8),
+		z = 113, parent = centerSection,
+	})
 
-quickAddBtnImg = makeImage({
-	dim = UDim2.new(0.65, 0, 0.65, 0), pos = UDim2.new(0.175, 0, 0.175, 0),
-	image = ICONS.PLAY_ADD, z = 115, parent = quickAddBtn,
-})
+	_ui.currentTimeLabel = makeLabel({
+		dim = UDim2.new(0, 44, 1, 0), text = "0:00",
+		color = THEME.muted, font = Enum.Font.GothamBold, size = mob and 13 or 15,
+		alignX = Enum.TextXAlignment.Right, z = 114, parent = progContainer,
+	})
 
-quickAddBtnLoading = makeImage({
-	dim = UDim2.new(0.65, 0, 0.65, 0), pos = UDim2.new(0.175, 0, 0.175, 0),
-	image = ICONS.LOADING, z = 116, visible = false, parent = quickAddBtn,
-})
+	local progBar = makeFrame({
+		dim = UDim2.new(1, -108, 0, mob and 6 or 10),
+		pos = UDim2.new(0, 52, 0.5, mob and -3 or -5),
+		bg = Color3.fromRGB(40, 40, 48), bgT = 0, z = 113, parent = progContainer,
+	})
+	UI.rounded(progBar, 5)
 
-songIdDisplay = makeLabel({
-	dim = UDim2.new(1, 0, 0, 16), pos = UDim2.new(0, 0, 1, -18),
-	color = THEME.muted, font = Enum.Font.GothamMedium, size = 12,
-	z = 113, visible = false, name = "SongIdDisplay", parent = centerSection,
-})
+	_ui.progressFill = makeFrame({
+		dim = UDim2.new(0, 0, 1, 0), bg = THEME.accent, bgT = 0, z = 114, parent = progBar,
+	})
+	UI.rounded(_ui.progressFill, 5)
 
--- ═══ RIGHT: Skip + Volume ═══
-local rightSection = makeFrame({
-	dim = UDim2.new(0.30, -10, 1, 0), pos = UDim2.new(0.70, 10, 0, 0),
-	z = 112, name = "RightControls", parent = bottomContent,
-})
+	_ui.totalTimeLabel = makeLabel({
+		dim = UDim2.new(0, 44, 1, 0), pos = UDim2.new(1, -44, 0, 0),
+		text = "0:00", color = THEME.muted, font = Enum.Font.GothamBold,
+		size = mob and 13 or 15, alignX = Enum.TextXAlignment.Left, z = 114,
+		parent = progContainer,
+	})
 
-make("UIListLayout", {
-	FillDirection = Enum.FillDirection.Horizontal,
-	HorizontalAlignment = Enum.HorizontalAlignment.Right,
-	VerticalAlignment = Enum.VerticalAlignment.Center,
-	Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder,
-	Parent = rightSection,
-})
-make("UIPadding", {PaddingRight = UDim.new(0, 4), Parent = rightSection})
+	-- Quick Add
+	local qaFrame = makeFrame({
+		dim = UDim2.new(1, 0, 0, 40),
+		pos = UDim2.new(0, 0, 0, mob and 36 or 44),
+		bg = THEME.card, bgT = THEME.frameAlpha or 0.3,
+		z = 113, parent = centerSection,
+	})
+	UI.rounded(qaFrame, 8)
+	_ui.qiStroke = UI.stroked(qaFrame, 0.4)
 
-local skipB = makeBtn({
-	dim = UDim2.new(0, 70, 0, 34), bg = THEME.accent,
-	text = "Skip", textSize = 13, z = 113,
-	round = 8, parent = rightSection, name = "SkipBtn",
-})
-skipB.LayoutOrder = 2
+	_ui.quickInput = make("TextBox", {
+		Size = UDim2.new(1, -50, 0, 34), Position = UDim2.new(0, 10, 0.5, -17),
+		BackgroundTransparency = 1, Text = "", PlaceholderText = "Input ID",
+		TextColor3 = THEME.text, PlaceholderColor3 = THEME.muted,
+		Font = Enum.Font.GothamMedium, TextSize = 13,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		ClearTextOnFocus = false, ZIndex = 114, Parent = qaFrame,
+	})
+	_ui.quickInput:GetPropertyChangedSignal("Text"):Connect(function()
+		if #_ui.quickInput.Text > 19 then _ui.quickInput.Text = string.sub(_ui.quickInput.Text, 1, 19) end
+	end)
 
-local volFrame = makeFrame({
-	dim = UDim2.new(0, 150, 0, 36), z = 113,
-	name = "VolumeControl", parent = rightSection,
-})
-volFrame.LayoutOrder = 1
-make("UIListLayout", {
-	FillDirection = Enum.FillDirection.Horizontal,
-	VerticalAlignment = Enum.VerticalAlignment.Center,
-	HorizontalAlignment = Enum.HorizontalAlignment.Center,
-	Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder,
-	Parent = volFrame,
-})
+	_ui.quickAddBtn = makeBtn({
+		dim = UDim2.new(0, 40, 0, 34), pos = UDim2.new(1, -44, 0.5, -17),
+		bg = THEME.accent, z = 114, round = 6, parent = qaFrame,
+	})
+	_ui.quickAddBtnImg = makeImage({
+		dim = UDim2.new(0.65, 0, 0.65, 0), pos = UDim2.new(0.175, 0, 0.175, 0),
+		image = ICONS.PLAY_ADD, z = 115, parent = _ui.quickAddBtn,
+	})
+	_ui.quickAddBtnLoading = makeImage({
+		dim = UDim2.new(0.65, 0, 0.65, 0), pos = UDim2.new(0.175, 0, 0.175, 0),
+		image = ICONS.LOADING, z = 116, visible = false, parent = _ui.quickAddBtn,
+	})
 
-local volDownBtn = makeBtn({
-	dim = UDim2.new(0, 36, 0, 36), bg = THEME.elevated, z = 114,
-	round = 8, name = "VolDown", parent = volFrame,
-})
-volDownBtn.LayoutOrder = 1
-if ICONS.VOL_DOWN ~= "" then
-	makeImage({dim = UDim2.new(0.65,0,0.65,0), pos = UDim2.new(0.175,0,0.175,0), image = ICONS.VOL_DOWN, z = 115, parent = volDownBtn})
-else
-	volDownBtn.Text = "−"; volDownBtn.Font = Enum.Font.GothamBold; volDownBtn.TextSize = 18
-end
+	_ui.songIdDisplay = makeLabel({
+		dim = UDim2.new(1, 0, 0, 16), pos = UDim2.new(0, 0, 1, -18),
+		color = THEME.muted, font = Enum.Font.GothamMedium, size = 12,
+		z = 113, visible = false, parent = centerSection,
+	})
 
-local volSlot = makeFrame({
-	dim = UDim2.new(0, 60, 0, 36), bg = THEME.card, bgT = THEME.frameAlpha,
-	z = 114, name = "VolSlot", parent = volFrame,
-})
-volSlot.LayoutOrder = 2
-UI.rounded(volSlot, 6)
+	-- RIGHT: Skip + Volume
+	local rightSection = makeFrame({
+		dim = UDim2.new(0.30, -10, 1, 0), pos = UDim2.new(0.70, 10, 0, 0),
+		z = 112, parent = bottomContent,
+	})
+	make("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		HorizontalAlignment = Enum.HorizontalAlignment.Right,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder,
+		Parent = rightSection,
+	})
+	make("UIPadding", {PaddingRight = UDim.new(0, 4), Parent = rightSection})
 
-volLabelText = makeLabel({
-	dim = UDim2.new(1, 0, 1, 0), text = "100%",
-	color = THEME.text, font = Enum.Font.GothamBold,
-	size = 13, alignX = Enum.TextXAlignment.Center, z = 115, parent = volSlot,
-})
+	_ui.skipB = makeBtn({
+		dim = UDim2.new(0, 70, 0, 34), bg = THEME.accent,
+		text = "Skip", textSize = 13, z = 113,
+		round = 8, parent = rightSection,
+	})
+	_ui.skipB.LayoutOrder = 2
 
-volInput = make("TextBox", {
-	Size = UDim2.new(1, 0, 1, 0), Position = UDim2.new(0, 0, 0, 0),
-	BackgroundColor3 = THEME.elevated, Text = "",
-	TextColor3 = THEME.text, Font = Enum.Font.GothamBold, TextSize = 13,
-	BorderSizePixel = 0, ZIndex = 116, Visible = false,
-	ClearTextOnFocus = false, TextXAlignment = Enum.TextXAlignment.Center,
-	Parent = volSlot,
-})
-UI.rounded(volInput, 6)
+	local volFrame = makeFrame({
+		dim = UDim2.new(0, 150, 0, 36), z = 113, parent = rightSection,
+	})
+	volFrame.LayoutOrder = 1
+	make("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder,
+		Parent = volFrame,
+	})
 
-local volUpBtn = makeBtn({
-	dim = UDim2.new(0, 36, 0, 36), bg = THEME.elevated, z = 114,
-	round = 8, name = "VolUp", parent = volFrame,
-})
-volUpBtn.LayoutOrder = 3
-if ICONS.VOL_UP ~= "" then
-	makeImage({dim = UDim2.new(0.65,0,0.65,0), pos = UDim2.new(0.175,0,0.175,0), image = ICONS.VOL_UP, z = 115, parent = volUpBtn})
-else
-	volUpBtn.Text = "+"; volUpBtn.Font = Enum.Font.GothamBold; volUpBtn.TextSize = 18
+	_ui.volDownBtn = makeBtn({
+		dim = UDim2.new(0, 36, 0, 36), bg = THEME.elevated, z = 114,
+		round = 8, parent = volFrame,
+	})
+	_ui.volDownBtn.LayoutOrder = 1
+	if ICONS.VOL_DOWN ~= "" then
+		makeImage({dim = UDim2.new(0.65,0,0.65,0), pos = UDim2.new(0.175,0,0.175,0), image = ICONS.VOL_DOWN, z = 115, parent = _ui.volDownBtn})
+	end
+
+	local volSlot = makeFrame({
+		dim = UDim2.new(0, 60, 0, 36), bg = THEME.card, bgT = THEME.frameAlpha,
+		z = 114, parent = volFrame,
+	})
+	volSlot.LayoutOrder = 2
+	UI.rounded(volSlot, 6)
+
+	_ui.volLabelText = makeLabel({
+		dim = UDim2.new(1, 0, 1, 0), text = "100%",
+		color = THEME.text, font = Enum.Font.GothamBold,
+		size = 13, alignX = Enum.TextXAlignment.Center, z = 115, parent = volSlot,
+	})
+
+	_ui.volInput = make("TextBox", {
+		Size = UDim2.new(1, 0, 1, 0), Position = UDim2.new(0, 0, 0, 0),
+		BackgroundColor3 = THEME.elevated, Text = "",
+		TextColor3 = THEME.text, Font = Enum.Font.GothamBold, TextSize = 13,
+		BorderSizePixel = 0, ZIndex = 116, Visible = false,
+		ClearTextOnFocus = false, TextXAlignment = Enum.TextXAlignment.Center,
+		Parent = volSlot,
+	})
+	UI.rounded(_ui.volInput, 6)
+
+	_ui.volUpBtn = makeBtn({
+		dim = UDim2.new(0, 36, 0, 36), bg = THEME.elevated, z = 114,
+		round = 8, parent = volFrame,
+	})
+	_ui.volUpBtn.LayoutOrder = 3
+	if ICONS.VOL_UP ~= "" then
+		makeImage({dim = UDim2.new(0.65,0,0.65,0), pos = UDim2.new(0.175,0,0.175,0), image = ICONS.VOL_UP, z = 115, parent = _ui.volUpBtn})
+	end
 end
 
 -- ════════════════════════════════════════════════════════════════
 -- ADD BUTTON STATE MACHINE
 -- ════════════════════════════════════════════════════════════════
-local function setAddButtonState(state, customMessage)
-	if not quickAddBtn or not quickInput or not qiStroke then return end
-	if loadingDotsThread then task.cancel(loadingDotsThread); loadingDotsThread = nil end
-	if loadingTween then loadingTween:Cancel(); loadingTween = nil end
+local function setAddButtonState(st, customMessage)
+	if not _ui.quickAddBtn or not _ui.quickInput or not _ui.qiStroke then return end
+	if state.loadingDotsThread then task.cancel(state.loadingDotsThread); state.loadingDotsThread = nil end
+	if state.loadingTween then state.loadingTween:Cancel(); state.loadingTween = nil end
 
 	local states = {
 		loading   = {adding = true,  bg = THEME.surface, stroke = THEME.accent, auto = false},
@@ -1005,30 +912,30 @@ local function setAddButtonState(state, customMessage)
 		default   = {adding = false, bg = THEME.accent, stroke = THEME.stroke, auto = true, placeholder = "Input ID"},
 	}
 
-	local s = states[state] or states.default
-	isAddingToQueue = s.adding
-	quickAddBtn.BackgroundColor3 = s.bg
-	qiStroke.Color = s.stroke
-	quickAddBtn.AutoButtonColor = s.auto ~= false
+	local s = states[st] or states.default
+	state.isAddingToQueue = s.adding
+	_ui.quickAddBtn.BackgroundColor3 = s.bg
+	_ui.qiStroke.Color = s.stroke
+	_ui.quickAddBtn.AutoButtonColor = s.auto ~= false
 
-	if state == "loading" then
-		quickAddBtnImg.Visible = false
-		quickAddBtnLoading.Visible = true
-		loadingDotsThread = task.spawn(function()
-			loadingTween = TweenService:Create(quickAddBtnLoading, TweenInfo.new(1.2, Enum.EasingStyle.Linear, Enum.EasingDirection.In, -1), {Rotation = 360})
-			loadingTween:Play()
+	if st == "loading" then
+		_ui.quickAddBtnImg.Visible = false
+		_ui.quickAddBtnLoading.Visible = true
+		state.loadingDotsThread = task.spawn(function()
+			state.loadingTween = TweenService:Create(_ui.quickAddBtnLoading, TweenInfo.new(1.2, Enum.EasingStyle.Linear, Enum.EasingDirection.In, -1), {Rotation = 360})
+			state.loadingTween:Play()
 			while true do task.wait(0.1) end
 		end)
 	else
-		quickAddBtnLoading.Visible = false
-		quickAddBtnImg.Visible = true
+		_ui.quickAddBtnLoading.Visible = false
+		_ui.quickAddBtnImg.Visible = true
 	end
 
-	if s.clear then quickInput.Text = "" end
-	if s.placeholder then quickInput.PlaceholderText = s.placeholder end
+	if s.clear then _ui.quickInput.Text = "" end
+	if s.placeholder then _ui.quickInput.PlaceholderText = s.placeholder end
 	if s.delay then
 		task.delay(s.delay, function()
-			if quickAddBtn and qiStroke then setAddButtonState("default") end
+			if _ui.quickAddBtn and _ui.qiStroke then setAddButtonState("default") end
 		end)
 	end
 end
@@ -1036,9 +943,9 @@ end
 -- ════════════════════════════════════════════════════════════════
 -- QUICK ADD + RESPONSE HANDLERS
 -- ════════════════════════════════════════════════════════════════
-quickAddBtn.MouseButton1Click:Connect(function()
-	if isAddingToQueue then return end
-	local aid = quickInput.Text:gsub("%s+", "")
+_ui.quickAddBtn.MouseButton1Click:Connect(function()
+	if state.isAddingToQueue then return end
+	local aid = _ui.quickInput.Text:gsub("%s+", "")
 	if not isValidAudioId(aid) then
 		Notify:Warning("ID Inválido", "Ingresa un ID válido (6-19 dígitos)", 3)
 		setAddButtonState("error", "Invalid Audio ID")
@@ -1051,8 +958,8 @@ end)
 local function updatePendingCard(response, songId)
 	task.defer(function()
 		if not songId then return end
-		pendingCardSongIds[songId] = nil
-		for _, card in ipairs(cardPool) do
+		state.pendingCardSongIds[songId] = nil
+		for _, card in ipairs(state.cardPool) do
 			if card.Visible and card:GetAttribute("SongID") == songId then
 				local addBtn = card:FindFirstChild("AddButton", true)
 				if not addBtn then break end
@@ -1081,7 +988,7 @@ if R.AddResponse then
 		elseif response.code == ResponseCodes.ERROR_DUPLICATE then setAddButtonState("duplicate", response.message)
 		else setAddButtonState("error", response.message) end
 		local resolvedIds = {}
-		for songId, _ in pairs(pendingCardSongIds) do table.insert(resolvedIds, songId) end
+		for songId in pairs(state.pendingCardSongIds) do table.insert(resolvedIds, songId) end
 		if response.data and response.data.songId then
 			updatePendingCard(response, response.data.songId)
 		else
@@ -1108,9 +1015,9 @@ local VOL_STEP = (maxVolume - minVolume) * 0.05
 
 local function updateVolumeDisplay()
 	if isMusicMuted() then
-		volLabelText.Text = "MUTE"; volLabelText.TextColor3 = Color3.fromRGB(200, 80, 80)
+		_ui.volLabelText.Text = "MUTE"; _ui.volLabelText.TextColor3 = Color3.fromRGB(200, 80, 80)
 	else
-		volLabelText.Text = math.floor(currentVolume * 100) .. "%"; volLabelText.TextColor3 = THEME.text
+		_ui.volLabelText.Text = math.floor(currentVolume * 100) .. "%"; _ui.volLabelText.TextColor3 = THEME.text
 	end
 end
 
@@ -1123,22 +1030,23 @@ local function updateVolume(volume)
 	if R.ChangeVolume then pcall(function() R.ChangeVolume:FireServer(currentVolume) end) end
 end
 
-local musicSoundGroup = SoundService:FindFirstChild("MusicSoundGroup") or SoundService:WaitForChild("MusicSoundGroup", 10)
-local lastMuteState = isMusicMuted()
-local function onMuteStateChanged()
-	local muted = isMusicMuted()
-	if muted ~= lastMuteState then
-		lastMuteState = muted
-		if musicSoundGroup then musicSoundGroup.Volume = muted and 0 or currentVolume end
-		updateVolumeDisplay()
-	end
+do
+	local musicSoundGroup = SoundService:FindFirstChild("MusicSoundGroup") or SoundService:WaitForChild("MusicSoundGroup", 10)
+	local lastMuteState = isMusicMuted()
+	local muteAccum = 0
+	RunService.Heartbeat:Connect(function(dt)
+		muteAccum = muteAccum + dt
+		if muteAccum >= 0.5 then
+			muteAccum = 0
+			local muted = isMusicMuted()
+			if muted ~= lastMuteState then
+				lastMuteState = muted
+				if musicSoundGroup then musicSoundGroup.Volume = muted and 0 or currentVolume end
+				updateVolumeDisplay()
+			end
+		end
+	end)
 end
-
-local muteCheckAccum = 0
-RunService.Heartbeat:Connect(function(dt)
-	muteCheckAccum = muteCheckAccum + dt
-	if muteCheckAccum >= 0.5 then muteCheckAccum = 0; onMuteStateChanged() end
-end)
 
 updateVolume(currentVolume)
 
@@ -1150,176 +1058,131 @@ local function handleMuteCheck()
 	return false
 end
 
-volDownBtn.MouseButton1Click:Connect(function()
+_ui.volDownBtn.MouseButton1Click:Connect(function()
 	if handleMuteCheck() then return end; updateVolume(currentVolume - VOL_STEP)
 end)
-volUpBtn.MouseButton1Click:Connect(function()
+_ui.volUpBtn.MouseButton1Click:Connect(function()
 	if handleMuteCheck() then return end; updateVolume(currentVolume + VOL_STEP)
 end)
-addHover(volDownBtn, THEME.elevated, THEME.elevated, THEME.lightAlpha)
-addHover(volUpBtn, THEME.elevated, THEME.elevated, THEME.lightAlpha)
+addHover(_ui.volDownBtn, THEME.elevated, THEME.elevated, THEME.lightAlpha)
+addHover(_ui.volUpBtn, THEME.elevated, THEME.elevated, THEME.lightAlpha)
 
-volLabelText.InputBegan:Connect(function(input)
+_ui.volLabelText.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then
 		if handleMuteCheck() then return end
-		volInput.Text = tostring(math.floor(currentVolume * 100))
-		volInput.Visible = true; volLabelText.Visible = false
-		volInput:CaptureFocus()
+		_ui.volInput.Text = tostring(math.floor(currentVolume * 100))
+		_ui.volInput.Visible = true; _ui.volLabelText.Visible = false
+		_ui.volInput:CaptureFocus()
 	end
 end)
 
-volInput:GetPropertyChangedSignal("Text"):Connect(function()
-	local text = volInput.Text:gsub("[^%d]", "")
+_ui.volInput:GetPropertyChangedSignal("Text"):Connect(function()
+	local text = _ui.volInput.Text:gsub("[^%d]", "")
 	if #text > 3 then text = string.sub(text, 1, 3) end
 	local v = tonumber(text)
 	local maxP = math.floor(maxVolume * 100)
 	if v and v > maxP then text = tostring(maxP) end
-	volInput.Text = text
+	_ui.volInput.Text = text
 end)
 
 local function applyVolumeInput()
-	local parsed = tonumber(volInput.Text)
+	local parsed = tonumber(_ui.volInput.Text)
 	updateVolume(parsed and math.clamp(parsed, 0, math.floor(maxVolume * 100)) / 100 or currentVolume)
-	volInput.Visible = false; volLabelText.Visible = true
+	_ui.volInput.Visible = false; _ui.volLabelText.Visible = true
 end
 
-volInput.FocusLost:Connect(applyVolumeInput)
+_ui.volInput.FocusLost:Connect(applyVolumeInput)
 
 -- ════════════════════════════════════════════════════════════════
 -- SKIP/CLEAR LOGIC
 -- ════════════════════════════════════════════════════════════════
-local skipProductId = 3468988018
-local skipRemote = ReplicatedStorage:WaitForChild("RemotesGlobal"):WaitForChild("MusicQueue"):WaitForChild("PurchaseSkip")
-local lastSkipTime = 0
-local skipCooldown = MusicSystemConfig.LIMITS.SkipCooldown or 3
+do
+	local skipProductId = 3468988018
+	local skipRemote = ReplicatedStorage:WaitForChild("RemotesGlobal"):WaitForChild("MusicQueue"):WaitForChild("PurchaseSkip")
+	local skipCooldown = MusicSystemConfig.LIMITS.SkipCooldown or 3
 
-skipB.MouseButton1Click:Connect(function()
-	local elapsed = tick() - lastSkipTime
-	if not isAdmin and elapsed < skipCooldown then
-		Notify:Info("Cooldown", "Espera " .. math.ceil(skipCooldown - elapsed) .. " segundos")
-		return
-	end
-	lastSkipTime = tick()
-	if isAdmin then
-		if R.Next then R.Next:FireServer(); Notify:Success("Skip", "Canción saltada") end
-	else
-		MarketplaceService:PromptProductPurchase(player, skipProductId)
-	end
-end)
+	_ui.skipB.MouseButton1Click:Connect(function()
+		local elapsed = tick() - state.lastSkipTime
+		if not isAdmin and elapsed < skipCooldown then
+			Notify:Info("Cooldown", "Espera " .. math.ceil(skipCooldown - elapsed) .. " segundos")
+			return
+		end
+		state.lastSkipTime = tick()
+		if isAdmin then
+			if R.Next then R.Next:FireServer(); Notify:Success("Skip", "Canción saltada") end
+		else
+			MarketplaceService:PromptProductPurchase(player, skipProductId)
+		end
+	end)
 
-if clearB then
-	clearB.MouseButton1Click:Connect(function()
-		if R.Clear then R.Clear:FireServer() end
+	if _ui.clearB then
+		_ui.clearB.MouseButton1Click:Connect(function()
+			if R.Clear then R.Clear:FireServer() end
+		end)
+	end
+
+	MarketplaceService.PromptProductPurchaseFinished:Connect(function(userId, productId, wasPurchased)
+		if userId == player.UserId and productId == skipProductId and wasPurchased then
+			pcall(function() skipRemote:FireServer() end)
+		end
+	end)
+
+	skipRemote.OnClientEvent:Connect(function(ok, msg)
+		if ok then Notify:Success("Skip", msg or "Canción saltada")
+		else Notify:Error("Skip", msg or "No se pudo saltar") end
 	end)
 end
-
-MarketplaceService.PromptProductPurchaseFinished:Connect(function(userId, productId, wasPurchased)
-	if userId == player.UserId and productId == skipProductId and wasPurchased then
-		pcall(function() skipRemote:FireServer() end)
-	end
-end)
-
-skipRemote.OnClientEvent:Connect(function(ok, msg)
-	if ok then Notify:Success("Skip", msg or "Canción saltada")
-	else Notify:Error("Skip", msg or "No se pudo saltar") end
-end)
 
 -- ════════════════════════════════════════════════════════════════
 -- QUEUE CARD POOL
 -- ════════════════════════════════════════════════════════════════
-local queueEmptyLabel = nil
-
 local function createQueueCard()
 	local card = makeFrame({dim = UDim2.new(1, 0, 0, 54), bg = THEME.card, bgT = THEME.frameAlpha, z = 101})
 	card.Visible = false
 	UI.rounded(card, 8)
-
-	make("UIStroke", {
-		Color = THEME.stroke, Thickness = 1, Transparency = 0.3,
-		ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = card,
-	})
+	make("UIStroke", {Color = THEME.stroke, Thickness = 1, Transparency = 0.3, ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = card})
 	make("UIPadding", {PaddingLeft = UDim.new(0, 4), PaddingRight = UDim.new(0, 8), Parent = card})
-
-	local avatar = makeImage({
-		dim = UDim2.new(0, 40, 0, 40), pos = UDim2.new(0, 4, 0.5, -20),
-		z = 102, name = "Avatar", parent = card,
-	})
+	local avatar = makeImage({dim = UDim2.new(0, 40, 0, 40), pos = UDim2.new(0, 4, 0.5, -20), z = 102, name = "Avatar", parent = card})
 	UI.rounded(avatar, 20)
-	make("UIStroke", {
-		Color = Color3.fromRGB(100, 100, 110), Thickness = 1,
-		Name = "AvatarStroke", Parent = avatar,
-	})
-
-	local nameClip = makeFrame({
-		dim = UDim2.new(1, -58, 0, 18), pos = UDim2.new(0, 50, 0, 8),
-		z = 102, clip = true, name = "NameClip", parent = card,
-	})
-	makeLabel({
-		text = "", color = THEME.text, font = Enum.Font.GothamBold, size = 12,
-		truncate = Enum.TextTruncate.AtEnd, z = 102, name = "NameLabel", parent = nameClip,
-	})
-
-	makeLabel({
-		dim = UDim2.new(1, -58, 0, 14), pos = UDim2.new(0, 50, 0, 28),
-		text = "", color = THEME.muted, font = Enum.Font.GothamMedium, size = 11,
-		truncate = Enum.TextTruncate.AtEnd, z = 102, name = "RequesterLabel", parent = card,
-	})
-
+	make("UIStroke", {Color = Color3.fromRGB(100, 100, 110), Thickness = 1, Name = "AvatarStroke", Parent = avatar})
+	local nameClip = makeFrame({dim = UDim2.new(1, -58, 0, 18), pos = UDim2.new(0, 50, 0, 8), z = 102, clip = true, name = "NameClip", parent = card})
+	makeLabel({text = "", color = THEME.text, font = Enum.Font.GothamBold, size = 12, truncate = Enum.TextTruncate.AtEnd, z = 102, name = "NameLabel", parent = nameClip})
+	makeLabel({dim = UDim2.new(1, -58, 0, 14), pos = UDim2.new(0, 50, 0, 28), text = "", color = THEME.muted, font = Enum.Font.GothamMedium, size = 11, truncate = Enum.TextTruncate.AtEnd, z = 102, name = "RequesterLabel", parent = card})
 	if isAdmin then
-		local removeBtn = makeBtn({
-			dim = UDim2.new(0, 28, 0, 28), pos = UDim2.new(1, -32, 0.5, -14),
-			bg = THEME.btnDanger, z = 103, round = 8, name = "RemoveBtn", parent = card,
-		})
-		makeImage({
-			dim = UDim2.new(0.7, 0, 0.7, 0), pos = UDim2.new(0.15, 0, 0.15, 0),
-			image = ICONS.DELETE, z = 104, name = "IconImage", parent = removeBtn,
-		})
+		local removeBtn = makeBtn({dim = UDim2.new(0, 28, 0, 28), pos = UDim2.new(1, -32, 0.5, -14), bg = THEME.btnDanger, z = 103, round = 8, name = "RemoveBtn", parent = card})
+		makeImage({dim = UDim2.new(0.7, 0, 0.7, 0), pos = UDim2.new(0.15, 0, 0.15, 0), image = ICONS.DELETE, z = 104, name = "IconImage", parent = removeBtn})
 	end
-
 	return card
 end
 
 local function getQueueCardFromPool()
-	for _, card in ipairs(queueCardPool) do
-		if not card.Visible then return card end
-	end
-	if #queueCardPool < MAX_QUEUE_POOL then
-		local c = createQueueCard(); c.Parent = queueScroll; table.insert(queueCardPool, c); return c
+	for _, card in ipairs(state.queueCardPool) do if not card.Visible then return card end end
+	if #state.queueCardPool < MAX_QUEUE_POOL then
+		local c = createQueueCard(); c.Parent = _ui.queueScroll; table.insert(state.queueCardPool, c); return c
 	end
 	return nil
 end
 
 local function releaseAllQueueCards()
-	for _, card in ipairs(activeQueueCards) do
-		card.Visible = false; card:SetAttribute("QueueIndex", nil)
-	end
-	activeQueueCards = {}
+	for _, card in ipairs(state.activeQueueCards) do card.Visible = false; card:SetAttribute("QueueIndex", nil) end
+	state.activeQueueCards = {}
 end
 
 local function cleanupActiveEffects()
-	for _, threadData in ipairs(activeEffectThreads) do
-		if threadData.thread then task.cancel(threadData.thread) end
-	end
-	activeEffectThreads = {}
+	for _, td in ipairs(state.activeEffectThreads) do if td.thread then task.cancel(td.thread) end end
+	state.activeEffectThreads = {}
 end
 
 local function createActiveCardEffects(card)
 	local stroke = card:FindFirstChildWhichIsA("UIStroke")
-	if stroke then
-		stroke.Color = THEME.avatarRingGlow or THEME.accent
-		stroke.Thickness = 1.2; stroke.Transparency = 0.3
-	end
-
+	if stroke then stroke.Color = THEME.avatarRingGlow or THEME.accent; stroke.Thickness = 1.2; stroke.Transparency = 0.3 end
 	local t1 = task.spawn(function()
 		while card.Parent and card.Visible do
-			if stroke then tween(stroke, 1, {Transparency = 0, Thickness = 1.6}) end
-			task.wait(1)
-			if stroke then tween(stroke, 1, {Transparency = 0.5, Thickness = 1.2}) end
-			task.wait(1)
+			if stroke then tween(stroke, 1, {Transparency = 0, Thickness = 1.6}) end; task.wait(1)
+			if stroke then tween(stroke, 1, {Transparency = 0.5, Thickness = 1.2}) end; task.wait(1)
 		end
 	end)
-	table.insert(activeEffectThreads, {thread = t1, card = card})
-
+	table.insert(state.activeEffectThreads, {thread = t1, card = card})
 	local grad = card:FindFirstChild("ActiveGradient")
 	if not grad then
 		grad = make("UIGradient", {
@@ -1331,155 +1194,101 @@ local function createActiveCardEffects(card)
 				ColorSequenceKeypoint.new(0.7, Color3.fromRGB(48, 52, 70)),
 				ColorSequenceKeypoint.new(1, Color3.fromRGB(28, 28, 32)),
 			},
-			Transparency = NumberSequence.new(0.3),
-			Offset = Vector2.new(-1, 0), Parent = card,
+			Transparency = NumberSequence.new(0.3), Offset = Vector2.new(-1, 0), Parent = card,
 		})
 	end
 	grad.Offset = Vector2.new(-1, 0)
-
 	local t2 = task.spawn(function()
 		while card.Parent and card.Visible do
 			tween(grad, 2.5, {Offset = Vector2.new(1, 0)}); task.wait(2.5)
 			grad.Offset = Vector2.new(-1, 0); task.wait(0.5)
 		end
 	end)
-	table.insert(activeEffectThreads, {thread = t2, card = card})
+	table.insert(state.activeEffectThreads, {thread = t2, card = card})
 end
-
-local avatarCache = {}
 
 local function drawQueue()
 	cleanupActiveEffects()
 	releaseAllQueueCards()
-
-	if not queueEmptyLabel then
-		queueEmptyLabel = makeLabel({
-			text = "Queue is empty", color = THEME.muted, size = 14,
-			dim = UDim2.new(1, 0, 0, 60), wrap = true,
-			alignX = Enum.TextXAlignment.Center,
-			parent = queueScroll,
-		})
+	if not state.queueEmptyLabel then
+		state.queueEmptyLabel = makeLabel({text = "Queue is empty", color = THEME.muted, size = 14, dim = UDim2.new(1, 0, 0, 60), wrap = true, alignX = Enum.TextXAlignment.Center, parent = _ui.queueScroll})
 	end
+	if #state.playQueue == 0 then state.queueEmptyLabel.Visible = true; return end
+	state.queueEmptyLabel.Visible = false
 
-	if #playQueue == 0 then queueEmptyLabel.Visible = true; return end
-	queueEmptyLabel.Visible = false
-
-	for i, song in ipairs(playQueue) do
-		local isActive = currentSong and song.id == currentSong.id
+	for i, song in ipairs(state.playQueue) do
+		local isActive = state.currentSong and song.id == state.currentSong.id
 		local userId = song.userId or song.requestedByUserId
-
 		local card = getQueueCardFromPool()
 		if not card then break end
-
-		card.LayoutOrder = i
-		card:SetAttribute("QueueIndex", i)
+		card.LayoutOrder = i; card:SetAttribute("QueueIndex", i)
 		card.BackgroundColor3 = isActive and THEME.accent or THEME.card
 		card.BackgroundTransparency = isActive and THEME.subtleAlpha or THEME.frameAlpha
 		card.Visible = true
-		table.insert(activeQueueCards, card)
-
+		table.insert(state.activeQueueCards, card)
 		local stroke = card:FindFirstChildWhichIsA("UIStroke")
-		if stroke then
-			stroke.Color = isActive and THEME.accent or THEME.stroke
-			stroke.Transparency = isActive and 0.6 or 0.3
-		end
-
+		if stroke then stroke.Color = isActive and THEME.accent or THEME.stroke; stroke.Transparency = isActive and 0.6 or 0.3 end
 		if isActive then createActiveCardEffects(card) end
-
 		local avatar = card:FindFirstChild("Avatar")
 		if avatar then
 			avatar.Visible = userId ~= nil
 			if userId then
-				local avatarStroke = avatar:FindFirstChild("AvatarStroke")
-				if avatarStroke then
-					avatarStroke.Color = isActive and THEME.accent or Color3.fromRGB(100, 100, 110)
-					avatarStroke.Thickness = isActive and 2 or 1
-				end
-				if avatarCache[userId] then
-					avatar.Image = avatarCache[userId]
+				local as = avatar:FindFirstChild("AvatarStroke")
+				if as then as.Color = isActive and THEME.accent or Color3.fromRGB(100, 100, 110); as.Thickness = isActive and 2 or 1 end
+				if state.avatarCache[userId] then avatar.Image = state.avatarCache[userId]
 				else
 					avatar.Image = ""
 					task.spawn(function()
 						local ok, thumb = pcall(Players.GetUserThumbnailAsync, Players, userId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size100x100)
-						if ok then
-							avatarCache[userId] = thumb
-							if avatar and avatar.Parent then avatar.Image = thumb end
-						end
+						if ok then state.avatarCache[userId] = thumb; if avatar and avatar.Parent then avatar.Image = thumb end end
 					end)
 				end
 			end
 		end
-
 		local nameClip = card:FindFirstChild("NameClip")
 		if nameClip then
 			nameClip.Size = UDim2.new(1, -(50 + (isAdmin and 40 or 8)), 0, 18)
 			local nl = nameClip:FindFirstChild("NameLabel")
-			if nl then
-				nl.Text = song.name or "Unknown"
-				nl.TextColor3 = isActive and Color3.new(1, 1, 1) or THEME.text
-			end
+			if nl then nl.Text = song.name or "Unknown"; nl.TextColor3 = isActive and Color3.new(1,1,1) or THEME.text end
 		end
-
 		local rl = card:FindFirstChild("RequesterLabel")
-		if rl then
-			rl.Size = UDim2.new(1, -(50 + (isAdmin and 40 or 8)), 0, 14)
-			rl.Text = song.requestedBy or "Unknown"
-			rl.TextColor3 = isActive and Color3.fromRGB(220, 220, 230) or THEME.muted
-		end
+		if rl then rl.Size = UDim2.new(1, -(50 + (isAdmin and 40 or 8)), 0, 14); rl.Text = song.requestedBy or "Unknown"; rl.TextColor3 = isActive and Color3.fromRGB(220, 220, 230) or THEME.muted end
 	end
 end
 
 -- Pre-create queue card pool
 for _ = 1, math.min(MAX_QUEUE_POOL, 15) do
-	local card = createQueueCard()
-	card.Parent = queueScroll
-	table.insert(queueCardPool, card)
-
+	local card = createQueueCard(); card.Parent = _ui.queueScroll; table.insert(state.queueCardPool, card)
 	if isAdmin then
-		local removeBtn = card:FindFirstChild("RemoveBtn")
-		if removeBtn then
-			removeBtn.MouseButton1Click:Connect(function()
-				local idx = card:GetAttribute("QueueIndex")
-				if idx and R.Remove then R.Remove:FireServer(idx) end
-			end)
-		end
+		local rb = card:FindFirstChild("RemoveBtn")
+		if rb then rb.MouseButton1Click:Connect(function()
+			local idx = card:GetAttribute("QueueIndex")
+			if idx and R.Remove then R.Remove:FireServer(idx) end
+		end) end
 	end
 end
 
 -- ════════════════════════════════════════════════════════════════
--- SONG CARD POOL (virtual scroll)
+-- SONG CARD POOL
 -- ════════════════════════════════════════════════════════════════
 local function createSongCard()
 	local card = makeCanvas(nil, 8, 102)
-	card.Name = "SongCard"
-	card.Size = UDim2.new(1, -8, 0, CARD_HEIGHT)
-	card.BackgroundColor3 = THEME.card
-	card.BackgroundTransparency = THEME.frameAlpha
+	card.Name = "SongCard"; card.Size = UDim2.new(1, -8, 0, CARD_HEIGHT)
+	card.BackgroundColor3 = THEME.card; card.BackgroundTransparency = THEME.frameAlpha
 	card.Visible = false
 	UI.stroked(card, 0.3)
-
 	local coverBg = makeFrame({dim = UDim2.new(0, CARD_HEIGHT, 1, 0), bg = Color3.fromRGB(30, 30, 35), bgT = 0, z = 103, name = "CoverBg", parent = card})
-	make("ImageLabel", {
-		Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1,
-		ScaleType = Enum.ScaleType.Crop, BorderSizePixel = 0,
-		ZIndex = 104, Name = "DJCover", Parent = coverBg,
-	})
-
+	make("ImageLabel", {Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, ScaleType = Enum.ScaleType.Crop, BorderSizePixel = 0, ZIndex = 104, Name = "DJCover", Parent = coverBg})
 	local textX = CARD_HEIGHT + 8
 	makeLabel({dim = UDim2.new(1, -(textX + 44), 0, 18), pos = UDim2.new(0, textX, 0, 10), font = Enum.Font.GothamBold, size = 14, truncate = Enum.TextTruncate.AtEnd, z = 103, name = "NameLabel", parent = card})
 	makeLabel({dim = UDim2.new(1, -(textX + 44), 0, 14), pos = UDim2.new(0, textX, 0, 30), color = THEME.muted, font = Enum.Font.GothamMedium, size = 12, truncate = Enum.TextTruncate.AtEnd, z = 103, name = "ArtistLabel", parent = card})
-
 	local addBtn = makeBtn({dim = UDim2.new(0, 32, 0, 32), pos = UDim2.new(1, -36, 0.5, -16), z = 103, round = 16, name = "AddButton", parent = card})
 	makeImage({dim = UDim2.new(0.75, 0, 0.75, 0), pos = UDim2.new(0.125, 0, 0.125, 0), image = ICONS.PLAY_ADD, imageColor = THEME.text, z = 104, name = "IconImage", parent = addBtn})
-	makeImage({
-		dim = UDim2.new(0.75, 0, 0.75, 0), pos = UDim2.new(0.125, 0, 0.125, 0),
-		image = ICONS.LOADING, imageColor = THEME.text, z = 105, visible = false, name = "LoadingIcon", parent = addBtn,
-	})
-
+	makeImage({dim = UDim2.new(0.75, 0, 0.75, 0), pos = UDim2.new(0.125, 0, 0.125, 0), image = ICONS.LOADING, imageColor = THEME.text, z = 105, visible = false, name = "LoadingIcon", parent = addBtn})
 	addBtn.MouseButton1Click:Connect(function()
 		local songId = card:GetAttribute("SongID")
-		if songId and not isInQueue(songId) and not pendingCardSongIds[songId] then
-			pendingCardSongIds[songId] = true
+		if songId and not isInQueue(songId) and not state.pendingCardSongIds[songId] then
+			state.pendingCardSongIds[songId] = true
 			local iconImg = addBtn:FindFirstChild("IconImage")
 			local loadingIcon = addBtn:FindFirstChild("LoadingIcon")
 			if iconImg then iconImg.Visible = false end
@@ -1487,37 +1296,32 @@ local function createSongCard()
 				loadingIcon.Visible = true; loadingIcon.Rotation = 0
 				task.spawn(function()
 					local tw = TweenService:Create(loadingIcon, TweenInfo.new(1.2, Enum.EasingStyle.Linear, Enum.EasingDirection.In, -1), {Rotation = 360})
-					tw:Play()
-					while loadingIcon.Visible do task.wait(0.1) end
-					if tw then tw:Cancel() end
+					tw:Play(); while loadingIcon.Visible do task.wait(0.1) end; if tw then tw:Cancel() end
 				end)
 			end
 			addBtn.BackgroundColor3 = THEME.surface; addBtn.AutoButtonColor = false
 			if R.Add then R.Add:FireServer(songId) end
 		end
 	end)
-
 	return card
 end
 
 local function getCardFromPool()
-	for _, card in ipairs(cardPool) do if not card.Visible then return card end end
-	if #cardPool < MAX_POOL_SIZE then
-		local c = createSongCard(); c.Parent = songsContainer; table.insert(cardPool, c); return c
+	for _, card in ipairs(state.cardPool) do if not card.Visible then return card end end
+	if #state.cardPool < MAX_POOL_SIZE then
+		local c = createSongCard(); c.Parent = _ui.songsContainer; table.insert(state.cardPool, c); return c
 	end
 end
 
 local function releaseCard(card)
 	local idx = card:GetAttribute("SongIndex")
-	if idx then cardsIndex[idx] = nil end
+	if idx then state.cardsIndex[idx] = nil end
 	card.Visible = false; card:SetAttribute("SongIndex", nil); card:SetAttribute("SongID", nil)
 end
 
 local function releaseAllCards()
-	cardsIndex = {}
-	for _, card in ipairs(cardPool) do
-		card.Visible = false; card:SetAttribute("SongIndex", nil); card:SetAttribute("SongID", nil)
-	end
+	state.cardsIndex = {}
+	for _, card in ipairs(state.cardPool) do card.Visible = false; card:SetAttribute("SongIndex", nil); card:SetAttribute("SongID", nil) end
 end
 
 -- ════════════════════════════════════════════════════════════════
@@ -1526,96 +1330,69 @@ end
 local function getSongData() return virtualScrollState.isSearching and virtualScrollState.searchResults or virtualScrollState.songData end
 local function getTotalSongs() return virtualScrollState.isSearching and #virtualScrollState.searchResults or virtualScrollState.totalSongs end
 
-local function updateSongCard(card, data, index, inQueue)
+local function updateSongCard(card, data, index, inQ)
 	if not card or not data then return end
 	card:SetAttribute("SongIndex", index); card:SetAttribute("SongID", data.id)
-	cardsIndex[index] = card
-
+	state.cardsIndex[index] = card
 	local djCover = card:FindFirstChild("DJCover", true)
-	if djCover and selectedDJInfo and selectedDJInfo.cover then djCover.Image = selectedDJInfo.cover end
-
+	if djCover and state.selectedDJInfo and state.selectedDJInfo.cover then djCover.Image = state.selectedDJInfo.cover end
 	local nl = card:FindFirstChild("NameLabel", true)
 	if nl then nl.Text = data.name or "Cargando..."; nl.TextColor3 = data.loaded and THEME.text or THEME.muted end
-
 	local al = card:FindFirstChild("ArtistLabel", true)
 	if al then al.Text = data.artist or ("ID: " .. data.id) end
-
 	local ab = card:FindFirstChild("AddButton", true)
 	if ab then
-		local icon = ab:FindFirstChild("IconImage")
-		local loadingIcon = ab:FindFirstChild("LoadingIcon")
-		local isPending = pendingCardSongIds[data.id]
-		if isPending then
-			ab.BackgroundColor3 = THEME.surface; ab.AutoButtonColor = false
-			if icon then icon.Visible = false end
-			if loadingIcon then loadingIcon.Visible = true end
-		elseif inQueue then
-			ab.BackgroundColor3 = THEME.success; ab.AutoButtonColor = false
-			if icon then icon.Image = ICONS.CHECK; icon.ImageColor3 = Color3.new(1, 1, 1); icon.Visible = true end
-			if loadingIcon then loadingIcon.Visible = false end
-		else
-			ab.BackgroundColor3 = Color3.fromRGB(60, 60, 68); ab.AutoButtonColor = true
-			if icon then icon.Image = ICONS.PLAY_ADD; icon.ImageColor3 = THEME.text; icon.Visible = true end
-			if loadingIcon then loadingIcon.Visible = false end
+		local icon = ab:FindFirstChild("IconImage"); local li = ab:FindFirstChild("LoadingIcon")
+		local isPending = state.pendingCardSongIds[data.id]
+		if isPending then ab.BackgroundColor3 = THEME.surface; ab.AutoButtonColor = false; if icon then icon.Visible = false end; if li then li.Visible = true end
+		elseif inQ then ab.BackgroundColor3 = THEME.success; ab.AutoButtonColor = false; if icon then icon.Image = ICONS.CHECK; icon.ImageColor3 = Color3.new(1,1,1); icon.Visible = true end; if li then li.Visible = false end
+		else ab.BackgroundColor3 = Color3.fromRGB(60, 60, 68); ab.AutoButtonColor = true; if icon then icon.Image = ICONS.PLAY_ADD; icon.ImageColor3 = THEME.text; icon.Visible = true end; if li then li.Visible = false end
 		end
 	end
-
-	card.Position = UDim2.new(0, 4, 0, (index - 1) * (CARD_HEIGHT + CARD_PADDING))
-	card.Visible = true
+	card.Position = UDim2.new(0, 4, 0, (index - 1) * (CARD_HEIGHT + CARD_PADDING)); card.Visible = true
 end
 
 local function updateVisibleCards()
-	if not songsScroll or not songsScroll.Parent then return end
+	if not _ui.songsScroll or not _ui.songsScroll.Parent then return end
 	local totalItems = getTotalSongs()
 	if totalItems == 0 then releaseAllCards(); return end
-
-	local scrollY, vpH = songsScroll.CanvasPosition.Y, songsScroll.AbsoluteSize.Y
+	local scrollY, vpH = _ui.songsScroll.CanvasPosition.Y, _ui.songsScroll.AbsoluteSize.Y
 	local step = CARD_HEIGHT + CARD_PADDING
 	local first = math.max(1, math.floor(scrollY / step) + 1 - VISIBLE_BUFFER)
 	local last = math.min(totalItems, math.ceil((scrollY + vpH) / step) + VISIBLE_BUFFER)
-
 	local totalH = totalItems * step
-	songsContainer.Size = UDim2.new(1, 0, 0, totalH)
-	songsScroll.CanvasSize = UDim2.new(0, 0, 0, totalH + 20)
-
-	for idx, card in pairs(cardsIndex) do
+	_ui.songsContainer.Size = UDim2.new(1, 0, 0, totalH)
+	_ui.songsScroll.CanvasSize = UDim2.new(0, 0, 0, totalH + 20)
+	for idx, card in pairs(state.cardsIndex) do
 		if card and card.Visible and (idx < first or idx > last) then releaseCard(card) end
 	end
-
 	local dataSource = getSongData()
 	local needsFetch = {}
-
 	for i = first, last do
 		local sd = dataSource[i]
 		if sd then
-			local c = cardsIndex[i] or getCardFromPool()
+			local c = state.cardsIndex[i] or getCardFromPool()
 			if c then updateSongCard(c, sd, i, isInQueue(sd.id)) end
-		elseif not virtualScrollState.isSearching then
-			table.insert(needsFetch, i)
-		end
+		elseif not virtualScrollState.isSearching then table.insert(needsFetch, i) end
 	end
-
 	if #needsFetch > 0 and not virtualScrollState.isSearching then
 		local mn, mx = math.huge, 0
 		for _, idx in ipairs(needsFetch) do mn = math.min(mn, idx); mx = math.max(mx, idx) end
 		local key = mn .. "-" .. mx
 		if not virtualScrollState.pendingRequests[key] then
 			virtualScrollState.pendingRequests[key] = true
-			if R.GetSongRange and selectedDJ then R.GetSongRange:FireServer(selectedDJ, mn, mx) end
+			if R.GetSongRange and state.selectedDJ then R.GetSongRange:FireServer(state.selectedDJ, mn, mx) end
 		end
 	end
-
-	virtualScrollState.firstVisibleIndex = first
-	virtualScrollState.lastVisibleIndex = last
+	virtualScrollState.firstVisibleIndex = first; virtualScrollState.lastVisibleIndex = last
 end
 
-local scrollConnection = nil
 local function connectScrollListener()
-	if scrollConnection then scrollConnection:Disconnect() end
-	scrollConnection = songsScroll:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
-		if scrollDebounceThread then return end
-		scrollDebounceThread = task.delay(SCROLL_DEBOUNCE_INTERVAL, function()
-			scrollDebounceThread = nil; updateVisibleCards()
+	if state.scrollConnection then state.scrollConnection:Disconnect() end
+	state.scrollConnection = _ui.songsScroll:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
+		if state.scrollDebounceThread then return end
+		state.scrollDebounceThread = task.delay(0.03, function()
+			state.scrollDebounceThread = nil; updateVisibleCards()
 		end)
 	end)
 end
@@ -1623,28 +1400,21 @@ end
 -- ════════════════════════════════════════════════════════════════
 -- SEARCH
 -- ════════════════════════════════════════════════════════════════
-local searchDebounce = nil
-
 local function performSearch(query)
 	if query == "" then
-		virtualScrollState.isSearching = false
-		virtualScrollState.searchQuery = ""
-		virtualScrollState.searchResults = {}
-		songCountLabel.Text = virtualScrollState.totalSongs .. " songs"
-		songsScroll.CanvasPosition = Vector2.new(0, 0)
-		updateVisibleCards()
-		return
+		virtualScrollState.isSearching = false; virtualScrollState.searchQuery = ""; virtualScrollState.searchResults = {}
+		_ui.songCountLabel.Text = virtualScrollState.totalSongs .. " songs"
+		_ui.songsScroll.CanvasPosition = Vector2.new(0, 0); updateVisibleCards(); return
 	end
-	virtualScrollState.isSearching = true
-	virtualScrollState.searchQuery = query
-	loadingIndicator.Visible = true; loadingIndicator.Text = "Buscando..."
-	if R.SearchSongs and selectedDJ then R.SearchSongs:FireServer(selectedDJ, query) end
+	virtualScrollState.isSearching = true; virtualScrollState.searchQuery = query
+	_ui.loadingIndicator.Visible = true; _ui.loadingIndicator.Text = "Buscando..."
+	if R.SearchSongs and state.selectedDJ then R.SearchSongs:FireServer(state.selectedDJ, query) end
 end
 
-searchInput:GetPropertyChangedSignal("Text"):Connect(function()
-	if not selectedDJ then return end
-	if searchDebounce then task.cancel(searchDebounce) end
-	searchDebounce = task.delay(0.3, function() performSearch(searchInput.Text) end)
+_ui.searchInput:GetPropertyChangedSignal("Text"):Connect(function()
+	if not state.selectedDJ then return end
+	if state.searchDebounce then task.cancel(state.searchDebounce) end
+	state.searchDebounce = task.delay(0.3, function() performSearch(_ui.searchInput.Text) end)
 end)
 
 -- ════════════════════════════════════════════════════════════════
@@ -1652,31 +1422,28 @@ end)
 -- ════════════════════════════════════════════════════════════════
 local function updateHeaderCover(song)
 	if not song then
-		if currentHeaderCover ~= "" then
-			currentHeaderCover = ""
-			TweenService:Create(bottomBarBg, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {ImageTransparency = 1}):Play()
-			task.delay(0.3, function()
-				miniCover.Image = ""; bottomBarBg.Image = ""; headerDJName.Text = ""
-			end)
-		end
-		return
+		if state.currentHeaderCover ~= "" then
+			state.currentHeaderCover = ""
+			TweenService:Create(_ui.bottomBarBg, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {ImageTransparency = 1}):Play()
+			task.delay(0.3, function() _ui.miniCover.Image = ""; _ui.bottomBarBg.Image = ""; _ui.headerDJName.Text = "" end)
+		end; return
 	end
 	local cover = song.djCover or ""
-	if cover ~= currentHeaderCover then
-		currentHeaderCover = cover
-		TweenService:Create(bottomBarBg, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {ImageTransparency = 1}):Play()
+	if cover ~= state.currentHeaderCover then
+		state.currentHeaderCover = cover
+		TweenService:Create(_ui.bottomBarBg, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {ImageTransparency = 1}):Play()
 		task.delay(0.25, function()
-			miniCover.Image = cover; bottomBarBg.Image = cover
-			TweenService:Create(bottomBarBg, TweenInfo.new(0.35, Enum.EasingStyle.Quad), {ImageTransparency = 0.6}):Play()
+			_ui.miniCover.Image = cover; _ui.bottomBarBg.Image = cover
+			TweenService:Create(_ui.bottomBarBg, TweenInfo.new(0.35, Enum.EasingStyle.Quad), {ImageTransparency = 0.6}):Play()
 		end)
 	end
-	headerDJName.Text = song.dj or ""
-	headerSongID.Text = song.id and tostring(song.id) or ""
-	songIdDisplay.Text = song.id and tostring(song.id) or ""
+	_ui.headerDJName.Text = song.dj or ""
+	_ui.headerSongID.Text = song.id and tostring(song.id) or ""
+	_ui.songIdDisplay.Text = song.id and tostring(song.id) or ""
 end
 
 -- ════════════════════════════════════════════════════════════════
--- DJ LIST — Sidebar Thumbnails (using makeCanvas like original)
+-- DJ LIST — Sidebar Thumbnails
 -- ════════════════════════════════════════════════════════════════
 local function clearChildren(parent, keep)
 	for _, child in pairs(parent:GetChildren()) do
@@ -1687,238 +1454,119 @@ local function clearChildren(parent, keep)
 end
 
 local function selectDJ(djName, djData, card)
-	if selectedDJ == djName and currentView == "songs" then return end
-
-	-- Deselect previous
-	if selectedDJCard and selectedDJCard ~= card then
-		local ps = selectedDJCard:FindFirstChild("CardStroke")
+	if state.selectedDJ == djName and state.currentView == "songs" then return end
+	if state.selectedDJCard and state.selectedDJCard ~= card then
+		local ps = state.selectedDJCard:FindFirstChild("CardStroke")
 		if ps then tween(ps, 0.25, {Color = THEME.stroke, Thickness = 1, Transparency = 0.7}) end
-		local pn = selectedDJCard:FindFirstChild("DJNameLabel")
+		local pn = state.selectedDJCard:FindFirstChild("DJNameLabel")
 		if pn then tween(pn, 0.25, {TextColor3 = Color3.fromRGB(180, 180, 190)}) end
 	end
-
-	-- Select new
-	selectedDJ = djName; selectedDJInfo = djData; selectedDJCard = card
+	state.selectedDJ = djName; state.selectedDJInfo = djData; state.selectedDJCard = card
 	local s = card:FindFirstChild("CardStroke")
 	if s then tween(s, 0.25, {Color = THEME.accent, Thickness = 2, Transparency = 0.2}) end
 	local dn = card:FindFirstChild("DJNameLabel")
 	if dn then tween(dn, 0.25, {TextColor3 = Color3.new(1, 1, 1)}) end
-
-	-- FIX #3: Force switch to songs view
-	currentView = "queue" -- reset so switchView executes
-	switchView("songs")
-
-	-- Update main header
-	songsTitle.Text = djName
-	songCountLabel.Text = djData.songCount .. " songs"
-	songCountLabel.Visible = true
-	songsPlaceholder.Visible = false
-
-	-- Update header cover with DJ image
+	state.currentView = "queue"; switchView("songs")
+	_ui.songsTitle.Text = djName; _ui.songCountLabel.Text = djData.songCount .. " songs"; _ui.songCountLabel.Visible = true
+	_ui.songsPlaceholder.Visible = false
 	if djData.cover and djData.cover ~= "" then
-		mainHeaderCoverImg.Image = djData.cover
-		tween(mainHeaderCoverImg, 0.35, {ImageTransparency = 0.45})
-		headerGradientFrame.BackgroundColor3 = THEME.accent
-		tween(headerGradientFrame, 0.35, {BackgroundTransparency = 0.3})
-	else
-		tween(mainHeaderCoverImg, 0.3, {ImageTransparency = 1})
-	end
-
-	-- Load songs
-	virtualScrollState.totalSongs = djData.songCount
-	virtualScrollState.songData = {}
-	virtualScrollState.searchResults = {}
-	virtualScrollState.isSearching = false
-	virtualScrollState.searchQuery = ""
-	virtualScrollState.pendingRequests = {}
-
-	searchInput.Text = ""
-	releaseAllCards()
-	songsScroll.CanvasPosition = Vector2.new(0, 0)
-
-	loadingIndicator.Visible = true
-	loadingIndicator.Text = "Cargando canciones..."
-	loadingIndicator.Position = UDim2.new(0, 0, 0, 4)
-
+		_ui.mainHeaderCoverImg.Image = djData.cover
+		tween(_ui.mainHeaderCoverImg, 0.35, {ImageTransparency = 0.45})
+		_ui.headerGradientFrame.BackgroundColor3 = THEME.accent
+		tween(_ui.headerGradientFrame, 0.35, {BackgroundTransparency = 0.3})
+	else tween(_ui.mainHeaderCoverImg, 0.3, {ImageTransparency = 1}) end
+	virtualScrollState.totalSongs = djData.songCount; virtualScrollState.songData = {}
+	virtualScrollState.searchResults = {}; virtualScrollState.isSearching = false
+	virtualScrollState.searchQuery = ""; virtualScrollState.pendingRequests = {}
+	_ui.searchInput.Text = ""; releaseAllCards()
+	_ui.songsScroll.CanvasPosition = Vector2.new(0, 0)
+	_ui.loadingIndicator.Visible = true; _ui.loadingIndicator.Text = "Cargando canciones..."
+	_ui.loadingIndicator.Position = UDim2.new(0, 0, 0, 4)
 	local totalH = djData.songCount * (CARD_HEIGHT + CARD_PADDING)
-	songsContainer.Size = UDim2.new(1, 0, 0, totalH)
-	songsScroll.CanvasSize = UDim2.new(0, 0, 0, totalH + 20)
-
+	_ui.songsContainer.Size = UDim2.new(1, 0, 0, totalH)
+	_ui.songsScroll.CanvasSize = UDim2.new(0, 0, 0, totalH + 20)
 	connectScrollListener()
 	if R.GetSongRange then R.GetSongRange:FireServer(djName, 1, math.min(djData.songCount, 25)) end
 end
 
 local function drawDJs()
-	clearChildren(djsScroll, {"UIListLayout", "UIPadding"})
-	selectedDJCard = nil
-
-	if #allDJs == 0 then
-		makeLabel({
-			text = "No DJs", color = THEME.muted, size = 11,
-			dim = UDim2.new(1, 0, 0, 40), wrap = true,
-			alignX = Enum.TextXAlignment.Center, parent = djsScroll,
-		})
+	clearChildren(_ui.djsScroll, {"UIListLayout", "UIPadding"})
+	state.selectedDJCard = nil
+	if #state.allDJs == 0 then
+		makeLabel({text = "No DJs", color = THEME.muted, size = 11, dim = UDim2.new(1, 0, 0, 40), wrap = true, alignX = Enum.TextXAlignment.Center, parent = _ui.djsScroll})
 		return
 	end
-
 	local thumbSize = SIDEBAR_W - 24
-
-	for _, dj in ipairs(allDJs) do
-		local isSel = selectedDJ == dj.name
-
-		-- FIX #5: Use CanvasGroup like original DJ cards for proper UICorner clipping
-		local card = makeCanvas(djsScroll, 10, 102)
-		card.Name = "DJThumb"
-		card.Size = UDim2.new(1, 0, 0, DJ_THUMB_H)
-		card.BackgroundColor3 = THEME.card
-		card.BackgroundTransparency = THEME.frameAlpha
-
+	for _, dj in ipairs(state.allDJs) do
+		local isSel = state.selectedDJ == dj.name
+		local card = makeCanvas(_ui.djsScroll, 10, 102)
+		card.Name = "DJThumb"; card.Size = UDim2.new(1, 0, 0, DJ_THUMB_H)
+		card.BackgroundColor3 = THEME.card; card.BackgroundTransparency = THEME.frameAlpha
 		local stroke = make("UIStroke", {
-			Color = isSel and THEME.accent or THEME.stroke,
-			Thickness = isSel and 2 or 1,
-			Transparency = isSel and 0.2 or 0.7,
-			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+			Color = isSel and THEME.accent or THEME.stroke, Thickness = isSel and 2 or 1,
+			Transparency = isSel and 0.2 or 0.7, ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 			Name = "CardStroke", Parent = card,
 		})
-
-		if isSel then selectedDJCard = card end
-
-		-- Square cover image
-		local coverBg = makeFrame({
-			dim = UDim2.new(0, thumbSize, 0, thumbSize),
-			pos = UDim2.new(0.5, -thumbSize/2, 0, 4),
-			bg = Color3.fromRGB(30, 30, 40), bgT = 0,
-			z = 103, clip = true, name = "CoverBg", parent = card,
-		})
-
-		-- Fallback icon
-		makeLabel({
-			dim = UDim2.new(1, 0, 1, 0),
-			text = "♪", font = Enum.Font.GothamBold, size = 22,
-			color = isSel and THEME.accent or THEME.muted,
-			alignX = Enum.TextXAlignment.Center, z = 104,
-			name = "FallbackIcon", parent = coverBg,
-		})
-
+		if isSel then state.selectedDJCard = card end
+		local coverBg = makeFrame({dim = UDim2.new(0, thumbSize, 0, thumbSize), pos = UDim2.new(0.5, -thumbSize/2, 0, 4), bg = Color3.fromRGB(30, 30, 40), bgT = 0, z = 103, clip = true, name = "CoverBg", parent = card})
+		makeLabel({dim = UDim2.new(1, 0, 1, 0), text = "♪", font = Enum.Font.GothamBold, size = 22, color = isSel and THEME.accent or THEME.muted, alignX = Enum.TextXAlignment.Center, z = 104, parent = coverBg})
 		if dj.cover and dj.cover ~= "" then
-			make("ImageLabel", {
-				Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1,
-				Image = dj.cover, ScaleType = Enum.ScaleType.Crop,
-				BorderSizePixel = 0, ZIndex = 105,
-				Name = "CoverImage", Parent = coverBg,
-			})
+			make("ImageLabel", {Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Image = dj.cover, ScaleType = Enum.ScaleType.Crop, BorderSizePixel = 0, ZIndex = 105, Parent = coverBg})
 		end
-
-		-- DJ name
-		makeLabel({
-			dim = UDim2.new(1, -4, 0, 16),
-			pos = UDim2.new(0, 2, 1, -(mob and 16 or 18)),
-			text = dj.name, font = Enum.Font.GothamBold,
-			size = mob and 9 or 11,
-			color = isSel and Color3.new(1, 1, 1) or Color3.fromRGB(180, 180, 190),
-			alignX = Enum.TextXAlignment.Center,
-			truncate = Enum.TextTruncate.AtEnd,
-			z = 103, name = "DJNameLabel", parent = card,
-		})
-
-		-- Click overlay
+		makeLabel({dim = UDim2.new(1, -4, 0, 16), pos = UDim2.new(0, 2, 1, -(mob and 16 or 18)), text = dj.name, font = Enum.Font.GothamBold, size = mob and 9 or 11, color = isSel and Color3.new(1,1,1) or Color3.fromRGB(180, 180, 190), alignX = Enum.TextXAlignment.Center, truncate = Enum.TextTruncate.AtEnd, z = 103, name = "DJNameLabel", parent = card})
 		local clickBtn = makeBtn({dim = UDim2.new(1, 0, 1, 0), z = 110, parent = card})
 		clickBtn.BackgroundTransparency = 1
-
-		clickBtn.MouseEnter:Connect(function()
-			if selectedDJCard ~= card then
-				tween(stroke, 0.15, {Color = THEME.accent, Transparency = 0.35, Thickness = 1.5})
-			end
-		end)
-		clickBtn.MouseLeave:Connect(function()
-			if selectedDJCard ~= card then
-				tween(stroke, 0.2, {Color = THEME.stroke, Transparency = 0.7, Thickness = 1})
-			end
-		end)
-		clickBtn.MouseButton1Click:Connect(function()
-			selectDJ(dj.name, dj, card)
-		end)
+		clickBtn.MouseEnter:Connect(function() if state.selectedDJCard ~= card then tween(stroke, 0.15, {Color = THEME.accent, Transparency = 0.35, Thickness = 1.5}) end end)
+		clickBtn.MouseLeave:Connect(function() if state.selectedDJCard ~= card then tween(stroke, 0.2, {Color = THEME.stroke, Transparency = 0.7, Thickness = 1}) end end)
+		clickBtn.MouseButton1Click:Connect(function() selectDJ(dj.name, dj, card) end)
 	end
 end
 
 -- ════════════════════════════════════════════════════════════════
--- PROGRESS BAR UPDATE
+-- PROGRESS BAR + VISUALIZER
 -- ════════════════════════════════════════════════════════════════
-local progressTween = nil
-local progressAccum = 0
-local PROGRESS_RATE = 0.1
-
 local function updateProgressBar(dt)
-	if not currentSoundObject then currentSoundObject = workspace:FindFirstChild("QueueSound") end
-	if not currentSoundObject or not currentSoundObject:IsA("Sound") or not currentSoundObject.Parent then
-		if progressTween then progressTween:Cancel(); progressTween = nil end
-		progressFill.Size = UDim2.new(0, 0, 1, 0)
-		currentTimeLabel.Text = "0:00"; totalTimeLabel.Text = "0:00"
-		progressAccum = 0
-		if not currentSong then songTitle.Text = "No song playing" end
-		return
+	if not state.currentSoundObject then state.currentSoundObject = workspace:FindFirstChild("QueueSound") end
+	if not state.currentSoundObject or not state.currentSoundObject:IsA("Sound") or not state.currentSoundObject.Parent then
+		if state.progressTween then state.progressTween:Cancel(); state.progressTween = nil end
+		_ui.progressFill.Size = UDim2.new(0, 0, 1, 0)
+		_ui.currentTimeLabel.Text = "0:00"; _ui.totalTimeLabel.Text = "0:00"; state.progressAccum = 0
+		if not state.currentSong then _ui.songTitle.Text = "No song playing" end; return
 	end
-
-	local total = currentSoundObject.TimeLength
-	if total <= 0 then
-		progressFill.Size = UDim2.new(0, 0, 1, 0)
-		currentTimeLabel.Text = "0:00"; totalTimeLabel.Text = "0:00"
-		return
-	end
-
-	progressAccum = progressAccum + dt
-	if progressAccum < PROGRESS_RATE then return end
-	progressAccum = 0
-
-	local rawPos = currentSoundObject.TimePosition
+	local total = state.currentSoundObject.TimeLength
+	if total <= 0 then _ui.progressFill.Size = UDim2.new(0, 0, 1, 0); _ui.currentTimeLabel.Text = "0:00"; _ui.totalTimeLabel.Text = "0:00"; return end
+	state.progressAccum = state.progressAccum + dt
+	if state.progressAccum < 0.1 then return end; state.progressAccum = 0
+	local rawPos = state.currentSoundObject.TimePosition
 	local frac = math.clamp(rawPos / total, 0, 1)
-
-	if progressTween then progressTween:Cancel() end
-	progressTween = TweenService:Create(
-		progressFill,
-		TweenInfo.new(PROGRESS_RATE + 0.02, Enum.EasingStyle.Linear, Enum.EasingDirection.Out),
-		{Size = UDim2.new(frac, 0, 1, 0)}
-	)
-	progressTween:Play()
-
-	currentTimeLabel.Text = formatTime(rawPos)
-	totalTimeLabel.Text = formatTime(total)
+	if state.progressTween then state.progressTween:Cancel() end
+	state.progressTween = TweenService:Create(_ui.progressFill, TweenInfo.new(0.12, Enum.EasingStyle.Linear), {Size = UDim2.new(frac, 0, 1, 0)})
+	state.progressTween:Play()
+	_ui.currentTimeLabel.Text = formatTime(rawPos); _ui.totalTimeLabel.Text = formatTime(total)
 end
 
--- ════════════════════════════════════════════════════════════════
--- VISUALIZER
--- ════════════════════════════════════════════════════════════════
 local function startVisualizer()
-	if visualizerConnection then visualizerConnection:Disconnect() end
+	if state.visualizerConnection then state.visualizerConnection:Disconnect() end
 	local vizAccum = 0
-	visualizerConnection = RunService.Heartbeat:Connect(function(dt)
-		vizAccum = vizAccum + dt
-		if vizAccum < 0.033 then return end
+	state.visualizerConnection = RunService.Heartbeat:Connect(function(dt)
+		vizAccum = vizAccum + dt; if vizAccum < 0.033 then return end
 		local elapsed = vizAccum; vizAccum = 0
 		local loudness, hasAudio = 0, false
-		if currentSoundObject and currentSoundObject:IsA("Sound") and currentSoundObject.IsPlaying then
-			loudness = math.clamp(currentSoundObject.PlaybackLoudness / 300, 0, 1)
-			hasAudio = loudness > 0.001
+		if state.currentSoundObject and state.currentSoundObject:IsA("Sound") and state.currentSoundObject.IsPlaying then
+			loudness = math.clamp(state.currentSoundObject.PlaybackLoudness / 300, 0, 1); hasAudio = loudness > 0.001
 		end
 		local time = tick()
-		for i, barData in ipairs(visualizerBars) do
-			local bar = barData.frame
+		for i, bd in ipairs(_ui.visualizerBars) do
+			local bar = bd.frame
 			if bar and bar.Parent then
-				local targetH
-				local maxH = VISUALIZER.BAR_MAX_H
+				local targetH, maxH = 0, VISUALIZER.BAR_MAX_H
 				if hasAudio then
-					local freqMod = 0.4 + 0.6 * (1 - barData.freqWeight)
-					local noiseMod = math.sin(time * 8 + barData.phase * 3) * 0.3 + 0.7
-					targetH = math.clamp(loudness * maxH * freqMod * noiseMod * (1 - barData.freqWeight * 0.5), 2, maxH)
+					targetH = math.clamp(loudness * maxH * (0.4 + 0.6 * (1 - bd.freqWeight)) * (math.sin(time * 8 + bd.phase * 3) * 0.3 + 0.7) * (1 - bd.freqWeight * 0.5), 2, maxH)
 				else
-					local wave = math.sin(time * 1.8 + barData.phase) * 0.5 + 0.5
-					local wave2 = math.sin(time * 1.26 + barData.phase * 1.3) * 0.3 + 0.7
-					targetH = 2 + (math.floor(maxH * 0.35) - 2) * wave * wave2
+					targetH = 2 + (math.floor(maxH * 0.35) - 2) * (math.sin(time * 1.8 + bd.phase) * 0.5 + 0.5) * (math.sin(time * 1.26 + bd.phase * 1.3) * 0.3 + 0.7)
 				end
-				barData.targetH = targetH
-				local speed = (targetH > barData.currentH) and 12 or 8
-				barData.currentH = barData.currentH + (targetH - barData.currentH) * speed * elapsed
-				local h = math.floor(math.clamp(barData.currentH, 2, maxH))
+				bd.currentH = bd.currentH + (targetH - bd.currentH) * ((targetH > bd.currentH) and 12 or 8) * elapsed
+				local h = math.floor(math.clamp(bd.currentH, 2, maxH))
 				bar.Size = UDim2.new(0, VISUALIZER.BAR_WIDTH, 0, h)
 				bar.Position = UDim2.new(bar.Position.X.Scale, bar.Position.X.Offset, 1, -h)
 				local t = math.clamp((h - 2) / (maxH - 2), 0, 1)
@@ -1934,35 +1582,25 @@ end
 -- ════════════════════════════════════════════════════════════════
 local function openUI()
 	if modal:isModalOpen() then return end
-
-	-- FIX #3: Ensure consistent initial view state before opening
-	currentView = "queue"
-	songsView.Visible = false
-	queueView.Visible = true
-	songsTitle.Text = "PLAYLIST QUEUE"
-	songCountLabel.Visible = false
-	searchContainer.Visible = false
-	if clearB then clearB.Visible = true end
-	mainHeaderCoverImg.ImageTransparency = 1
-	headerGradientFrame.BackgroundColor3 = THEME.accent
-	headerGradientFrame.BackgroundTransparency = 0.6
-	queueBtnStroke.Color = THEME.accent
-	queueBtnStroke.Transparency = 0.2
-	queueBtnStroke.Thickness = 1.5
-
+	state.currentView = "queue"
+	_ui.songsView.Visible = false; _ui.queueView.Visible = true
+	_ui.songsTitle.Text = "PLAYLIST QUEUE"; _ui.songCountLabel.Visible = false
+	_ui.searchContainer.Visible = false
+	if _ui.clearB then _ui.clearB.Visible = true end
+	_ui.mainHeaderCoverImg.ImageTransparency = 1
+	_ui.headerGradientFrame.BackgroundColor3 = THEME.accent; _ui.headerGradientFrame.BackgroundTransparency = 0.6
+	_ui.queueBtnStroke.Color = THEME.accent; _ui.queueBtnStroke.Transparency = 0.2; _ui.queueBtnStroke.Thickness = 1.5
 	drawQueue()
-	if #allDJs > 0 then drawDJs() end
-
+	if #state.allDJs > 0 then drawDJs() end
 	modal:open()
-
-	if progressConnection then progressConnection:Disconnect() end
-	progressConnection = RunService.Heartbeat:Connect(updateProgressBar)
+	if state.progressConnection then state.progressConnection:Disconnect() end
+	state.progressConnection = RunService.Heartbeat:Connect(updateProgressBar)
 	startVisualizer()
 end
 
 local function closeUI()
 	if modal:isModalOpen() then modal:close() end
-	if visualizerConnection then visualizerConnection:Disconnect(); visualizerConnection = nil end
+	if state.visualizerConnection then state.visualizerConnection:Disconnect(); state.visualizerConnection = nil end
 end
 
 -- ════════════════════════════════════════════════════════════════
@@ -1970,11 +1608,8 @@ end
 -- ════════════════════════════════════════════════════════════════
 UserInputService.InputBegan:Connect(function(input, gp)
 	if gp then return end
-	if input.KeyCode == Enum.KeyCode.Escape and modal:isModalOpen() then
-		GlobalModalManager:closeModal("Music")
-	elseif input.KeyCode == Enum.KeyCode.Return and volInput.Visible then
-		applyVolumeInput()
-	end
+	if input.KeyCode == Enum.KeyCode.Escape and modal:isModalOpen() then GlobalModalManager:closeModal("Music")
+	elseif input.KeyCode == Enum.KeyCode.Return and _ui.volInput.Visible then applyVolumeInput() end
 end)
 
 -- ════════════════════════════════════════════════════════════════
@@ -1982,70 +1617,51 @@ end)
 -- ════════════════════════════════════════════════════════════════
 local function updateNowPlayingInfo(song)
 	if song then
-		songTitle.Text = song.name
-		headerDJName.Text = song.artist or "Unknown"
-		headerSongID.Text = song.id and tostring(song.id) or ""
-		songIdDisplay.Text = song.id and tostring(song.id) or ""
+		_ui.songTitle.Text = song.name; _ui.headerDJName.Text = song.artist or "Unknown"
+		_ui.headerSongID.Text = song.id and tostring(song.id) or ""; _ui.songIdDisplay.Text = song.id and tostring(song.id) or ""
 	else
-		songTitle.Text = "No song playing"
-		headerDJName.Text = ""; headerSongID.Text = ""; songIdDisplay.Text = ""
+		_ui.songTitle.Text = "No song playing"; _ui.headerDJName.Text = ""; _ui.headerSongID.Text = ""; _ui.songIdDisplay.Text = ""
 	end
 end
 
-local lastUpdateTime = 0
-local UPDATE_THROTTLE = 0.15
-local pendingUpdate = nil
-
 local function processUpdate(data)
-	playQueue = data.queue or {}
-	currentSong = data.currentSong
-	currentSoundObject = workspace:FindFirstChild("QueueSound")
-	updateNowPlayingInfo(currentSong)
-	updateHeaderCover(currentSong)
+	state.playQueue = data.queue or {}; state.currentSong = data.currentSong
+	state.currentSoundObject = workspace:FindFirstChild("QueueSound")
+	updateNowPlayingInfo(state.currentSong); updateHeaderCover(state.currentSong)
 	drawQueue()
-	if selectedDJ then updateVisibleCards() end
-
-	local newDJs = data.djs or allDJs
-	local djsChanged = #newDJs ~= #allDJs
+	if state.selectedDJ then updateVisibleCards() end
+	local newDJs = data.djs or state.allDJs
+	local djsChanged = #newDJs ~= #state.allDJs
 	if not djsChanged then
 		for i, dj in ipairs(newDJs) do
-			if not allDJs[i] or allDJs[i].name ~= dj.name or allDJs[i].songCount ~= dj.songCount then
-				djsChanged = true; break
-			end
+			if not state.allDJs[i] or state.allDJs[i].name ~= dj.name or state.allDJs[i].songCount ~= dj.songCount then djsChanged = true; break end
 		end
 	end
-	if djsChanged then allDJs = newDJs; drawDJs() end
+	if djsChanged then state.allDJs = newDJs; drawDJs() end
 end
 
 if R.Update then
 	R.Update.OnClientEvent:Connect(function(data)
 		local now = tick()
-		if (now - lastUpdateTime) < UPDATE_THROTTLE then
-			pendingUpdate = data
-			if not pendingUpdate._scheduled then
-				pendingUpdate._scheduled = true
-				task.delay(UPDATE_THROTTLE, function()
-					if pendingUpdate then
-						lastUpdateTime = tick(); processUpdate(pendingUpdate); pendingUpdate = nil
-					end
+		if (now - state.lastUpdateTime) < 0.15 then
+			state.pendingUpdate = data
+			if not state.pendingUpdate._scheduled then
+				state.pendingUpdate._scheduled = true
+				task.delay(0.15, function()
+					if state.pendingUpdate then state.lastUpdateTime = tick(); processUpdate(state.pendingUpdate); state.pendingUpdate = nil end
 				end)
-			end
-			return
+			end; return
 		end
-		lastUpdateTime = now; pendingUpdate = nil; processUpdate(data)
+		state.lastUpdateTime = now; state.pendingUpdate = nil; processUpdate(data)
 	end)
 end
 
-if R.GetDJs then
-	R.GetDJs.OnClientEvent:Connect(function(d)
-		allDJs = (d and (d.djs or d)) or allDJs; drawDJs()
-	end)
-end
+if R.GetDJs then R.GetDJs.OnClientEvent:Connect(function(d) state.allDJs = (d and (d.djs or d)) or state.allDJs; drawDJs() end) end
 
 if R.GetSongRange then
 	R.GetSongRange.OnClientEvent:Connect(function(data)
-		if not data or data.djName ~= selectedDJ then return end
-		loadingIndicator.Visible = false
+		if not data or data.djName ~= state.selectedDJ then return end
+		_ui.loadingIndicator.Visible = false
 		for _, song in ipairs(data.songs or {}) do virtualScrollState.songData[song.index] = song end
 		virtualScrollState.pendingRequests[data.startIndex .. "-" .. data.endIndex] = nil
 		updateVisibleCards()
@@ -2054,81 +1670,34 @@ end
 
 if R.SearchSongs then
 	R.SearchSongs.OnClientEvent:Connect(function(data)
-		if not data or data.djName ~= selectedDJ then return end
-		loadingIndicator.Visible = false
+		if not data or data.djName ~= state.selectedDJ then return end
+		_ui.loadingIndicator.Visible = false
 		virtualScrollState.searchResults = data.songs or {}
 		local total = data.totalInDJ or virtualScrollState.totalSongs
-		local countText = #virtualScrollState.searchResults .. " / " .. total .. " songs"
-		if data.cachedCount and data.cachedCount < total then
-			countText = countText .. " " .. math.floor(data.cachedCount / total * 100) .. "%"
-		end
-		songCountLabel.Text = countText
-		songsScroll.CanvasPosition = Vector2.new(0, 0)
-		updateVisibleCards()
+		local ct = #virtualScrollState.searchResults .. " / " .. total .. " songs"
+		if data.cachedCount and data.cachedCount < total then ct = ct .. " " .. math.floor(data.cachedCount / total * 100) .. "%" end
+		_ui.songCountLabel.Text = ct; _ui.songsScroll.CanvasPosition = Vector2.new(0, 0); updateVisibleCards()
 	end)
 end
 
 if R.GetSongsByDJ then
 	R.GetSongsByDJ.OnClientEvent:Connect(function(data)
-		if not data or data.djName ~= selectedDJ then return end
-		virtualScrollState.totalSongs = data.total or 0
-		songCountLabel.Text = data.total .. " songs"
+		if not data or data.djName ~= state.selectedDJ then return end
+		virtualScrollState.totalSongs = data.total or 0; _ui.songCountLabel.Text = data.total .. " songs"
 		local totalH = data.total * (CARD_HEIGHT + CARD_PADDING)
-		songsContainer.Size = UDim2.new(1, 0, 0, totalH)
-		songsScroll.CanvasSize = UDim2.new(0, 0, 0, totalH + 20)
+		_ui.songsContainer.Size = UDim2.new(1, 0, 0, totalH); _ui.songsScroll.CanvasSize = UDim2.new(0, 0, 0, totalH + 20)
 	end)
 end
 
 -- ════════════════════════════════════════════════════════════════
 -- INITIALIZATION
 -- ════════════════════════════════════════════════════════════════
-print("[MusicDashboard] Inicializando pool de tarjetas...")
-if R.GetDJs then 
-	print("[MusicDashboard] Solicitando DJs al servidor...")
-	R.GetDJs:FireServer()
-else
-	warn("[MusicDashboard] R.GetDJs no está disponible")
-end
-
+if R.GetDJs then R.GetDJs:FireServer() end
 for _ = 1, MAX_POOL_SIZE do
-	local card = createSongCard(); card.Parent = songsContainer; table.insert(cardPool, card)
-end
-print("[MusicDashboard] ✓ Pool de tarjetas creado")
-
-print("[MusicDashboard] Sidebar layout loaded OK — v2")
-
--- ════════════════════════════════════════════════════════════════
--- GLOBAL FUNCTIONS (EXPORT)
--- ════════════════════════════════════════════════════════════════
-print("[MusicDashboard] Exportando funciones globales...")
-
-local function safeOpenUI()
-	local ok, err = pcall(openUI)
-	if not ok then
-		warn("[MusicDashboard] Error en openUI: " .. tostring(err))
-	end
+	local card = createSongCard(); card.Parent = _ui.songsContainer; table.insert(state.cardPool, card)
 end
 
-local function safeCloseUI()
-	local ok, err = pcall(closeUI)
-	if not ok then
-		warn("[MusicDashboard] Error en closeUI: " .. tostring(err))
-	end
-end
+print("[MusicDashboard] Sidebar layout v3 loaded OK")
 
-_G.OpenMusicUI = safeOpenUI
-_G.CloseMusicUI = safeCloseUI
-
-print("[MusicDashboard] ✓ Funciones globales exportadas exitosamente!")
-print("[MusicDashboard] _G.OpenMusicUI está disponible:", _G.OpenMusicUI ~= nil)
-
--- Auto-open on startup (opcional)
-task.delay(1, function()
-	print("[MusicDashboard] Intentando auto-abrir...")
-	if _G.OpenMusicUI then
-		_G.OpenMusicUI()
-		print("[MusicDashboard] ✓ Abierto automáticamente")
-	else
-		warn("[MusicDashboard] ERROR: _G.OpenMusicUI no está disponible en auto-open")
-	end
-end)
+_G.OpenMusicUI = openUI
+_G.CloseMusicUI = closeUI
