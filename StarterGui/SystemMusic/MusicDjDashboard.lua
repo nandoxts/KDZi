@@ -1295,41 +1295,6 @@ end
 
 local avatarCache = {}
 
--- ════════════════════════════════════════════════════════════════
--- CONTEXT TABLE - Consolidates references to reduce upvalue count
--- ════════════════════════════════════════════════════════════════
-local CONTEXT = {
-	-- State references
-	playQueue = playQueue, currentSong = currentSong,
-	allDJs = allDJs, selectedDJ = selectedDJ, selectedDJInfo = selectedDJInfo,
-	currentSoundObject = currentSoundObject, progressConnection = progressConnection,
-	visualizerConnection = visualizerConnection, isAddingToQueue = isAddingToQueue,
-	loadingDotsThread = loadingDotsThread, loadingTween = loadingTween,
-	cardPool = cardPool, cardsIndex = cardsIndex,
-	selectedDJCard = selectedDJCard, currentHeaderCover = currentHeaderCover,
-	pendingCardSongIds = pendingCardSongIds,
-	queueCardPool = queueCardPool, activeQueueCards = activeQueueCards,
-	activeEffectThreads = activeEffectThreads, scrollDebounceThread = scrollDebounceThread,
-	virtualScrollState = virtualScrollState, currentView = currentView,
-	-- UI refs
-	quickAddBtn = quickAddBtn, quickInput = quickInput, qiStroke = qiStroke,
-	quickAddBtnImg = quickAddBtnImg, quickAddBtnLoading = quickAddBtnLoading,
-	songsScroll = songsScroll, songsContainer = songsContainer, searchInput = searchInput,
-	loadingIndicator = loadingIndicator, songCountLabel = songCountLabel,
-	headerDJName = headerDJName, headerSongID = headerSongID,
-	songTitle = songTitle, songIdDisplay = songIdDisplay,
-	miniCover = miniCover, bottomBarBg = bottomBarBg,
-	songsPlaceholder = songsPlaceholder, songsTitle = songsTitle,
-	progressFill = progressFill, currentTimeLabel = currentTimeLabel,
-	totalTimeLabel = totalTimeLabel, volLabelText = volLabelText, volInput = volInput,
-	sidebar = sidebar, mainPanel = mainPanel, mainHeader = mainHeader,
-	mainHeaderCoverImg = mainHeaderCoverImg, songsView = songsView, queueView = queueView,
-	queueBtnContainer = queueBtnContainer, queueBtnStroke = queueBtnStroke,
-	clearB = clearB, headerGradientFrame = headerGradientFrame,
-	-- Additional refs
-	R = R, THEME = THEME, ICONS = ICONS, VISUALIZER = VISUALIZER,
-}
-
 local function drawQueue()
 	cleanupActiveEffects()
 	releaseAllQueueCards()
@@ -1946,17 +1911,15 @@ end)
 -- ════════════════════════════════════════════════════════════════
 -- REMOTE UPDATES
 -- ════════════════════════════════════════════════════════════════
--- updateNowPlayingInfo refactored to reduce upvalues
-local function updateNowPlayingInfo(song, ctx)
-	ctx = ctx or CONTEXT
+local function updateNowPlayingInfo(song)
 	if song then
-		ctx.songTitle.Text = song.name
-		ctx.headerDJName.Text = song.artist or "Unknown"
-		ctx.headerSongID.Text = song.id and tostring(song.id) or ""
-		ctx.songIdDisplay.Text = song.id and tostring(song.id) or ""
+		songTitle.Text = song.name
+		headerDJName.Text = song.artist or "Unknown"
+		headerSongID.Text = song.id and tostring(song.id) or ""
+		songIdDisplay.Text = song.id and tostring(song.id) or ""
 	else
-		ctx.songTitle.Text = "No song playing"
-		ctx.headerDJName.Text = ""; ctx.headerSongID.Text = ""; ctx.songIdDisplay.Text = ""
+		songTitle.Text = "No song playing"
+		headerDJName.Text = ""; headerSongID.Text = ""; songIdDisplay.Text = ""
 	end
 end
 
@@ -1968,7 +1931,7 @@ local function processUpdate(data)
 	playQueue = data.queue or {}
 	currentSong = data.currentSong
 	currentSoundObject = workspace:FindFirstChild("QueueSound")
-	updateNowPlayingInfo(currentSong, CONTEXT)
+	updateNowPlayingInfo(currentSong)
 	updateHeaderCover(currentSong)
 	drawQueue()
 	if selectedDJ then updateVisibleCards() end
