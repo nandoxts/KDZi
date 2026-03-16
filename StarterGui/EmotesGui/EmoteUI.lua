@@ -361,7 +361,7 @@ if mostrarBusqueda then
 	SearchHandle.Position = UDim2.new(0.5, IsMobile and 2 or 3, 0.5, IsMobile and 3 or 4)
 	SearchHandle.Rotation = 45
 	SearchHandle.BackgroundColor3 = THEME_CONFIG.subtle
-	SearchHandle.BackgroundTransparency = THEME_CONFIG.overlayAlpha
+	SearchHandle.BackgroundTransparency = THEME_CONFIG.lightAlpha
 	SearchHandle.BorderSizePixel = 0
 	SearchHandle.Parent = SearchIconContainer
 	CreateCorner(SearchHandle, 2)
@@ -390,8 +390,8 @@ if mostrarBusqueda then
 	end))
 
 	TrackGlobalConnection(SearchBox.FocusLost:Connect(function()
-		Tween(circleStroke, 0.2, {Color = THEME_CONFIG.subtle, Transparency = THEME_CONFIG.overlayAlpha})
-		Tween(SearchHandle, 0.2, {BackgroundColor3 = THEME_CONFIG.subtle, BackgroundTransparency = THEME_CONFIG.overlayAlpha})
+		Tween(circleStroke, 0.2, {Color = THEME_CONFIG.subtle, Transparency = THEME_CONFIG.lightAlpha})
+		Tween(SearchHandle, 0.2, {BackgroundColor3 = THEME_CONFIG.subtle, BackgroundTransparency = THEME_CONFIG.lightAlpha})
 	end))
 
 	posY = posY + (IsMobile and 30 or 36)
@@ -420,7 +420,7 @@ SyncOverlay.Name = "SyncOverlay"
 SyncOverlay.Size = UDim2.new(1, 0, 1, 0)
 SyncOverlay.Position = UDim2.new(0, 0, 0, 0)
 SyncOverlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-SyncOverlay.BackgroundTransparency = THEME_CONFIG.overlayAlpha
+SyncOverlay.BackgroundTransparency = THEME_CONFIG.lightAlpha
 SyncOverlay.BorderSizePixel = 0
 SyncOverlay.Text = ""
 SyncOverlay.AutoButtonColor = false
@@ -435,7 +435,7 @@ SyncContainer.Name = "SyncContainer"
 SyncContainer.Size = UDim2.new(1, -40, 0, IsMobile and 120 or 140)
 SyncContainer.Position = UDim2.new(0, 20, 0.5, IsMobile and -60 or -70)
 SyncContainer.BackgroundColor3 = THEME_CONFIG.elevated
-SyncContainer.BackgroundTransparency = THEME_CONFIG.overlayAlpha
+SyncContainer.BackgroundTransparency = THEME_CONFIG.lightAlpha
 SyncContainer.BorderSizePixel = 0
 SyncContainer.ZIndex = 101
 SyncContainer.Parent = SyncOverlay
@@ -499,7 +499,7 @@ local function SetSyncOverlay(synced, syncedPlayerName)
 		SyncPlayerName.Text = syncedPlayerName or "Desconocido"
 
 		-- Animaciones de entrada
-		Tween(SyncOverlay, 0.3, {BackgroundTransparency = THEME_CONFIG.overlayAlpha})
+		Tween(SyncOverlay, 0.3, {BackgroundTransparency = THEME_CONFIG.lightAlpha})
 		Tween(SyncContainer, 0.4, {Size = UDim2.new(1, -40, 0, IsMobile and 120 or 140)}, Enum.EasingStyle.Back)
 	else
 		-- Animaciones de salida (similares a la entrada pero en reversa)
@@ -531,10 +531,10 @@ SyncOverlay.MouseEnter:Connect(function()
 end)
 
 SyncOverlay.MouseLeave:Connect(function()
-	Tween(SyncOverlay, 0.15, {BackgroundTransparency = THEME_CONFIG.overlayAlpha})
+	Tween(SyncOverlay, 0.15, {BackgroundTransparency = THEME_CONFIG.lightAlpha})
 	Tween(SyncPlayerName, 0.15, {TextColor3 = THEME_CONFIG.accent})
-	Tween(SyncContainer, 0.15, {BackgroundTransparency = THEME_CONFIG.overlayAlpha})
-	Tween(ContainerStroke, 0.15, {Transparency = THEME_CONFIG.overlayAlpha})
+	Tween(SyncContainer, 0.15, {BackgroundTransparency = THEME_CONFIG.lightAlpha})
+	Tween(ContainerStroke, 0.15, {Transparency = THEME_CONFIG.lightAlpha})
 end)
 
 -- Nota: el cliente ya no usa valores en el Character; escucha `SyncUpdate` desde el servidor
@@ -908,7 +908,7 @@ local function CrearTarjeta(nombre, id, tipo, orden)
 			card:SetAttribute("IsFavorite", false)
 
 			if TabActual == "FAVORITOS" then
-				Tween(favBtn, 0.2, {ImageColor3 = THEME_CONFIG.accent, ImageTransparency = THEME_CONFIG.overlayAlpha})
+				Tween(favBtn, 0.2, {ImageColor3 = THEME_CONFIG.accent, ImageTransparency = THEME_CONFIG.lightAlpha})
 
 				CleanupCard(card)
 
@@ -930,7 +930,7 @@ local function CrearTarjeta(nombre, id, tipo, orden)
 					end
 				end)
 			else
-				Tween(favBtn, 0.2, {ImageColor3 = THEME_CONFIG.accent, ImageTransparency = THEME_CONFIG.overlayAlpha})
+				Tween(favBtn, 0.2, {ImageColor3 = THEME_CONFIG.accent, ImageTransparency = THEME_CONFIG.lightAlpha})
 				favBtn.Image = "rbxassetid://130993498569336"
 				-- Sincronizar otras cards
 				for _, child in ipairs(ScrollFrame:GetChildren()) do
@@ -939,7 +939,7 @@ local function CrearTarjeta(nombre, id, tipo, orden)
 						if innerBtn then
 							innerBtn.Image = "rbxassetid://130993498569336"
 							innerBtn.ImageColor3 = THEME_CONFIG.accent
-							innerBtn.ImageTransparency = THEME_CONFIG.overlayAlpha
+							innerBtn.ImageTransparency = THEME_CONFIG.lightAlpha
 						end
 					end
 				end

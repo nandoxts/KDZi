@@ -91,7 +91,7 @@ local function stroked(inst, alpha, color)
 	local s = Instance.new("UIStroke")
 	s.Color = color or THEME.stroke
 	s.Thickness = 1
-	s.Transparency = alpha or THEME.mediumAlpha or 0.5
+	s.Transparency = alpha or THEME.panelAlpha or 0.6
 	s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	s.Parent = inst
 	return s
@@ -209,7 +209,7 @@ function ModalManager:_createPanel()
 	self.panel.AnchorPoint = Vector2.new(0.5, 0.5)
 	self.panel.Position = UDim2.new(0.5, 0, 1.5, 0)
 	self.panel.BackgroundColor3 = THEME.panel or Color3.fromRGB(18, 18, 22)
-	self.panel.BackgroundTransparency = THEME.lightAlpha or 0.2
+	self.panel.BackgroundTransparency = THEME.lightAlpha or 0.3
 	self.panel.BorderSizePixel = 0
 	self.panel.Visible = false
 	self.panel.ZIndex = 100
@@ -217,7 +217,7 @@ function ModalManager:_createPanel()
 	self.panel.Parent = self.screenGui
 
 	rounded(self.panel, self.cornerRadius)
-	stroked(self.panel, THEME.mediumAlpha or 0.5)
+	stroked(self.panel, THEME.panelAlpha or 0.6)
 
 	-- CanvasGroup: recorta hijos respetando UICorner en todos los modales
 	self.canvas = Instance.new("CanvasGroup")
@@ -267,7 +267,7 @@ function ModalManager:open()
 	local overlayTween = TweenService:Create(
 		self.overlay,
 		TweenInfo.new(0.22),
-		{BackgroundTransparency = THEME.mediumAlpha or 0.5}
+		{BackgroundTransparency = THEME.panelAlpha or 0.6}
 	)
 	table.insert(self.activeTweens, overlayTween)
 	overlayTween:Play()

@@ -418,7 +418,7 @@ do
 	-- Queue Toggle Button
 	local queueBtnContainer = makeFrame({
 		dim = UDim2.new(1, 0, 0, QUEUE_BTN_H),
-		bg = THEME.card, bgT = THEME.frameAlpha,
+		bg = THEME.card, bgT = THEME.lightAlpha,
 		z = 102, name = "QueueBtnContainer", parent = sidebarCanvas,
 	})
 
@@ -794,7 +794,7 @@ do
 	local qaFrame = makeFrame({
 		dim = UDim2.new(1, 0, 0, 38),
 		pos = UDim2.new(0, 0, 0, mob and 34 or 40),
-		bg = THEME.card, bgT = THEME.frameAlpha or 0.3,
+		bg = THEME.card, bgT = THEME.lightAlpha,
 		z = 113, parent = centerSection,
 	})
 	UI.rounded(qaFrame, 8)
@@ -874,7 +874,7 @@ do
 	end
 
 	local volSlot = makeFrame({
-		dim = UDim2.new(0, 60, 0, 36), bg = THEME.card, bgT = THEME.frameAlpha,
+		dim = UDim2.new(0, 60, 0, 36), bg = THEME.card, bgT = THEME.lightAlpha,
 		z = 114, parent = volFrame,
 	})
 	volSlot.LayoutOrder = 2
@@ -1147,7 +1147,7 @@ end
 -- QUEUE CARD POOL
 -- ════════════════════════════════════════════════════════════════
 local function createQueueCard()
-	local card = makeFrame({dim = UDim2.new(1, 0, 0, 54), bg = THEME.card, bgT = THEME.frameAlpha, z = 101})
+	local card = makeFrame({dim = UDim2.new(1, 0, 0, 54), bg = THEME.card, bgT = THEME.lightAlpha, z = 101})
 	card.Visible = false
 	UI.rounded(card, 8)
 	make("UIStroke", {Color = THEME.stroke, Thickness = 1, Transparency = 0.3, ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = card})
@@ -1226,7 +1226,7 @@ local function drawQueue()
 		if not card then break end
 		card.LayoutOrder = i; card:SetAttribute("QueueIndex", i)
 		card.BackgroundColor3 = isActive and THEME.accent or THEME.card
-		card.BackgroundTransparency = isActive and THEME.subtleAlpha or THEME.frameAlpha
+		card.BackgroundTransparency = THEME.lightAlpha
 		card.Visible = true
 		table.insert(state.activeQueueCards, card)
 		local stroke = card:FindFirstChildWhichIsA("UIStroke")
@@ -1283,7 +1283,7 @@ end
 local function createSongCard()
 	local card = makeCanvas(nil, 8, 102)
 	card.Name = "SongCard"; card.Size = UDim2.new(1, -8, 0, CARD_HEIGHT)
-	card.BackgroundColor3 = THEME.card; card.BackgroundTransparency = THEME.frameAlpha
+	card.BackgroundColor3 = THEME.card; card.BackgroundTransparency = THEME.lightAlpha
 	card.Visible = false
 	UI.stroked(card, 0.3)
 	local textX = 10
@@ -1504,7 +1504,7 @@ local function drawDJs()
 		local isSel = state.selectedDJ == dj.name
 		local card = makeCanvas(_ui.djsScroll, 10, 102)
 		card.Name = "DJThumb"; card.Size = UDim2.new(1, 0, 0, DJ_THUMB_H)
-		card.BackgroundColor3 = THEME.card; card.BackgroundTransparency = THEME.frameAlpha
+		card.BackgroundColor3 = THEME.card; card.BackgroundTransparency = THEME.lightAlpha
 		local stroke = make("UIStroke", {
 			Color = isSel and THEME.accent or THEME.stroke, Thickness = isSel and 2 or 1,
 			Transparency = isSel and 0.2 or 0.7, ApplyStrokeMode = Enum.ApplyStrokeMode.Border,

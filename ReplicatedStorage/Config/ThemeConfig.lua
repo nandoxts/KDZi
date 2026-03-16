@@ -32,10 +32,8 @@ local THEME = {
 	hover  = Color3.fromRGB(45, 50, 58),
 
 	-- Transparencies
-	subtleAlpha = 0.1,  -- Muy poco transparente
-	lightAlpha  = 0.3,  -- Ligeramente transparente
-	frameAlpha  = 0.4,  -- Frames principales
-	mediumAlpha = 0.6,  -- Medio transparente
+	lightAlpha  = 0.3,  -- UI general (frames, overlays, cards, hover)
+	panelAlpha  = 0.6,  -- Paneles modales / strokes
 
 	-- Panel sizes
 	panelWidth  = 780,
