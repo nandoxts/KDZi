@@ -338,11 +338,11 @@ local mob = UserInputService.TouchEnabled
 -- ════════════════════════════════════════════════════════════════
 local PANEL_W = mob and THEME.panelWidth or math.max(THEME.panelWidth, 1100)
 local PANEL_H = mob and THEME.panelHeight or math.max(THEME.panelHeight, 620)
-local SIDEBAR_W = mob and 80 or 105
-local BOTTOM_BAR_H = mob and 80 or 100
-local MAIN_HEADER_H = mob and 120 or 170
-local QUEUE_BTN_H = mob and 70 or 82
-local DJ_THUMB_H = mob and 90 or 108
+local SIDEBAR_W = mob and 75 or 95  -- Reducido de 80/105
+local BOTTOM_BAR_H = mob and 75 or 90  -- Reducido de 80/100
+local MAIN_HEADER_H = mob and 110 or 150  -- Reducido de 120/170
+local QUEUE_BTN_H = mob and 65 or 75  -- Reducido de 70/82
+local DJ_THUMB_H = mob and 85 or 100  -- Reducido de 90/108
 
 -- ════════════════════════════════════════════════════════════════
 -- MODAL
@@ -453,15 +453,15 @@ do
 
 	-- Divider
 	makeFrame({
-		dim = UDim2.new(1, -16, 0, 1),
-		pos = UDim2.new(0, 8, 0, QUEUE_BTN_H),
+		dim = UDim2.new(1, -12, 0, 1),
+		pos = UDim2.new(0, 6, 0, QUEUE_BTN_H),
 		bg = THEME.stroke, bgT = 0.5, z = 102, parent = sidebar,
 	})
 
 	-- DJ Thumbnails Scroll
 	_ui.djsScroll = make("ScrollingFrame", {
-		Size = UDim2.new(1, 0, 1, -(QUEUE_BTN_H + 6)),
-		Position = UDim2.new(0, 0, 0, QUEUE_BTN_H + 6),
+		Size = UDim2.new(1, 0, 1, -(QUEUE_BTN_H + 4)),
+		Position = UDim2.new(0, 0, 0, QUEUE_BTN_H + 4),
 		BackgroundTransparency = 1, BorderSizePixel = 0,
 		ScrollBarThickness = 0, ScrollBarImageTransparency = 1,
 		CanvasSize = UDim2.new(0, 0, 0, 0),
@@ -470,13 +470,13 @@ do
 	ModernScrollbar.setup(_ui.djsScroll, sidebar, THEME, {transparency = 0})
 
 	local djsLayout = make("UIListLayout", {
-		Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder,
+		Padding = UDim.new(0, 5), SortOrder = Enum.SortOrder.LayoutOrder,
 		HorizontalAlignment = Enum.HorizontalAlignment.Center,
 		Parent = _ui.djsScroll,
 	})
 	make("UIPadding", {
-		PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 6),
-		PaddingTop = UDim.new(0, 4), PaddingBottom = UDim.new(0, 4),
+		PaddingLeft = UDim.new(0, 5), PaddingRight = UDim.new(0, 5),
+		PaddingTop = UDim.new(0, 3), PaddingBottom = UDim.new(0, 3),
 		Parent = _ui.djsScroll,
 	})
 	djsLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
@@ -495,7 +495,7 @@ _ui.mainPanel = makeFrame({
 
 -- Divider
 makeFrame({
-	dim = UDim2.new(0, 1, 1, -20), pos = UDim2.new(0, 0, 0, 10),
+	dim = UDim2.new(0, 1, 1, -16), pos = UDim2.new(0, 0, 0, 8),
 	bg = THEME.stroke, bgT = 0.5, z = 105, parent = _ui.mainPanel,
 })
 
@@ -686,7 +686,7 @@ do
 		dim = UDim2.new(0.30, -10, 1, 0), z = 112, name = "NowPlaying", parent = bottomContent,
 	})
 
-	local MINI_COVER = mob and 48 or 70
+	local MINI_COVER = mob and 45 or 64
 	_ui.miniCover = makeImage({
 		dim = UDim2.new(0, MINI_COVER, 0, MINI_COVER),
 		pos = UDim2.new(0, 0, 0.5, -MINI_COVER/2),
@@ -726,8 +726,8 @@ do
 
 	-- Visualizer
 	local vizContainer = makeFrame({
-		dim = UDim2.new(1, 0, 0, mob and 52 or 82),
-		pos = UDim2.new(0, 0, 1, -(mob and 52 or 82)),
+		dim = UDim2.new(1, 0, 0, mob and 48 or 70),
+		pos = UDim2.new(0, 0, 1, -(mob and 48 or 70)),
 		z = 111, clip = true, parent = centerSection,
 	})
 
@@ -751,7 +751,7 @@ do
 
 	-- Progress
 	local progContainer = makeFrame({
-		dim = UDim2.new(1, 0, 0, 28), pos = UDim2.new(0, 0, 0, mob and 4 or 8),
+		dim = UDim2.new(1, 0, 0, 26), pos = UDim2.new(0, 0, 0, mob and 3 or 6),
 		z = 113, parent = centerSection,
 	})
 
@@ -782,8 +782,8 @@ do
 
 	-- Quick Add
 	local qaFrame = makeFrame({
-		dim = UDim2.new(1, 0, 0, 40),
-		pos = UDim2.new(0, 0, 0, mob and 36 or 44),
+		dim = UDim2.new(1, 0, 0, 38),
+		pos = UDim2.new(0, 0, 0, mob and 34 or 40),
 		bg = THEME.card, bgT = THEME.frameAlpha or 0.3,
 		z = 113, parent = centerSection,
 	})
@@ -1262,9 +1262,9 @@ for _ = 1, math.min(MAX_QUEUE_POOL, 15) do
 	if isAdmin then
 		local rb = card:FindFirstChild("RemoveBtn")
 		if rb then rb.MouseButton1Click:Connect(function()
-			local idx = card:GetAttribute("QueueIndex")
-			if idx and R.Remove then R.Remove:FireServer(idx) end
-		end) end
+				local idx = card:GetAttribute("QueueIndex")
+				if idx and R.Remove then R.Remove:FireServer(idx) end
+			end) end
 	end
 end
 

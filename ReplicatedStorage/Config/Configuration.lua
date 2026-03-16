@@ -96,19 +96,42 @@ return {
 	},
 
 	-- ══════════════════════════════════════
-	--  GROUP ROLES
+	--  GROUP ROLES + ADMIN SYSTEM
+	--  Fuente única de verdad para roles y rangos
+	--  Cambias aquí = cambia UI, ChatTags y Adonis
+	--
+	--  Name       → Tag visual en chat/UI
+	--  Color/Icon → Visual del rol
+	--  AdminRank  → Nombre del rango en Adonis (nil = sin admin)
+	--  AdminLevel → Nivel de permisos en Adonis (nil = sin admin)
 	-- ══════════════════════════════════════
 	GroupRoles = {
-		[255] = {Name = "[Creador]", Color = Color3.fromRGB(255, 255, 0), Icon = " "},
-		[254] = { Name = "[Developer ]",     Color = Color3.fromRGB(0, 255, 170),   Icon = " "},
-		[253] = { Name = "[Co-Creador ]",      Color = Color3.fromRGB(0, 0, 255),    Icon = "♛"   },
-		[252] = { Name = "[Help Creator ]",  Color = Color3.fromRGB(255, 85, 255), Icon = "⚜️"  },
-		[251] = { Name = "[Lead Admin ]",    Color = Color3.fromRGB(85, 85, 255),  Icon = "🔱"  },
-		[250] = { Name = "[Head Admin ]",    Color = Color3.fromRGB(255, 200, 4),  Icon = "🔰"  },
-		[249] = { Name = "[Administrador]", Color = Color3.fromRGB(179, 0, 0),    Icon = "🚨"  },
-		[248] = { Name = "[Moderador]",     Color = Color3.fromRGB(38, 225, 0),   Icon = "🛡️"  },
-		[247] = { Name = "[DJ]",            Color = Color3.fromRGB(0, 0, 255),    Icon = "🎧"  },
-		[246] = { Name = "[Influencer]",    Color = Color3.fromRGB(0, 213, 255),  Icon = "⭐"  },
+		[255] = { Name = "[Creador]", Color = Color3.fromRGB(255, 255, 0), Icon = " ", AdminRank = "Creators",      AdminLevel = 900 },
+		[254] = { Name = "[Developer ]",     Color = Color3.fromRGB(0, 255, 170),   Icon = " ", AdminRank = "Creators",      AdminLevel = 900 },
+		[253] = { Name = "[Co-Creador ]",      Color = Color3.fromRGB(0, 0, 255),    Icon = "♛", AdminRank = "Help Creator",  AdminLevel = 400 },
+		[252] = { Name = "[Help Creator ]",  Color = Color3.fromRGB(255, 85, 255), Icon = "⚜️", AdminRank = "Lead Admin",    AdminLevel = 350 },
+		[251] = { Name = "[Lead Admin ]",    Color = Color3.fromRGB(85, 85, 255),  Icon = "🔱", AdminRank = "HeadAdmins",    AdminLevel = 300 },
+		[250] = { Name = "[Head Admin ]",    Color = Color3.fromRGB(255, 200, 4),  Icon = "🔰", AdminRank = "Administrador", AdminLevel = 200 },
+		[249] = { Name = "[Administrador]", Color = Color3.fromRGB(179, 0, 0),    Icon = "🚨", AdminRank = "Moderador",     AdminLevel = 150 },
+		[248] = { Name = "[Moderador]",     Color = Color3.fromRGB(38, 225, 0),   Icon = "🛡️", AdminRank = "DJ",            AdminLevel = 100 },
+		[247] = { Name = "[DJ]",            Color = Color3.fromRGB(0, 0, 255),    Icon = "🎧", AdminRank = "Influencer",    AdminLevel = 75 },
+		[246] = { Name = "[Influencer]",    Color = Color3.fromRGB(0, 213, 255),  Icon = "⭐", AdminRank = "Socio",         AdminLevel = 50 },
 		[245] = { Name = "[Socio]",         Color = Color3.fromRGB(0, 0, 255),    Icon = "🤝"  },
+	},
+
+	-- ══════════════════════════════════════
+	--  ADMIN OWNERS (Creators nivel 900+)
+	-- ══════════════════════════════════════
+	AdminOwners = {
+		{ Username = "bvwdhfv", UserId = 4074563891 },
+		{ Username = "ignxts",  UserId = 8387751399 },
+	},
+
+	-- ══════════════════════════════════════
+	--  ADMIN POR GAMEPASS
+	-- ══════════════════════════════════════
+	AdminRanksByGamepass = {
+		{ Gamepass = "COMMANDS", Name = "COMMANDS", Level = 20 },
+		{ Gamepass = "VIP",     Name = "VIP",      Level = 10 },
 	},
 }
