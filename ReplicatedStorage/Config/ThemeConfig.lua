@@ -1,6 +1,6 @@
 -- ════════════════════════════════════════════════════════════════
--- THEME CONFIGURATION v2.0 - PROFESSIONAL DARK
--- Paleta madura estilo Discord/Spotify
+-- THEME CONFIGURATION v2.0 - CYAN & NEON PURPLE
+-- Paleta cyan / morado neón
 -- by ignxts
 -- ════════════════════════════════════════════════════════════════
 
@@ -17,9 +17,9 @@ local THEME = {
 	subtle   = Color3.fromRGB(95, 100, 110),    -- Texto muy sutil
 	dim      = Color3.fromRGB(95, 100, 110),    -- Alias de subtle (iconos/texto apagado)
 
-	-- Accent (purple)
-	accent      = Color3.fromRGB(147, 76, 255),  -- Morado vibrante
-	accentHover = Color3.fromRGB(186, 129, 255), -- Hover más claro
+	-- Accent (cyan + neon purple)
+	accent      = Color3.fromRGB(0, 230, 255),    -- Cyan neón
+	accentHover = Color3.fromRGB(180, 0, 255),    -- Morado neón (hover)
 
 	-- Buttons
 	warn       = Color3.fromRGB(251, 140, 0),    -- Orange suave

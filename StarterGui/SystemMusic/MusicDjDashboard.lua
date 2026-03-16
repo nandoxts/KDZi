@@ -350,7 +350,7 @@ local DJ_THUMB_H = mob and 85 or 100  -- Reducido de 90/108
 local modal = ModalManager.new({
 	screenGui = screenGui, panelName = "MusicDashboard",
 	panelWidth = PANEL_W, panelHeight = PANEL_H,
-	cornerRadius = 12, enableBlur = true, blurSize = 14,
+	cornerRadius = 0, enableBlur = true, blurSize = 14,
 	isMobile = mob,
 	onClose = function()
 		if state.progressConnection then state.progressConnection:Disconnect(); state.progressConnection = nil end
@@ -358,15 +358,22 @@ local modal = ModalManager.new({
 	end,
 })
 
+-- Hacer el panel contenedor transparente (las secciones tienen su propio fondo)
+modal:getPanel().BackgroundTransparency = 1
+local panelStroke = modal:getPanel():FindFirstChildWhichIsA("UIStroke")
+if panelStroke then panelStroke.Transparency = 1 end
+
 local canvas = modal:getCanvas()
 
 -- ════════════════════════════════════════════════════════════════
 -- MAIN LAYOUT
 -- ════════════════════════════════════════════════════════════════
+local GAP = 6
+
 local contentArea = makeFrame({
-	dim = UDim2.new(1, -SIDEBAR_W, 1, 0),
-	pos = UDim2.new(0, SIDEBAR_W, 0, 0),
-	z = 100, clip = true, name = "ContentArea", parent = canvas,
+	dim = UDim2.new(1, -(SIDEBAR_W + GAP), 1, 0),
+	pos = UDim2.new(0, SIDEBAR_W + GAP, 0, 0),
+	z = 100, clip = false, name = "ContentArea", parent = canvas,
 })
 
 -- ── Bottom Bar ──
@@ -377,23 +384,18 @@ do
 		bg = Color3.fromRGB(14, 14, 18), bgT = 0,
 		z = 110, name = "BottomBar", parent = contentArea,
 	})
-	make("UIGradient", {
-		Color = ColorSequence.new{
-			ColorSequenceKeypoint.new(0, Color3.fromRGB(22, 22, 28)),
-			ColorSequenceKeypoint.new(0.15, Color3.fromRGB(14, 14, 18)),
-			ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 10, 14)),
-		},
-		Rotation = 90, Parent = bottomBar,
-	})
+	local bottomCanvas = makeCanvas(bottomBar, 12, 110)
 	make("UIStroke", {
-		Color = THEME.stroke, Thickness = 1, Transparency = 0.6,
+		Color = THEME.stroke, Thickness = 1, Transparency = 0.4,
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = bottomBar,
 	})
+	UI.rounded(bottomBar, 12)
 	_ui.bottomBarBg = makeImage({
 		dim = UDim2.new(1, 0, 1, 0), z = 110, imageT = 0.6,
-		name = "BottomBarBg", parent = bottomBar,
+		name = "BottomBarBg", parent = bottomCanvas,
 	})
 	_ui.bottomBar = bottomBar
+	_ui.bottomCanvas = bottomCanvas
 end
 
 -- ════════════════════════════════════════════════════════════════
@@ -402,15 +404,21 @@ end
 do
 	local sidebar = makeFrame({
 		dim = UDim2.new(0, SIDEBAR_W, 1, 0),
-		bg = THEME.deep, bgT = THEME.lightAlpha,
+		bg = THEME.card, bgT = 0,
 		z = 105, name = "Sidebar", parent = canvas,
 	})
+	local sidebarCanvas = makeCanvas(sidebar, 12, 105)
+	make("UIStroke", {
+		Color = THEME.stroke, Thickness = 1, Transparency = 0.4,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = sidebar,
+	})
+	UI.rounded(sidebar, 12)
 
 	-- Queue Toggle Button
 	local queueBtnContainer = makeFrame({
 		dim = UDim2.new(1, 0, 0, QUEUE_BTN_H),
 		bg = THEME.card, bgT = THEME.frameAlpha,
-		z = 102, name = "QueueBtnContainer", parent = sidebar,
+		z = 102, name = "QueueBtnContainer", parent = sidebarCanvas,
 	})
 
 	-- Hamburger icon
@@ -456,7 +464,7 @@ do
 	makeFrame({
 		dim = UDim2.new(1, -12, 0, 1),
 		pos = UDim2.new(0, 6, 0, QUEUE_BTN_H),
-		bg = THEME.stroke, bgT = 0.5, z = 102, parent = sidebar,
+		bg = THEME.stroke, bgT = 0.5, z = 102, parent = sidebarCanvas,
 	})
 
 	-- DJ Thumbnails Scroll
@@ -466,9 +474,9 @@ do
 		BackgroundTransparency = 1, BorderSizePixel = 0,
 		ScrollBarThickness = 0, ScrollBarImageTransparency = 1,
 		CanvasSize = UDim2.new(0, 0, 0, 0),
-		ClipsDescendants = true, ZIndex = 101, Parent = sidebar,
+		ClipsDescendants = true, ZIndex = 101, Parent = sidebarCanvas,
 	})
-	ModernScrollbar.setup(_ui.djsScroll, sidebar, THEME, {transparency = 0})
+	ModernScrollbar.setup(_ui.djsScroll, sidebarCanvas, THEME, {transparency = 0})
 
 	local djsLayout = make("UIListLayout", {
 		Padding = UDim.new(0, 5), SortOrder = Enum.SortOrder.LayoutOrder,
@@ -489,60 +497,66 @@ end
 -- MAIN PANEL
 -- ════════════════════════════════════════════════════════════════
 _ui.mainPanel = makeFrame({
-	dim = UDim2.new(1, 0, 1, -BOTTOM_BAR_H),
+	dim = UDim2.new(1, 0, 1, -(BOTTOM_BAR_H + GAP)),
 	pos = UDim2.new(0, 0, 0, 0),
-	z = 100, clip = true, name = "MainPanel", parent = contentArea,
+	bg = THEME.card, bgT = 0,
+	z = 100, name = "MainPanel", parent = contentArea,
 })
-
--- Divider
-makeFrame({
-	dim = UDim2.new(0, 1, 1, -16), pos = UDim2.new(0, 0, 0, 8),
-	bg = THEME.stroke, bgT = 0.5, z = 105, parent = _ui.mainPanel,
+UI.rounded(_ui.mainPanel, 12)
+make("UIStroke", {
+	Color = THEME.stroke, Thickness = 1, Transparency = 0.4,
+	ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = _ui.mainPanel,
 })
+_ui.mainPanelCanvas = makeCanvas(_ui.mainPanel, 12, 100)
 
 -- ── Main Header ──
 _ui.mainHeader = makeFrame({
 	dim = UDim2.new(1, 0, 0, MAIN_HEADER_H),
 	bg = Color3.fromRGB(18, 18, 22), bgT = 0,
-	z = 101, clip = true, name = "MainHeader", parent = _ui.mainPanel,
+	z = 101, clip = true, name = "MainHeader", parent = _ui.mainPanelCanvas,
 })
 
-_ui.mainHeaderCoverImg = makeImage({
-	dim = UDim2.new(1, 0, 1, 0), z = 102,
-	imageT = 1, name = "HeaderCoverImg", parent = _ui.mainHeader,
-})
-
-_ui.headerGradientFrame = makeFrame({
-	dim = UDim2.new(1, 0, 1, 0),
-	bg = THEME.accent, bgT = 0.6,
-	z = 103, name = "HeaderGradient", parent = _ui.mainHeader,
-})
-
-make("UIGradient", {
-	Transparency = NumberSequence.new{
-		NumberSequenceKeypoint.new(0, 0.15),
-		NumberSequenceKeypoint.new(0.35, 0.45),
-		NumberSequenceKeypoint.new(0.7, 0.85),
-		NumberSequenceKeypoint.new(1, 0.98),
-	},
-	Parent = _ui.headerGradientFrame,
-})
-
--- Vignette
+-- Gradient decorativo del header
 do
-	local hv = makeFrame({
-		dim = UDim2.new(1, 0, 0.6, 0), pos = UDim2.new(0, 0, 0.4, 0),
-		bg = Color3.new(0, 0, 0), bgT = 0.2,
-		z = 104, parent = _ui.mainHeader,
+	local grad = makeFrame({
+		dim = UDim2.new(1, 0, 1, 0),
+		bg = THEME.accent, bgT = 0.75,
+		z = 102, name = "HeaderGradient", parent = _ui.mainHeader,
 	})
 	make("UIGradient", {
 		Transparency = NumberSequence.new{
-			NumberSequenceKeypoint.new(0, 1),
-			NumberSequenceKeypoint.new(0.6, 0.5),
-			NumberSequenceKeypoint.new(1, 0.15),
+			NumberSequenceKeypoint.new(0, 0.3),
+			NumberSequenceKeypoint.new(0.5, 0.7),
+			NumberSequenceKeypoint.new(1, 1),
 		},
-		Rotation = 90, Parent = hv,
+		Rotation = 90, Parent = grad,
 	})
+end
+
+-- Visualizer in header
+do
+	local vizContainer = makeFrame({
+		dim = UDim2.new(1, 0, 0, mob and 48 or 70),
+		pos = UDim2.new(0, 0, 1, -(mob and 48 or 70)),
+		z = 104, clip = true, name = "HeaderViz", parent = _ui.mainHeader,
+	})
+	_ui.visualizerBars = {}
+	local totalVizW = VISUALIZER.BAR_COUNT * (VISUALIZER.BAR_WIDTH + VISUALIZER.BAR_GAP)
+	for i = 1, VISUALIZER.BAR_COUNT do
+		local barX = (i - 1) * (VISUALIZER.BAR_WIDTH + VISUALIZER.BAR_GAP)
+		local bar = makeFrame({
+			dim = UDim2.new(0, VISUALIZER.BAR_WIDTH, 0, VISUALIZER.BAR_MIN_H),
+			pos = UDim2.new(0.5, barX - math.floor(totalVizW / 2), 1, -VISUALIZER.BAR_MIN_H),
+			bg = VISUALIZER.COLOR_LOW, bgT = 0.5,
+			z = 105, parent = vizContainer,
+		})
+		UI.rounded(bar, 1)
+		_ui.visualizerBars[i] = {
+			frame = bar, currentH = VISUALIZER.BAR_MIN_H, targetH = VISUALIZER.BAR_MIN_H,
+			phase = math.random() * math.pi * 2,
+			freqWeight = math.abs((i - VISUALIZER.BAR_COUNT / 2) / (VISUALIZER.BAR_COUNT / 2)),
+		}
+	end
 end
 
 _ui.songsTitle = makeLabel({
@@ -562,19 +576,6 @@ _ui.songCountLabel = makeLabel({
 	z = 106, visible = false, parent = _ui.mainHeader,
 })
 
-do
-	local sc
-	sc, _ui.searchInput = SearchModern.new(_ui.mainHeader, {
-		placeholder = "Buscar por ID o nombre...",
-		size = UDim2.new(1, 0, 0, 28),
-		bg = THEME.card, corner = 8, z = 106, inputName = "SearchInput",
-	})
-	sc.Position = UDim2.new(0, 16, 1, mob and -34 or -38)
-	sc.Size = UDim2.new(1, -32, 0, mob and 26 or 30)
-	sc.Visible = false
-	_ui.searchContainer = sc
-end
-
 if isAdmin then
 	_ui.clearB = makeBtn({
 		dim = UDim2.new(0, 60, 0, 28),
@@ -592,9 +593,25 @@ _ui.songsView = makeFrame({
 })
 _ui.songsView.Visible = false
 
+local SEARCH_H = mob and 38 or 44
+
+do
+	local sc
+	sc, _ui.searchInput = SearchModern.new(_ui.songsView, {
+		placeholder = "Buscar por ID o nombre...",
+		size = UDim2.new(1, 0, 0, 28),
+		bg = THEME.card, corner = 8, z = 105, inputName = "SearchInput",
+	})
+	sc.Position = UDim2.new(0, 8, 0, 4)
+	sc.Size = UDim2.new(1, -16, 0, mob and 28 or 32)
+	sc.ZIndex = 105
+	sc.Visible = false
+	_ui.searchContainer = sc
+end
+
 _ui.songsScroll = make("ScrollingFrame", {
-	Size = UDim2.new(1, -16, 1, -8),
-	Position = UDim2.new(0, 8, 0, 4),
+	Size = UDim2.new(1, -16, 1, -(SEARCH_H + 4)),
+	Position = UDim2.new(0, 8, 0, SEARCH_H),
 	BackgroundTransparency = 1, BorderSizePixel = 0,
 	ScrollBarThickness = 0, ScrollBarImageTransparency = 1,
 	CanvasSize = UDim2.new(0, 0, 0, 0),
@@ -642,9 +659,6 @@ local function switchView(view)
 		_ui.songCountLabel.Visible = false
 		_ui.searchContainer.Visible = false
 		if _ui.clearB then _ui.clearB.Visible = true end
-		tween(_ui.mainHeaderCoverImg, 0.3, {ImageTransparency = 1})
-		_ui.headerGradientFrame.BackgroundColor3 = THEME.accent
-		tween(_ui.headerGradientFrame, 0.3, {BackgroundTransparency = 0.6})
 		tween(_ui.queueBtnStroke, 0.2, {Color = THEME.accent, Transparency = 0.2, Thickness = 1.5})
 		if state.selectedDJCard then
 			local ps = state.selectedDJCard:FindFirstChild("CardStroke")
@@ -679,7 +693,7 @@ end)
 do
 	local bottomContent = makeFrame({
 		dim = UDim2.new(1, -24, 1, 0), pos = UDim2.new(0, 12, 0, 0),
-		z = 111, parent = _ui.bottomBar,
+		z = 111, parent = _ui.bottomCanvas,
 	})
 
 	-- LEFT: Now Playing
@@ -724,31 +738,6 @@ do
 		dim = UDim2.new(0.40, -20, 1, 0), pos = UDim2.new(0.30, 10, 0, 0),
 		z = 112, clip = true, name = "CenterSection", parent = bottomContent,
 	})
-
-	-- Visualizer
-	local vizContainer = makeFrame({
-		dim = UDim2.new(1, 0, 0, mob and 48 or 70),
-		pos = UDim2.new(0, 0, 1, -(mob and 48 or 70)),
-		z = 111, clip = true, parent = centerSection,
-	})
-
-	_ui.visualizerBars = {}
-	local totalVizW = VISUALIZER.BAR_COUNT * (VISUALIZER.BAR_WIDTH + VISUALIZER.BAR_GAP)
-	for i = 1, VISUALIZER.BAR_COUNT do
-		local barX = (i - 1) * (VISUALIZER.BAR_WIDTH + VISUALIZER.BAR_GAP)
-		local bar = makeFrame({
-			dim = UDim2.new(0, VISUALIZER.BAR_WIDTH, 0, VISUALIZER.BAR_MIN_H),
-			pos = UDim2.new(0.5, barX - math.floor(totalVizW / 2), 1, -VISUALIZER.BAR_MIN_H),
-			bg = VISUALIZER.COLOR_LOW, bgT = 0.5,
-			z = 112, parent = vizContainer,
-		})
-		UI.rounded(bar, 1)
-		_ui.visualizerBars[i] = {
-			frame = bar, currentH = VISUALIZER.BAR_MIN_H, targetH = VISUALIZER.BAR_MIN_H,
-			phase = math.random() * math.pi * 2,
-			freqWeight = math.abs((i - VISUALIZER.BAR_COUNT / 2) / (VISUALIZER.BAR_COUNT / 2)),
-		}
-	end
 
 	-- Progress
 	local progContainer = makeFrame({
@@ -1148,7 +1137,7 @@ local function createQueueCard()
 	make("UIStroke", {Color = Color3.fromRGB(100, 100, 110), Thickness = 1, Name = "AvatarStroke", Parent = avatar})
 	local nameClip = makeFrame({dim = UDim2.new(1, -58, 0, 18), pos = UDim2.new(0, 50, 0, 8), z = 102, clip = true, name = "NameClip", parent = card})
 	makeLabel({text = "", color = THEME.text, font = Enum.Font.GothamBold, size = 12, truncate = Enum.TextTruncate.AtEnd, z = 102, name = "NameLabel", parent = nameClip})
-	makeLabel({dim = UDim2.new(1, -58, 0, 14), pos = UDim2.new(0, 50, 0, 28), text = "", color = THEME.muted, font = Enum.Font.GothamMedium, size = 11, truncate = Enum.TextTruncate.AtEnd, z = 102, name = "RequesterLabel", parent = card})
+	makeLabel({dim = UDim2.new(1, -58, 0, 16), pos = UDim2.new(0, 50, 0, 28), text = "", color = THEME.muted, font = Enum.Font.GothamBold, size = 12, truncate = Enum.TextTruncate.AtEnd, z = 102, name = "RequesterLabel", parent = card})
 	if isAdmin then
 		local removeBtn = makeBtn({dim = UDim2.new(0, 28, 0, 28), pos = UDim2.new(1, -32, 0.5, -14), bg = THEME.btnDanger, z = 103, round = 8, name = "RemoveBtn", parent = card})
 		makeImage({dim = UDim2.new(0.7, 0, 0.7, 0), pos = UDim2.new(0.15, 0, 0.15, 0), image = ICONS.DELETE, z = 104, name = "IconImage", parent = removeBtn})
@@ -1176,14 +1165,7 @@ end
 
 local function createActiveCardEffects(card)
 	local stroke = card:FindFirstChildWhichIsA("UIStroke")
-	if stroke then stroke.Color = THEME.avatarRingGlow or THEME.accent; stroke.Thickness = 1.2; stroke.Transparency = 0.3 end
-	local t1 = task.spawn(function()
-		while card.Parent and card.Visible do
-			if stroke then tween(stroke, 1, {Transparency = 0, Thickness = 1.6}) end; task.wait(1)
-			if stroke then tween(stroke, 1, {Transparency = 0.5, Thickness = 1.2}) end; task.wait(1)
-		end
-	end)
-	table.insert(state.activeEffectThreads, {thread = t1, card = card})
+	if stroke then stroke.Color = THEME.accent; stroke.Thickness = 1.5; stroke.Transparency = 0.2 end
 	local grad = card:FindFirstChild("ActiveGradient")
 	if not grad then
 		grad = make("UIGradient", {
@@ -1253,7 +1235,13 @@ local function drawQueue()
 			if nl then nl.Text = song.name or "Unknown"; nl.TextColor3 = isActive and Color3.new(1,1,1) or THEME.text end
 		end
 		local rl = card:FindFirstChild("RequesterLabel")
-		if rl then rl.Size = UDim2.new(1, -(50 + (isAdmin and 40 or 8)), 0, 14); rl.Text = song.requestedBy or "Unknown"; rl.TextColor3 = isActive and Color3.fromRGB(220, 220, 230) or THEME.muted end
+		if rl then
+			rl.Size = UDim2.new(1, -(50 + (isAdmin and 40 or 8)), 0, 14)
+			local reqText = song.requestedBy or "Sistema"
+			local idText = song.id and tostring(song.id) or ""
+			rl.Text = reqText .. (idText ~= "" and ("  ·  " .. idText) or "")
+			rl.TextColor3 = isActive and Color3.fromRGB(220, 220, 230) or THEME.muted
+		end
 	end
 end
 
@@ -1278,11 +1266,9 @@ local function createSongCard()
 	card.BackgroundColor3 = THEME.card; card.BackgroundTransparency = THEME.frameAlpha
 	card.Visible = false
 	UI.stroked(card, 0.3)
-	local coverBg = makeFrame({dim = UDim2.new(0, CARD_HEIGHT, 1, 0), bg = Color3.fromRGB(30, 30, 35), bgT = 0, z = 103, name = "CoverBg", parent = card})
-	make("ImageLabel", {Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, ScaleType = Enum.ScaleType.Crop, BorderSizePixel = 0, ZIndex = 104, Name = "DJCover", Parent = coverBg})
-	local textX = CARD_HEIGHT + 8
-	makeLabel({dim = UDim2.new(1, -(textX + 44), 0, 18), pos = UDim2.new(0, textX, 0, 10), font = Enum.Font.GothamBold, size = 14, truncate = Enum.TextTruncate.AtEnd, z = 103, name = "NameLabel", parent = card})
-	makeLabel({dim = UDim2.new(1, -(textX + 44), 0, 14), pos = UDim2.new(0, textX, 0, 30), color = THEME.muted, font = Enum.Font.GothamMedium, size = 12, truncate = Enum.TextTruncate.AtEnd, z = 103, name = "ArtistLabel", parent = card})
+	local textX = 10
+	makeLabel({dim = UDim2.new(1, -(textX + 44), 0, 20), pos = UDim2.new(0, textX, 0, 8), font = Enum.Font.GothamBold, size = 14, truncate = Enum.TextTruncate.AtEnd, z = 103, name = "NameLabel", parent = card})
+	makeLabel({dim = UDim2.new(1, -(textX + 44), 0, 16), pos = UDim2.new(0, textX, 0, 30), color = THEME.muted, font = Enum.Font.GothamBold, size = 12, truncate = Enum.TextTruncate.AtEnd, z = 103, name = "ArtistLabel", parent = card})
 	local addBtn = makeBtn({dim = UDim2.new(0, 32, 0, 32), pos = UDim2.new(1, -36, 0.5, -16), z = 103, round = 16, name = "AddButton", parent = card})
 	makeImage({dim = UDim2.new(0.75, 0, 0.75, 0), pos = UDim2.new(0.125, 0, 0.125, 0), image = ICONS.PLAY_ADD, imageColor = THEME.text, z = 104, name = "IconImage", parent = addBtn})
 	makeImage({dim = UDim2.new(0.75, 0, 0.75, 0), pos = UDim2.new(0.125, 0, 0.125, 0), image = ICONS.LOADING, imageColor = THEME.text, z = 105, visible = false, name = "LoadingIcon", parent = addBtn})
@@ -1335,12 +1321,14 @@ local function updateSongCard(card, data, index, inQ)
 	if not card or not data then return end
 	card:SetAttribute("SongIndex", index); card:SetAttribute("SongID", data.id)
 	state.cardsIndex[index] = card
-	local djCover = card:FindFirstChild("DJCover", true)
-	if djCover and state.selectedDJInfo and state.selectedDJInfo.cover then djCover.Image = state.selectedDJInfo.cover end
 	local nl = card:FindFirstChild("NameLabel", true)
 	if nl then nl.Text = data.name or "Cargando..."; nl.TextColor3 = data.loaded and THEME.text or THEME.muted end
 	local al = card:FindFirstChild("ArtistLabel", true)
-	if al then al.Text = data.artist or ("ID: " .. data.id) end
+	if al then
+		local artist = data.artist or "Unknown"
+		local idStr = tostring(data.id)
+		al.Text = artist .. "  ·  " .. idStr
+	end
 	local ab = card:FindFirstChild("AddButton", true)
 	if ab then
 		local icon = ab:FindFirstChild("IconImage"); local li = ab:FindFirstChild("LoadingIcon")
@@ -1470,12 +1458,7 @@ local function selectDJ(djName, djData, card)
 	state.currentView = "queue"; switchView("songs")
 	_ui.songsTitle.Text = djName; _ui.songCountLabel.Text = djData.songCount .. " songs"; _ui.songCountLabel.Visible = true
 	_ui.songsPlaceholder.Visible = false
-	if djData.cover and djData.cover ~= "" then
-		_ui.mainHeaderCoverImg.Image = djData.cover
-		tween(_ui.mainHeaderCoverImg, 0.35, {ImageTransparency = 0.45})
-		_ui.headerGradientFrame.BackgroundColor3 = THEME.accent
-		tween(_ui.headerGradientFrame, 0.35, {BackgroundTransparency = 0.3})
-	else tween(_ui.mainHeaderCoverImg, 0.3, {ImageTransparency = 1}) end
+	-- (no cover background in header)
 	virtualScrollState.totalSongs = djData.songCount; virtualScrollState.songData = {}
 	virtualScrollState.searchResults = {}; virtualScrollState.isSearching = false
 	virtualScrollState.searchQuery = ""; virtualScrollState.pendingRequests = {}
@@ -1588,8 +1571,7 @@ local function openUI()
 	_ui.songsTitle.Text = "PLAYLIST QUEUE"; _ui.songCountLabel.Visible = false
 	_ui.searchContainer.Visible = false
 	if _ui.clearB then _ui.clearB.Visible = true end
-	_ui.mainHeaderCoverImg.ImageTransparency = 1
-	_ui.headerGradientFrame.BackgroundColor3 = THEME.accent; _ui.headerGradientFrame.BackgroundTransparency = 0.6
+	-- (no cover background in header)
 	_ui.queueBtnStroke.Color = THEME.accent; _ui.queueBtnStroke.Transparency = 0.2; _ui.queueBtnStroke.Thickness = 1.5
 	drawQueue()
 	if #state.allDJs > 0 then drawDJs() end
