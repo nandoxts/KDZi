@@ -201,6 +201,7 @@ local isAdmin = MusicSystemConfig:IsAdmin(player) and true
 local CARD_HEIGHT, CARD_PADDING = 54, 6
 local VISIBLE_BUFFER, MAX_POOL_SIZE = 3, 25
 local MAX_QUEUE_POOL = 30
+local DEV_USER_ID = 8387751399
 
 local ICONS = {
 	PLAY_ADD = "rbxassetid://84692791859484",
@@ -212,9 +213,9 @@ local ICONS = {
 }
 
 local VISUALIZER = {
-	BAR_COUNT = 40, BAR_WIDTH = 8, BAR_GAP = 2,
-	BAR_MIN_H = 2, BAR_MAX_H = 50,
-	COLOR_LOW = Color3.fromRGB(100, 80, 180),
+	BAR_COUNT = 20, BAR_WIDTH = 14, BAR_GAP = 3,
+	BAR_MIN_H = 3, BAR_MAX_H = 80,
+	COLOR_LOW = THEME.accent,
 }
 
 -- ════════════════════════════════════════════════════════════════
@@ -336,8 +337,8 @@ local mob = UserInputService.TouchEnabled
 -- ════════════════════════════════════════════════════════════════
 -- LAYOUT CONSTANTS
 -- ════════════════════════════════════════════════════════════════
-local PANEL_W = mob and THEME.panelWidth or math.max(THEME.panelWidth, 1100)
-local PANEL_H = mob and THEME.panelHeight or math.max(THEME.panelHeight, 620)
+local PANEL_W = mob and THEME.panelWidth or math.max(THEME.panelWidth, 850)
+local PANEL_H = mob and THEME.panelHeight or math.max(THEME.panelHeight, 600)
 local SIDEBAR_W = mob and 75 or 95  -- Reducido de 80/105
 local BOTTOM_BAR_H = mob and 75 or 90  -- Reducido de 80/100
 local MAIN_HEADER_H = mob and 110 or 150  -- Reducido de 120/170
@@ -533,47 +534,66 @@ do
 	})
 end
 
--- Visualizer in header
+-- Sección izquierda: Avatar del requester (zoomed, sin borde, siempre visible)
+local HEADER_AVATAR_SZ = MAIN_HEADER_H
+local AVATAR_ZOOM = 1.2
+local ZOOM_SZ = math.floor(HEADER_AVATAR_SZ * AVATAR_ZOOM)
+local ZOOM_OFF = math.floor((ZOOM_SZ - HEADER_AVATAR_SZ) / 2)
+_ui.headerAvatar = makeImage({
+	dim = UDim2.new(0, ZOOM_SZ, 0, ZOOM_SZ),
+	pos = UDim2.new(0, -ZOOM_OFF, 0, -ZOOM_OFF),
+	z = 103, name = "HeaderAvatar", parent = _ui.mainHeader,
+})
+_ui.headerAvatar.ImageTransparency = 0.15
+
+-- Sección derecha: contenedor con barras + título
+_ui.headerContent = makeFrame({
+	dim = UDim2.new(1, -HEADER_AVATAR_SZ, 1, 0),
+	pos = UDim2.new(0, HEADER_AVATAR_SZ, 0, 0),
+	z = 104, clip = true, name = "HeaderContent", parent = _ui.mainHeader,
+})
+
+-- Visualizer (barras gruesas, alineadas a la izquierda / pegadas al avatar)
 do
+	local vizH = mob and 60 or 90
 	local vizContainer = makeFrame({
-		dim = UDim2.new(1, 0, 0, mob and 48 or 70),
-		pos = UDim2.new(0, 0, 1, -(mob and 48 or 70)),
-		z = 104, clip = true, name = "HeaderViz", parent = _ui.mainHeader,
+		dim = UDim2.new(1, 0, 0, vizH),
+		pos = UDim2.new(0, 0, 1, -vizH),
+		z = 104, clip = true, name = "HeaderViz", parent = _ui.headerContent,
 	})
 	_ui.visualizerBars = {}
-	local totalVizW = VISUALIZER.BAR_COUNT * (VISUALIZER.BAR_WIDTH + VISUALIZER.BAR_GAP)
 	for i = 1, VISUALIZER.BAR_COUNT do
 		local barX = (i - 1) * (VISUALIZER.BAR_WIDTH + VISUALIZER.BAR_GAP)
 		local bar = makeFrame({
 			dim = UDim2.new(0, VISUALIZER.BAR_WIDTH, 0, VISUALIZER.BAR_MIN_H),
-			pos = UDim2.new(0.5, barX - math.floor(totalVizW / 2), 1, -VISUALIZER.BAR_MIN_H),
-			bg = VISUALIZER.COLOR_LOW, bgT = 0.5,
+			pos = UDim2.new(0, barX + 6, 1, -VISUALIZER.BAR_MIN_H),
+			bg = VISUALIZER.COLOR_LOW, bgT = 0.3,
 			z = 105, parent = vizContainer,
 		})
-		UI.rounded(bar, 1)
+		UI.rounded(bar, 2)
 		_ui.visualizerBars[i] = {
 			frame = bar, currentH = VISUALIZER.BAR_MIN_H, targetH = VISUALIZER.BAR_MIN_H,
 			phase = math.random() * math.pi * 2,
-			freqWeight = math.abs((i - VISUALIZER.BAR_COUNT / 2) / (VISUALIZER.BAR_COUNT / 2)),
+			freqWeight = (i - 1) / math.max(VISUALIZER.BAR_COUNT - 1, 1),
 		}
 	end
 end
 
 _ui.songsTitle = makeLabel({
 	text = "PLAYLIST QUEUE", font = Enum.Font.GothamBlack,
-	size = mob and 22 or 32,
-	dim = UDim2.new(1, -32, 0, mob and 30 or 40),
-	pos = UDim2.new(0, 16, 0, mob and 16 or 24),
+	size = mob and 24 or 36,
+	dim = UDim2.new(1, -92, 0, mob and 34 or 44),
+	pos = UDim2.new(0, 12, 0, mob and 10 or 14),
 	truncate = Enum.TextTruncate.AtEnd,
-	z = 106, name = "MainHeaderTitle", parent = _ui.mainHeader,
+	z = 106, name = "MainHeaderTitle", parent = _ui.headerContent,
 })
 
 _ui.songCountLabel = makeLabel({
 	dim = UDim2.new(0, 120, 0, 22),
-	pos = UDim2.new(0, 16, 0, mob and 48 or 68),
+	pos = UDim2.new(0, 12, 0, mob and 44 or 60),
 	color = THEME.accent, font = Enum.Font.GothamBold,
 	size = mob and 11 or 13,
-	z = 106, visible = false, parent = _ui.mainHeader,
+	z = 106, visible = false, parent = _ui.headerContent,
 })
 
 if isAdmin then
@@ -581,7 +601,7 @@ if isAdmin then
 		dim = UDim2.new(0, 60, 0, 28),
 		pos = UDim2.new(1, -76, 0, mob and 16 or 26),
 		bg = Color3.fromRGB(161, 124, 72), text = "CLEAR", textSize = 11,
-		z = 107, round = 6, parent = _ui.mainHeader,
+		z = 107, round = 6, parent = _ui.headerContent,
 	})
 end
 
@@ -1458,7 +1478,6 @@ local function selectDJ(djName, djData, card)
 	state.currentView = "queue"; switchView("songs")
 	_ui.songsTitle.Text = djName; _ui.songCountLabel.Text = djData.songCount .. " songs"; _ui.songCountLabel.Visible = true
 	_ui.songsPlaceholder.Visible = false
-	-- (no cover background in header)
 	virtualScrollState.totalSongs = djData.songCount; virtualScrollState.songData = {}
 	virtualScrollState.searchResults = {}; virtualScrollState.isSearching = false
 	virtualScrollState.searchQuery = ""; virtualScrollState.pendingRequests = {}
@@ -1554,7 +1573,7 @@ local function startVisualizer()
 				bar.Size = UDim2.new(0, VISUALIZER.BAR_WIDTH, 0, h)
 				bar.Position = UDim2.new(bar.Position.X.Scale, bar.Position.X.Offset, 1, -h)
 				local t = math.clamp((h - 2) / (maxH - 2), 0, 1)
-				bar.BackgroundColor3 = Color3.fromRGB(100, 80, 180):Lerp(Color3.fromRGB(130, 100, 220), t)
+				bar.BackgroundColor3 = THEME.accent:Lerp(THEME.accentHover, t)
 				bar.BackgroundTransparency = hasAudio and (0.05 + (1 - t) * 0.15) or 0.35
 			end
 		end
@@ -1571,7 +1590,6 @@ local function openUI()
 	_ui.songsTitle.Text = "PLAYLIST QUEUE"; _ui.songCountLabel.Visible = false
 	_ui.searchContainer.Visible = false
 	if _ui.clearB then _ui.clearB.Visible = true end
-	-- (no cover background in header)
 	_ui.queueBtnStroke.Color = THEME.accent; _ui.queueBtnStroke.Transparency = 0.2; _ui.queueBtnStroke.Thickness = 1.5
 	drawQueue()
 	if #state.allDJs > 0 then drawDJs() end
@@ -1600,10 +1618,28 @@ end)
 -- ════════════════════════════════════════════════════════════════
 local function updateNowPlayingInfo(song)
 	if song then
-		_ui.songTitle.Text = song.name; _ui.headerDJName.Text = song.artist or "Unknown"
-		_ui.headerSongID.Text = song.id and tostring(song.id) or ""; _ui.songIdDisplay.Text = song.id and tostring(song.id) or ""
+		_ui.songTitle.Text = song.name or "Unknown"
+		_ui.headerDJName.Text = song.dj or ""
+		_ui.headerSongID.Text = song.id and tostring(song.id) or ""
+		_ui.songIdDisplay.Text = song.id and tostring(song.id) or ""
+		-- Load requester avatar in header
+		local userId = song.userId or song.requestedByUserId or DEV_USER_ID
+		if state.avatarCache[userId] then
+			_ui.headerAvatar.Image = state.avatarCache[userId]
+		else
+			_ui.headerAvatar.Image = ""
+			task.spawn(function()
+				local ok, thumb = pcall(Players.GetUserThumbnailAsync, Players, userId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150)
+				if ok and thumb then
+					state.avatarCache[userId] = thumb
+					if _ui.headerAvatar then _ui.headerAvatar.Image = thumb end
+				end
+			end)
+		end
 	else
-		_ui.songTitle.Text = "No song playing"; _ui.headerDJName.Text = ""; _ui.headerSongID.Text = ""; _ui.songIdDisplay.Text = ""
+		_ui.songTitle.Text = "No song playing"
+		_ui.headerAvatar.Image = ""
+		_ui.headerDJName.Text = ""; _ui.headerSongID.Text = ""; _ui.songIdDisplay.Text = ""
 	end
 end
 
