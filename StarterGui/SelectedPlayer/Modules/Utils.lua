@@ -80,10 +80,8 @@ function Utils.darkenFullColor(color, amount)
 	return color:Lerp(Color3.new(0, 0, 0), amount)
 end
 
-function Utils.getPlayerColor(targetPlayer, ColorEffects)
-	if not ColorEffects or not targetPlayer then return Color3.fromRGB(255, 255, 255) end
-	local colorName = targetPlayer:GetAttribute("SelectedColor") or "default"
-	return ColorEffects.colors[colorName] or ColorEffects.defaultSelectedColor or Color3.fromRGB(0, 255, 0)
+function Utils.getPlayerColor()
+	return Color3.new(1, 1, 1)
 end
 
 -- ═══════════════════════════════════════════════════════════════
@@ -198,36 +196,6 @@ function Utils.createScreenGui(parent)
 end
 
 -- ═══════════════════════════════════════════════════════════════
--- ACTUALIZACIÓN DE STATS
--- ═══════════════════════════════════════════════════════════════
-
-function Utils.updateStats(data, excludeLikes, state)
-	if not data or not state.statsLabels then return end
-	for key, label in pairs(state.statsLabels) do
-		if (not excludeLikes or key ~= "likes") and data[key] and label and label.Parent then
-			label.Text = tostring(data[key] or 0)
-		end
-	end
-end
-
-function Utils.startAutoRefresh(state, remotes)
-	if state.refreshThread then task.cancel(state.refreshThread) end
-
-	state.refreshThread = task.spawn(function()
-		while state.ui and state.userId do
-			task.wait(Config.AUTO_REFRESH_INTERVAL)
-			if not state.ui then break end
-
-			local success, data = pcall(function()
-				return remotes.Remotes.GetUserData:InvokeServer(state.userId)
-			end)
-
-			if success then Utils.updateStats(data, true, state) end
-		end
-	end)
-end
-
--- ═══════════════════════════════════════════════════════════════
 -- HIGHLIGHT CON FADE OUT SUAVE
 -- ═══════════════════════════════════════════════════════════════
 
@@ -240,21 +208,15 @@ local function cancelHighlightTweens()
 	if fadeInTween then pcall(function() fadeInTween:Cancel() end) fadeInTween = nil end
 end
 
-local function getHighlightColor(targetPlayer, ColorEffects)
-	if not ColorEffects or not targetPlayer then
-		return Color3.fromRGB(255, 255, 255)
-	end
-
-	return ColorEffects.colors[targetPlayer:GetAttribute("SelectedColor") or "default"]
-		or ColorEffects.defaultSelectedColor
-		or Color3.fromRGB(0, 255, 0)
+local function getHighlightColor()
+	return Color3.new(1, 1, 1)
 end
 
 -- ═══════════════════════════════════════════════════════════════
 -- HIGHLIGHT (SUAVE CON BORDECITO)
 -- ═══════════════════════════════════════════════════════════════
 
-function Utils.setHighlightTarget(targetPlayer, state, ColorEffects)
+function Utils.setHighlightTarget(targetPlayer, state)
 	if not state or not state.highlight then return end
 
 	highlightTransitionId = highlightTransitionId + 1
@@ -289,7 +251,7 @@ function Utils.setHighlightTarget(targetPlayer, state, ColorEffects)
 		return
 	end
 
-	local color = getHighlightColor(targetPlayer, ColorEffects)
+	local color = getHighlightColor()
 
 	-- Configurar colores y empezar invisible
 	state.highlight.FillColor = color
@@ -308,8 +270,8 @@ function Utils.setHighlightTarget(targetPlayer, state, ColorEffects)
 	fadeInTween:Play()
 end
 
-function Utils.attachHighlight(targetPlayer, state, ColorEffects)
-	Utils.setHighlightTarget(targetPlayer, state, ColorEffects)
+function Utils.attachHighlight(targetPlayer, state)
+	Utils.setHighlightTarget(targetPlayer, state)
 end
 
 function Utils.detachHighlight(state)

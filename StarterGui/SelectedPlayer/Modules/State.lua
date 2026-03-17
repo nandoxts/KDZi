@@ -16,7 +16,6 @@ return {
 	ui = nil,
 	container = nil,
 	panel = nil,
-	statsLabels = {},
 
 	-- Target
 	userId = nil,
@@ -31,7 +30,7 @@ return {
 
 	-- Vistas
 	buttonsFrame = nil,
-	donationOverlay = nil,
+	bioLabel = nil,
 
 	-- Conexiones
 	connections = {},

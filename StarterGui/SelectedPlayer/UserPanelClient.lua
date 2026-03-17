@@ -19,7 +19,6 @@ local State = require(Modules.State)
 local RemotesSetup = require(Modules.RemotesSetup)
 local Utils = require(Modules.Utils)
 local SyncSystem = require(Modules.SyncSystem)
-local LikesSystem = require(Modules.LikesSystem)
 local InputHandler = require(Modules.InputHandler)
 local PanelView = require(Modules.PanelView)
 
@@ -29,11 +28,9 @@ local PanelView = require(Modules.PanelView)
 local Remotes = RemotesSetup()
 local Services = Remotes.Services
 local player = Services.Player
-local ColorEffects = Remotes.Systems.ColorEffects
 
 Utils.init(Config, State)
 SyncSystem.init(Remotes, State)
-LikesSystem.init(Remotes, State, Config)
 PanelView.init(Config, State, Utils, Remotes)
 
 -- ═══════════════════════════════════════════════════════════════
@@ -67,7 +64,7 @@ local function closePanel()
 	end)
 
 	-- Quitar highlight
-	Utils.setHighlightTarget(nil, State, ColorEffects)
+	Utils.setHighlightTarget(nil, State)
 
 	-- Limpiar conexiones y tweens
 	PanelView.cleanupTweens()
@@ -80,17 +77,12 @@ local function closePanel()
 	State.container = nil
 	State.panel = nil
 	State.buttonsFrame = nil
-	State.buttonsOverlay = nil
-	State.donationOverlay = nil
-	State.statsLabels = {}
+	State.bioLabel = nil
 	State.isLoadingDynamic = false
 	State.dragging = false
 	State.closing = false
 	State.isPanelOpening = false
 	State.playerColor = nil
-	State.panelBgImage = nil
-	State.panelStroke = nil
-	State.panelContainer = nil
 
 	-- Animar cierre visualmente (sobre las referencias capturadas)
 	if closingContainer and closingContainer.Parent then
@@ -134,13 +126,10 @@ local function openPanel(target)
 		displayName = target.DisplayName,
 		isPremium   = (target.MembershipType == Enum.MembershipType.Premium),
 		avatar      = Utils.getAvatarImage(target.UserId),
-		followers   = 0,
-		friends     = 0,
-		likes       = 0,
 	}
 
 	-- PASO 1: MOSTRAR HIGHLIGHT PRIMERO
-	Utils.setHighlightTarget(target, State, ColorEffects)
+	Utils.setHighlightTarget(target, State)
 
 	-- PASO 2: CREAR PANEL con datos básicos (aparece rápido)
 	local success, result = pcall(PanelView.createPanel, initialData)
@@ -157,20 +146,18 @@ local function openPanel(target)
 			end
 		end)
 
-		-- PASO 3: Pedir data real al server (responde del caché → instantáneo)
-		task.spawn(function()
-			local ok, data = pcall(function()
-				return Remotes.Remotes.GetUserData:InvokeServer(target.UserId)
-			end)
-			if ok and data and State.ui and State.userId == target.UserId then
-				-- Actualizar stats en vivo
-				Utils.updateStats(data, true, State)
-				-- Aplicar fondo VIP si corresponde
-				if data.isVip and data.groupIcon then
-					PanelView.applyVipBackground(data.groupIcon, State.playerColor)
+			-- Cargar descripción del perfil (async)
+			task.spawn(function()
+				local ok, data = pcall(function()
+					return Remotes.Remotes.GetUserData:InvokeServer(target.UserId)
+				end)
+				if ok and data and data.description and data.description ~= "" then
+					if State.bioLabel and State.userId == target.UserId then
+						State.bioLabel.Text = '"' .. data.description .. '"'
+						State.bioLabel.Visible = true
+					end
 				end
-			end
-		end)
+			end)
 
 		State.isPanelOpening = false
 	else

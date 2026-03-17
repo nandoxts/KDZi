@@ -27,9 +27,6 @@ return function()
 	-- Sistema de sincronización
 	local RemotesSync = remoteGlobal:FindFirstChild("Emotes_Sync")
 
-	-- Sistema de likes
-	local LikesEvents = remoteGlobal:WaitForChild("LikesEvents")
-
 	-- Sistema de SelectedPlayer
 	local SelectedPlayerModule = remoteGlobal:FindFirstChild("SelectedPlayer")
 
@@ -49,9 +46,8 @@ return function()
 		NotificationSystem = require(NotifModule)
 	end)
 
-	-- ColorEffects
+	-- Highlight
 	local Highlight = SelectedPlayerModule and SelectedPlayerModule:FindFirstChild("Highlight")
-	local ColorEffects = ReplicatedStorage:FindFirstChild("Config") and require(ReplicatedStorage.Config.ColorConfig) or nil
 
 
 	-- Configuration
@@ -82,9 +78,6 @@ return function()
 		-- Remotes de UserPanel
 		Remotes = {
 			GetUserData      = remotesFolder:WaitForChild("GetUserData"),
-			GetUserDonations = remotesFolder:WaitForChild("GetUserDonations"),
-			DonationNotify   = remotesFolder:FindFirstChild("DonationNotify"),
-			DonationMessage  = remotesFolder:FindFirstChild("DonationMessage"),
 			CheckGamePass    = remotesFolder:WaitForChild("CheckGamePass")
 		},
 
@@ -95,17 +88,10 @@ return function()
 			SyncUpdate = RemotesSync and RemotesSync:FindFirstChild("SyncUpdate")
 		},
 
-		-- Sistema de Likes
-		Likes = {
-			GiveLikeEvent = LikesEvents and (LikesEvents:FindFirstChild("GiveLikeEvent") or LikesEvents:WaitForChild("GiveLikeEvent", 2)),
-			GiveSuperLikeEvent = LikesEvents and (LikesEvents:FindFirstChild("GiveSuperLikeEvent") or LikesEvents:WaitForChild("GiveSuperLikeEvent", 2))
-		},
-
 		-- Sistemas
 		Systems = {
 			GlobalModalManager = GlobalModalManager,
 			NotificationSystem = NotificationSystem,
-			ColorEffects = ColorEffects,
 			Configuration = Configuration
 		}
 	}
