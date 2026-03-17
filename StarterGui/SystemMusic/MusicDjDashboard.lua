@@ -382,18 +382,29 @@ do
 	local bottomBar = makeFrame({
 		dim = UDim2.new(1, 0, 0, BOTTOM_BAR_H),
 		pos = UDim2.new(0, 0, 1, -BOTTOM_BAR_H),
-		bg = Color3.fromRGB(14, 14, 18), bgT = 0,
+		bg = Color3.fromRGB(18, 18, 22), bgT = 0,
 		z = 110, name = "BottomBar", parent = contentArea,
 	})
 	local bottomCanvas = makeCanvas(bottomBar, 12, 110)
+	-- UIStroke en el CanvasGroup, no en el Frame, para evitar que el composite lo sobrescriba
 	make("UIStroke", {
 		Color = THEME.stroke, Thickness = 1, Transparency = 0.4,
-		ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = bottomBar,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = bottomCanvas,
 	})
 	UI.rounded(bottomBar, 12)
-	_ui.bottomBarBg = makeImage({
-		dim = UDim2.new(1, 0, 1, 0), z = 110, imageT = 0.6,
-		name = "BottomBarBg", parent = bottomCanvas,
+	-- Gradient igual al header
+	local bbGrad = makeFrame({
+		dim = UDim2.new(1, 0, 1, 0),
+		bg = THEME.accent, bgT = 0.75,
+		z = 110, name = "BottomBarGradient", parent = bottomCanvas,
+	})
+	make("UIGradient", {
+		Transparency = NumberSequence.new{
+			NumberSequenceKeypoint.new(0, 0.3),
+			NumberSequenceKeypoint.new(0.5, 0.7),
+			NumberSequenceKeypoint.new(1, 1),
+		},
+		Rotation = 90, Parent = bbGrad,
 	})
 	_ui.bottomBar = bottomBar
 	_ui.bottomCanvas = bottomCanvas
@@ -409,9 +420,10 @@ do
 		z = 105, name = "Sidebar", parent = canvas,
 	})
 	local sidebarCanvas = makeCanvas(sidebar, 12, 105)
+	-- UIStroke en el CanvasGroup, no en el Frame
 	make("UIStroke", {
 		Color = THEME.stroke, Thickness = 1, Transparency = 0.4,
-		ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = sidebar,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = sidebarCanvas,
 	})
 	UI.rounded(sidebar, 12)
 
@@ -421,6 +433,8 @@ do
 		bg = THEME.card, bgT = THEME.lightAlpha,
 		z = 102, name = "QueueBtnContainer", parent = sidebarCanvas,
 	})
+	-- UICorner para que el queueBtnStroke no se recorte en las esquinas del sidebarCanvas
+	UI.rounded(queueBtnContainer, 12)
 
 	-- Hamburger icon
 	do
@@ -504,12 +518,12 @@ _ui.mainPanel = makeFrame({
 	z = 100, name = "MainPanel", parent = contentArea,
 })
 UI.rounded(_ui.mainPanel, 12)
+_ui.mainPanelCanvas = makeCanvas(_ui.mainPanel, 12, 100)
+-- UIStroke en el CanvasGroup, no en el Frame
 make("UIStroke", {
 	Color = THEME.stroke, Thickness = 1, Transparency = 0.4,
-	ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = _ui.mainPanel,
+	ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = _ui.mainPanelCanvas,
 })
-_ui.mainPanelCanvas = makeCanvas(_ui.mainPanel, 12, 100)
-
 -- ── Main Header ──
 _ui.mainHeader = makeFrame({
 	dim = UDim2.new(1, 0, 0, MAIN_HEADER_H),
@@ -756,7 +770,7 @@ do
 	-- CENTER: Progress + Visualizer + Quick Add
 	local centerSection = makeFrame({
 		dim = UDim2.new(0.40, -20, 1, 0), pos = UDim2.new(0.30, 10, 0, 0),
-		z = 112, clip = true, name = "CenterSection", parent = bottomContent,
+		z = 112, clip = false, name = "CenterSection", parent = bottomContent,
 	})
 
 	-- Progress
@@ -812,14 +826,12 @@ do
 		if #_ui.quickInput.Text > 19 then _ui.quickInput.Text = string.sub(_ui.quickInput.Text, 1, 19) end
 	end)
 
-	_ui.quickAddBtn = makeBtn({
-		dim = UDim2.new(0, 40, 0, 34), pos = UDim2.new(1, -44, 0.5, -17),
-		bg = THEME.accent, z = 114, round = 6, parent = qaFrame,
+	_ui.quickAddBtn, _ui.quickAddBtnImg = UI.outlinedCircleBtn(qaFrame, {
+		size = 34, icon = UI.ICONS.PLAY_ADD,
+		zIndex = 114, position = UDim2.new(1, -40, 0.5, -17),
+		name = "QuickAddBtn",
 	})
-	_ui.quickAddBtnImg = makeImage({
-		dim = UDim2.new(0.65, 0, 0.65, 0), pos = UDim2.new(0.175, 0, 0.175, 0),
-		image = ICONS.PLAY_ADD, z = 115, parent = _ui.quickAddBtn,
-	})
+	_ui.quickAddBtnStroke = _ui.quickAddBtn:FindFirstChildWhichIsA("UIStroke")
 	_ui.quickAddBtnLoading = makeImage({
 		dim = UDim2.new(0.65, 0, 0.65, 0), pos = UDim2.new(0.175, 0, 0.175, 0),
 		image = ICONS.LOADING, z = 116, visible = false, parent = _ui.quickAddBtn,
@@ -845,65 +857,61 @@ do
 	})
 	make("UIPadding", {PaddingRight = UDim.new(0, 4), Parent = rightSection})
 
-	_ui.skipB = makeBtn({
-		dim = UDim2.new(0, 70, 0, 34), bg = THEME.accent,
-		text = "Skip", textSize = 13, z = 113,
-		round = 8, parent = rightSection,
+	_ui.skipB = UI.outlinedCircleBtn(rightSection, {
+		size = 36, icon = UI.ICONS.SKIP, zIndex = 113, name = "SkipBtn",
 	})
 	_ui.skipB.LayoutOrder = 2
 
-	local volFrame = makeFrame({
-		dim = UDim2.new(0, 150, 0, 36), z = 113, parent = rightSection,
+	-- Volume slider (rectangular card)
+	local volSliderFrame = makeFrame({
+		dim = UDim2.new(0, 130, 0, 52),
+		bg = THEME.card, bgT = THEME.lightAlpha,
+		z = 113, parent = rightSection,
 	})
-	volFrame.LayoutOrder = 1
-	make("UIListLayout", {
-		FillDirection = Enum.FillDirection.Horizontal,
-		VerticalAlignment = Enum.VerticalAlignment.Center,
-		HorizontalAlignment = Enum.HorizontalAlignment.Center,
-		Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder,
-		Parent = volFrame,
-	})
-
-	_ui.volDownBtn = makeBtn({
-		dim = UDim2.new(0, 36, 0, 36), bg = THEME.elevated, z = 114,
-		round = 8, parent = volFrame,
-	})
-	_ui.volDownBtn.LayoutOrder = 1
-	if ICONS.VOL_DOWN ~= "" then
-		makeImage({dim = UDim2.new(0.65,0,0.65,0), pos = UDim2.new(0.175,0,0.175,0), image = ICONS.VOL_DOWN, z = 115, parent = _ui.volDownBtn})
-	end
-
-	local volSlot = makeFrame({
-		dim = UDim2.new(0, 60, 0, 36), bg = THEME.card, bgT = THEME.lightAlpha,
-		z = 114, parent = volFrame,
-	})
-	volSlot.LayoutOrder = 2
-	UI.rounded(volSlot, 6)
+	volSliderFrame.LayoutOrder = 1
+	UI.rounded(volSliderFrame, 8)
+	UI.stroked(volSliderFrame, 0.4)
 
 	_ui.volLabelText = makeLabel({
-		dim = UDim2.new(1, 0, 1, 0), text = "100%",
+		dim = UDim2.new(1, 0, 0, 16),
+		pos = UDim2.new(0, 0, 0, 8),
+		text = "100%",
 		color = THEME.text, font = Enum.Font.GothamBold,
-		size = 13, alignX = Enum.TextXAlignment.Center, z = 115, parent = volSlot,
+		size = mob and 10 or 12,
+		alignX = Enum.TextXAlignment.Center,
+		z = 114, name = "VolLabel", parent = volSliderFrame,
 	})
 
-	_ui.volInput = make("TextBox", {
-		Size = UDim2.new(1, 0, 1, 0), Position = UDim2.new(0, 0, 0, 0),
-		BackgroundColor3 = THEME.elevated, Text = "",
-		TextColor3 = THEME.text, Font = Enum.Font.GothamBold, TextSize = 13,
-		BorderSizePixel = 0, ZIndex = 116, Visible = false,
-		ClearTextOnFocus = false, TextXAlignment = Enum.TextXAlignment.Center,
-		Parent = volSlot,
+	local volTrack = makeFrame({
+		dim = UDim2.new(1, -20, 0, 8),
+		pos = UDim2.new(0, 10, 0, 32),
+		bg = Color3.fromRGB(40, 40, 52), bgT = 0,
+		z = 114, name = "VolTrack", parent = volSliderFrame,
 	})
-	UI.rounded(_ui.volInput, 6)
+	UI.rounded(volTrack, 4)
 
-	_ui.volUpBtn = makeBtn({
-		dim = UDim2.new(0, 36, 0, 36), bg = THEME.elevated, z = 114,
-		round = 8, parent = volFrame,
+	_ui.volFill = makeFrame({
+		dim = UDim2.new(1, 0, 1, 0),
+		bg = THEME.accent, bgT = 0,
+		z = 115, name = "VolFill", parent = volTrack,
 	})
-	_ui.volUpBtn.LayoutOrder = 3
-	if ICONS.VOL_UP ~= "" then
-		makeImage({dim = UDim2.new(0.65,0,0.65,0), pos = UDim2.new(0.175,0,0.175,0), image = ICONS.VOL_UP, z = 115, parent = _ui.volUpBtn})
-	end
+	UI.rounded(_ui.volFill, 4)
+
+	_ui.volKnob = makeFrame({
+		dim = UDim2.new(0, 14, 0, 14),
+		pos = UDim2.new(1, -7, 0.5, -7),
+		bg = Color3.new(1, 1, 1), bgT = 0,
+		z = 116, name = "VolKnob", parent = volTrack,
+	})
+	UI.rounded(_ui.volKnob, 7)
+
+	_ui.volDragBtn = make("TextButton", {
+		Size = UDim2.new(1, 0, 1, 20),
+		Position = UDim2.new(0, 0, 0, -12),
+		BackgroundTransparency = 1, Text = "",
+		BorderSizePixel = 0, AutoButtonColor = false,
+		ZIndex = 117, Name = "VolDragBtn", Parent = volSliderFrame,
+	})
 end
 
 -- ════════════════════════════════════════════════════════════════
@@ -926,6 +934,7 @@ local function setAddButtonState(st, customMessage)
 	state.isAddingToQueue = s.adding
 	_ui.quickAddBtn.BackgroundColor3 = s.bg
 	_ui.qiStroke.Color = s.stroke
+	if _ui.quickAddBtnStroke then _ui.quickAddBtnStroke.Color = s.stroke end
 	_ui.quickAddBtn.AutoButtonColor = s.auto ~= false
 
 	if st == "loading" then
@@ -1025,9 +1034,16 @@ local VOL_STEP = (maxVolume - minVolume) * 0.05
 
 local function updateVolumeDisplay()
 	if isMusicMuted() then
-		_ui.volLabelText.Text = "MUTE"; _ui.volLabelText.TextColor3 = Color3.fromRGB(200, 80, 80)
+		_ui.volLabelText.Text = "MUTE"
+		_ui.volLabelText.TextColor3 = Color3.fromRGB(200, 80, 80)
+		if _ui.volFill then tween(_ui.volFill, 0.1, {Size = UDim2.new(0, 0, 1, 0)}) end
+		if _ui.volKnob then tween(_ui.volKnob, 0.1, {Position = UDim2.new(0, -6, 0.5, -6)}) end
 	else
-		_ui.volLabelText.Text = math.floor(currentVolume * 100) .. "%"; _ui.volLabelText.TextColor3 = THEME.text
+		local frac = math.clamp((currentVolume - minVolume) / math.max(maxVolume - minVolume, 0.001), 0, 1)
+		_ui.volLabelText.Text = math.floor(currentVolume * 100) .. "%"
+		_ui.volLabelText.TextColor3 = THEME.text
+		if _ui.volFill then tween(_ui.volFill, 0.1, {Size = UDim2.new(frac, 0, 1, 0)}) end
+		if _ui.volKnob then tween(_ui.volKnob, 0.1, {Position = UDim2.new(frac, -6, 0.5, -6)}) end
 	end
 end
 
@@ -1068,40 +1084,33 @@ local function handleMuteCheck()
 	return false
 end
 
-_ui.volDownBtn.MouseButton1Click:Connect(function()
-	if handleMuteCheck() then return end; updateVolume(currentVolume - VOL_STEP)
-end)
-_ui.volUpBtn.MouseButton1Click:Connect(function()
-	if handleMuteCheck() then return end; updateVolume(currentVolume + VOL_STEP)
-end)
-addHover(_ui.volDownBtn, THEME.elevated, THEME.elevated, THEME.lightAlpha)
-addHover(_ui.volUpBtn, THEME.elevated, THEME.elevated, THEME.lightAlpha)
-
-_ui.volLabelText.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		if handleMuteCheck() then return end
-		_ui.volInput.Text = tostring(math.floor(currentVolume * 100))
-		_ui.volInput.Visible = true; _ui.volLabelText.Visible = false
-		_ui.volInput:CaptureFocus()
+-- Slider de volumen (drag)
+do
+	local isDragging = false
+	local function getFracFromPos(inputPos)
+		local at = _ui.volFill.Parent.AbsolutePosition
+		local as = _ui.volFill.Parent.AbsoluteSize
+		return math.clamp((inputPos.X - at.X) / math.max(as.X, 1), 0, 1)
 	end
-end)
-
-_ui.volInput:GetPropertyChangedSignal("Text"):Connect(function()
-	local text = _ui.volInput.Text:gsub("[^%d]", "")
-	if #text > 3 then text = string.sub(text, 1, 3) end
-	local v = tonumber(text)
-	local maxP = math.floor(maxVolume * 100)
-	if v and v > maxP then text = tostring(maxP) end
-	_ui.volInput.Text = text
-end)
-
-local function applyVolumeInput()
-	local parsed = tonumber(_ui.volInput.Text)
-	updateVolume(parsed and math.clamp(parsed, 0, math.floor(maxVolume * 100)) / 100 or currentVolume)
-	_ui.volInput.Visible = false; _ui.volLabelText.Visible = true
+	local function applyFrac(frac)
+		updateVolume(minVolume + frac * (maxVolume - minVolume))
+	end
+	_ui.volDragBtn.MouseButton1Down:Connect(function()
+		if handleMuteCheck() then return end
+		isDragging = true
+		applyFrac(getFracFromPos(UserInputService:GetMouseLocation()))
+	end)
+	UserInputService.InputChanged:Connect(function(inp)
+		if isDragging and inp.UserInputType == Enum.UserInputType.MouseMovement then
+			applyFrac(getFracFromPos(inp.Position))
+		end
+	end)
+	UserInputService.InputEnded:Connect(function(inp)
+		if inp.UserInputType == Enum.UserInputType.MouseButton1 then
+			isDragging = false
+		end
+	end)
 end
-
-_ui.volInput.FocusLost:Connect(applyVolumeInput)
 
 -- ════════════════════════════════════════════════════════════════
 -- SKIP/CLEAR LOGIC
@@ -1289,8 +1298,12 @@ local function createSongCard()
 	local textX = 10
 	makeLabel({dim = UDim2.new(1, -(textX + 44), 0, 20), pos = UDim2.new(0, textX, 0, 8), font = Enum.Font.GothamBold, size = 14, truncate = Enum.TextTruncate.AtEnd, z = 103, name = "NameLabel", parent = card})
 	makeLabel({dim = UDim2.new(1, -(textX + 44), 0, 16), pos = UDim2.new(0, textX, 0, 30), color = THEME.muted, font = Enum.Font.GothamBold, size = 12, truncate = Enum.TextTruncate.AtEnd, z = 103, name = "ArtistLabel", parent = card})
-	local addBtn = makeBtn({dim = UDim2.new(0, 32, 0, 32), pos = UDim2.new(1, -36, 0.5, -16), z = 103, round = 16, name = "AddButton", parent = card})
-	makeImage({dim = UDim2.new(0.75, 0, 0.75, 0), pos = UDim2.new(0.125, 0, 0.125, 0), image = ICONS.PLAY_ADD, imageColor = THEME.text, z = 104, name = "IconImage", parent = addBtn})
+	local addBtn = UI.outlinedCircleBtn(card, {
+		size = 32, icon = UI.ICONS.PLAY_ADD,
+		zIndex = 103, position = UDim2.new(1, -36, 0.5, -16),
+		name = "AddButton",
+		theme = {stroke = THEME.stroke, dim = THEME.text},
+	})
 	makeImage({dim = UDim2.new(0.75, 0, 0.75, 0), pos = UDim2.new(0.125, 0, 0.125, 0), image = ICONS.LOADING, imageColor = THEME.text, z = 105, visible = false, name = "LoadingIcon", parent = addBtn})
 	addBtn.MouseButton1Click:Connect(function()
 		local songId = card:GetAttribute("SongID")
@@ -1306,7 +1319,9 @@ local function createSongCard()
 					tw:Play(); while loadingIcon.Visible do task.wait(0.1) end; if tw then tw:Cancel() end
 				end)
 			end
-			addBtn.BackgroundColor3 = THEME.surface; addBtn.AutoButtonColor = false
+			local s = addBtn:FindFirstChildWhichIsA("UIStroke")
+			if s then s.Color = THEME.accent end
+			addBtn.AutoButtonColor = false
 			if R.Add then R.Add:FireServer(songId) end
 		end
 	end)
@@ -1352,10 +1367,22 @@ local function updateSongCard(card, data, index, inQ)
 	local ab = card:FindFirstChild("AddButton", true)
 	if ab then
 		local icon = ab:FindFirstChild("IconImage"); local li = ab:FindFirstChild("LoadingIcon")
+		local abStroke = ab:FindFirstChildWhichIsA("UIStroke")
 		local isPending = state.pendingCardSongIds[data.id]
-		if isPending then ab.BackgroundColor3 = THEME.surface; ab.AutoButtonColor = false; if icon then icon.Visible = false end; if li then li.Visible = true end
-		elseif inQ then ab.BackgroundColor3 = THEME.success; ab.AutoButtonColor = false; if icon then icon.Image = ICONS.CHECK; icon.ImageColor3 = Color3.new(1,1,1); icon.Visible = true end; if li then li.Visible = false end
-		else ab.BackgroundColor3 = Color3.fromRGB(60, 60, 68); ab.AutoButtonColor = true; if icon then icon.Image = ICONS.PLAY_ADD; icon.ImageColor3 = THEME.text; icon.Visible = true end; if li then li.Visible = false end
+		if isPending then
+			ab.BackgroundTransparency = 1; ab.AutoButtonColor = false
+			if abStroke then abStroke.Color = THEME.accent end
+			if icon then icon.Visible = false end; if li then li.Visible = true end
+		elseif inQ then
+			ab.BackgroundTransparency = 0; ab.BackgroundColor3 = THEME.success; ab.AutoButtonColor = false
+			if abStroke then abStroke.Color = THEME.success end
+			if icon then icon.Image = ICONS.CHECK; icon.ImageColor3 = Color3.new(1,1,1); icon.Visible = true end
+			if li then li.Visible = false end
+		else
+			ab.BackgroundTransparency = 1; ab.AutoButtonColor = true
+			if abStroke then abStroke.Color = THEME.stroke end
+			if icon then icon.Image = ICONS.PLAY_ADD; icon.ImageColor3 = THEME.text; icon.Visible = true end
+			if li then li.Visible = false end
 		end
 	end
 	card.Position = UDim2.new(0, 4, 0, (index - 1) * (CARD_HEIGHT + CARD_PADDING)); card.Visible = true
@@ -1433,17 +1460,17 @@ local function updateHeaderCover(song)
 	if not song then
 		if state.currentHeaderCover ~= "" then
 			state.currentHeaderCover = ""
-			TweenService:Create(_ui.bottomBarBg, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {ImageTransparency = 1}):Play()
-			task.delay(0.3, function() _ui.miniCover.Image = ""; _ui.bottomBarBg.Image = ""; _ui.headerDJName.Text = "" end)
+			task.delay(0.1, function()
+				if _ui.miniCover then _ui.miniCover.Image = "" end
+				if _ui.headerDJName then _ui.headerDJName.Text = "" end
+			end)
 		end; return
 	end
 	local cover = song.djCover or ""
 	if cover ~= state.currentHeaderCover then
 		state.currentHeaderCover = cover
-		TweenService:Create(_ui.bottomBarBg, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {ImageTransparency = 1}):Play()
-		task.delay(0.25, function()
-			_ui.miniCover.Image = cover; _ui.bottomBarBg.Image = cover
-			TweenService:Create(_ui.bottomBarBg, TweenInfo.new(0.35, Enum.EasingStyle.Quad), {ImageTransparency = 0.6}):Play()
+		task.delay(0, function()
+			if _ui.miniCover then _ui.miniCover.Image = cover end
 		end)
 	end
 	_ui.headerDJName.Text = song.dj or ""
@@ -1609,8 +1636,7 @@ end
 -- ════════════════════════════════════════════════════════════════
 UserInputService.InputBegan:Connect(function(input, gp)
 	if gp then return end
-	if input.KeyCode == Enum.KeyCode.Escape and modal:isModalOpen() then GlobalModalManager:closeModal("Music")
-	elseif input.KeyCode == Enum.KeyCode.Return and _ui.volInput.Visible then applyVolumeInput() end
+	if input.KeyCode == Enum.KeyCode.Escape and modal:isModalOpen() then GlobalModalManager:closeModal("Music") end
 end)
 
 -- ════════════════════════════════════════════════════════════════
