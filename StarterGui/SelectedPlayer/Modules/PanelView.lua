@@ -192,10 +192,19 @@ local function setupAddFriendButton(btn, target)
 	refreshLabel()
 
 	btn.MouseButton1Click:Connect(function()
-		-- Abre el perfil nativo de Roblox (permite añadir/eliminar amigo)
-		pcall(function()
-			Services.GuiService:InspectPlayerFromUserId(userId)
-		end)
+		if checkFriendStatus() then
+			-- Eliminar amigo
+			pcall(function()
+				local StarterGui = game:GetService("StarterGui")
+				StarterGui:SetCore("PromptUnfriend", target)
+			end)
+		else
+			-- Enviar solicitud de amistad
+			pcall(function()
+				local StarterGui = game:GetService("StarterGui")
+				StarterGui:SetCore("PromptSendFriendRequest", target)
+			end)
+		end
 		-- Refresca el texto tras la interacción del usuario
 		task.delay(2, refreshLabel)
 		task.delay(5, refreshLabel)
