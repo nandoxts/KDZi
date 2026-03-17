@@ -78,7 +78,8 @@ return function()
 		-- Remotes de UserPanel
 		Remotes = {
 			GetUserData      = remotesFolder:WaitForChild("GetUserData"),
-			CheckGamePass    = remotesFolder:WaitForChild("CheckGamePass")
+			CheckGamePass    = remotesFolder:WaitForChild("CheckGamePass"),
+			SetStatus        = remotesFolder:WaitForChild("SetStatus", 5)
 		},
 
 		-- Sistema de Sync

@@ -2,11 +2,6 @@
 	═══════════════════════════════════════════════════════════
 	PANEL VIEW — Diseño renovado, estático y minimalista
 	═══════════════════════════════════════════════════════════
-	• Panel estático (sin drag/arrastre)
-	• Sin ModernScrollbar
-	• Header: avatar derecha + nombre/estado izquierda
-	• Botones: Sincronizar · Abrazar · Propina · Añadir Amigo · Ver Avatar
-	• Add Friend con lógica propia
 ]]
 
 local TweenService  = game:GetService("TweenService")
@@ -14,28 +9,21 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local PanelView = {}
 
--- ═══════════════════════════════════════════════════════════════
--- DEPENDENCIAS
--- ═══════════════════════════════════════════════════════════════
-local Config, State, Utils, Remotes
-local Services, NotificationSystem, THEME
+local State, Utils, Remotes
+local Services
 local player, playerGui
 local PREMIUM_ICON = "rbxassetid://13600832988"
 
-local AdminConfig  = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("AdminConfig"))
 local SyncSystem   -- cargado lazy en createPanel
 
 -- Tweens activos (para cancelar antes de re-animar)
 local activeTweens = {}
 
 function PanelView.init(config, state, utils, remotes)
-	Config           = config
 	State            = state
 	Utils            = utils
 	Remotes          = remotes
 	Services         = remotes.Services
-	NotificationSystem = remotes.Systems.NotificationSystem
-	THEME            = config.THEME
 	PREMIUM_ICON     = config.PREMIUM_ICON or PREMIUM_ICON
 	player           = Services.Player
 	playerGui        = Services.PlayerGui
@@ -47,7 +35,6 @@ end
 local D = {
 	-- Panel
 	PANEL_W        = 320,
-	PANEL_H        = 340,        -- altura total (header + botones)
 	CORNER         = 12,
 
 	-- Header (zona avatar)
@@ -55,15 +42,15 @@ local D = {
 	AVATAR_SIZE    = 100,        -- avatar cuadrado a la derecha
 
 	-- Texto header
-	NAME_SIZE      = 16,
-	USER_SIZE      = 12,
-	STATUS_SIZE    = 11,
+	NAME_SIZE      = 22,
+	USER_SIZE      = 15,
+	STATUS_SIZE    = 14,
 	PADDING        = 14,
 
 	-- Botones
 	BTN_H          = 38,
 	BTN_GAP        = 6,
-	BTN_SIZE       = 13,
+	BTN_SIZE       = 15,
 	BTN_CORNER     = 8,
 
 	-- Colores base (se mezclan con playerColor en hover)
@@ -71,7 +58,6 @@ local D = {
 	BTN_BG_HOVER   = Color3.fromRGB(32, 32, 32),
 	BTN_STROKE     = Color3.fromRGB(55, 55, 55),
 	HEADER_BG      = Color3.fromRGB(14, 14, 14),
-	PANEL_BG       = Color3.fromRGB(10, 10, 10),
 	TEXT_PRIMARY   = Color3.fromRGB(240, 240, 240),
 	TEXT_MUTED     = Color3.fromRGB(140, 140, 140),
 	TEXT_STATUS    = Color3.fromRGB(160, 160, 160),
@@ -86,10 +72,9 @@ local D = {
 -- ═══════════════════════════════════════════════════════════════
 local function tween(inst, props, t, style, dir)
 	if not inst or not inst.Parent then return end
-	local key = tostring(inst)
-	if activeTweens[key] then activeTweens[key]:Cancel() end
+	if activeTweens[inst] then activeTweens[inst]:Cancel() end
 	local tw = TweenService:Create(inst, TweenInfo.new(t or 0.15, style or Enum.EasingStyle.Sine, dir or Enum.EasingDirection.InOut), props)
-	activeTweens[key] = tw
+	activeTweens[inst] = tw
 	tw:Play()
 	return tw
 end
@@ -129,23 +114,8 @@ local function label(props)
 end
 
 -- ═══════════════════════════════════════════════════════════════
--- ADMIN
--- ═══════════════════════════════════════════════════════════════
-local Admin = {}
-
-function Admin.isAdmin(userName)
-	return userName and AdminConfig:IsAdmin(userName) or false
-end
-
-PanelView.Admin = Admin
-
--- ═══════════════════════════════════════════════════════════════
 -- BOTÓN
 -- ═══════════════════════════════════════════════════════════════
---[[
-	Devuelve el TextButton listo para conectar .MouseButton1Click
-	accentColor: se usa en hover para el borde
-]]
 local function createButton(parent, text, order, accentColor)
 	local container = frame({
 		Size            = UDim2.new(1, 0, 0, D.BTN_H),
@@ -170,56 +140,51 @@ local function createButton(parent, text, order, accentColor)
 	corner(btn, D.BTN_CORNER)
 	local btnStroke = stroke(btn, D.BTN_STROKE, 1, 0)
 
-	-- Hover
+	local isHovered = false
+
 	btn.MouseEnter:Connect(function()
+		isHovered = true
 		tween(btn,       { BackgroundColor3 = D.BTN_BG_HOVER }, D.ANIM_BTN)
 		tween(btnStroke, { Color = accentColor or D.BTN_STROKE, Transparency = 0.35 }, D.ANIM_BTN)
 	end)
 	btn.MouseLeave:Connect(function()
-		tween(btn,       { BackgroundColor3 = D.BTN_BG },    D.ANIM_BTN)
+		isHovered = false
+		tween(btn,       { BackgroundColor3 = D.BTN_BG }, D.ANIM_BTN)
 		tween(btnStroke, { Color = D.BTN_STROKE, Transparency = 0 }, D.ANIM_BTN)
 	end)
-	-- Click: pequeño flash
+	-- Click: flash instant + reset inmediato (evita hover atascado al perder foco)
 	btn.MouseButton1Click:Connect(function()
-		tween(btn, { BackgroundColor3 = accentColor or D.BTN_BG_HOVER }, 0.06)
-		task.delay(0.10, function()
-			tween(btn, { BackgroundColor3 = D.BTN_BG_HOVER }, 0.12)
-		end)
+		isHovered = false
+		btn.BackgroundColor3 = accentColor or Color3.fromRGB(50, 50, 50)
+		tween(btn,       { BackgroundColor3 = D.BTN_BG }, 0.18)
+		tween(btnStroke, { Color = D.BTN_STROKE, Transparency = 0 }, 0.15)
 	end)
 
 	return btn
 end
 
 -- ═══════════════════════════════════════════════════════════════
--- ADD FRIEND — Lógica
+-- ADD FRIEND
 -- ═══════════════════════════════════════════════════════════════
---[[
-	Conecta el botón de "Añadir Amigo" con la lógica del servidor.
-	Cambia el texto del botón según el estado actual de amistad.
-
-	IMPORTANTE: adapta los nombres de Remotes a los que uses en tu proyecto.
-	Las líneas marcadas con  ← LÓGICA  son donde debes conectar tu sistema.
-]]
 local function setupAddFriendButton(btn, target)
 	if not target then return end
 
 	local userId = target.UserId
 
-	-- Estado inicial: comprobar si ya son amigos
-	-- ← LÓGICA: reemplaza esto con tu Remote/función real
 	local function checkFriendStatus()
 		local ok, isFriend = pcall(function()
-			return player:IsFriendsWith(userId)          -- API nativa de Roblox
+			return player:IsFriendsWith(userId)
 		end)
 		return ok and isFriend
 	end
 
 	local function refreshLabel()
+		if not btn.Parent then return end
 		if checkFriendStatus() then
-			btn.Text = "✓ Amigos"
-			btn.TextColor3 = Color3.fromRGB(100, 220, 120)
+			btn.Text       = "Eliminar Amigo"
+			btn.TextColor3 = Color3.fromRGB(220, 80, 80)
 		else
-			btn.Text = "Añadir Amigo"
+			btn.Text       = "Añadir Amigo"
 			btn.TextColor3 = D.TEXT_PRIMARY
 		end
 	end
@@ -227,23 +192,13 @@ local function setupAddFriendButton(btn, target)
 	refreshLabel()
 
 	btn.MouseButton1Click:Connect(function()
-		if checkFriendStatus() then
-			-- Ya son amigos, no hacer nada (o deshacer, según tu juego)
-			return
-		end
-
-		-- ← LÓGICA: aquí disparas tu Remote para solicitar amistad
-		--   Ejemplos:
-		--     Remotes.FriendRequest:FireServer(userId)
-		--     Services.GuiService:InspectPlayerFromUserId(userId)   -- abre el menú nativo
-
-		-- Por ahora usa el menú nativo de Roblox (siempre disponible):
+		-- Abre el perfil nativo de Roblox (permite añadir/eliminar amigo)
 		pcall(function()
 			Services.GuiService:InspectPlayerFromUserId(userId)
 		end)
-
-		-- Tras un pequeño delay, refresca el texto
-		task.delay(1, refreshLabel)
+		-- Refresca el texto tras la interacción del usuario
+		task.delay(2, refreshLabel)
+		task.delay(5, refreshLabel)
 	end)
 end
 
@@ -253,7 +208,6 @@ end
 local function createHeader(parent, data, playerColor)
 	local isPremium = (data.isPremium == true)
 		or (State.target and State.target.MembershipType == Enum.MembershipType.Premium)
-	local isAdmin  = Admin.isAdmin(data.username)
 
 	local header = frame({
 		Size             = UDim2.new(1, 0, 0, D.HEADER_H),
@@ -278,18 +232,15 @@ local function createHeader(parent, data, playerColor)
 	local avatarBorder = frame({
 		Size             = UDim2.new(0, D.AVATAR_SIZE + 4, 0, D.AVATAR_SIZE + 4),
 		Position         = UDim2.new(1, -(D.AVATAR_SIZE + 4 + D.PADDING), 0.5, -(D.AVATAR_SIZE + 4) / 2),
-		BackgroundColor3 = playerColor,
-		BackgroundTransparency = 0.5,
 		ZIndex           = 4,
 		Parent           = header,
 	})
-	corner(avatarBorder, D.BTN_CORNER + 2)
 
+	local zoomedSize = math.floor(D.AVATAR_SIZE * 1.2)
 	local avatarImg = Instance.new("ImageLabel")
-	avatarImg.Size               = UDim2.new(0, D.AVATAR_SIZE, 0, D.AVATAR_SIZE)
-	avatarImg.Position           = UDim2.new(0.5, -D.AVATAR_SIZE / 2, 0.5, -D.AVATAR_SIZE / 2)
-	avatarImg.BackgroundColor3   = Color3.fromRGB(25, 25, 25)
-	avatarImg.BackgroundTransparency = 0
+	avatarImg.Size               = UDim2.new(0, zoomedSize, 0, zoomedSize)
+	avatarImg.Position           = UDim2.new(0.5, -zoomedSize / 2, 0.5, -zoomedSize / 2)
+	avatarImg.BackgroundTransparency = 1
 	avatarImg.Image              = ""
 	avatarImg.ScaleType          = Enum.ScaleType.Crop
 	avatarImg.ZIndex             = 5
@@ -301,7 +252,7 @@ local function createHeader(parent, data, playerColor)
 		local ok, img = pcall(function()
 			return game:GetService("Players"):GetUserThumbnailAsync(
 				data.userId,
-				Enum.ThumbnailType.AvatarBust,
+				Enum.ThumbnailType.AvatarThumbnail,
 				Enum.ThumbnailSize.Size420x420
 			)
 		end)
@@ -357,47 +308,102 @@ local function createHeader(parent, data, playerColor)
 		pIcon.Parent             = nameRow
 	end
 
-	-- Admin badge
-	if isAdmin then
-		local badge = Instance.new("TextLabel")
-		badge.BackgroundColor3    = playerColor
-		badge.BackgroundTransparency = 0.5
-		badge.Size                = UDim2.new(0, 52, 0, 16)
-		badge.Text                = "OWNER"
-		badge.TextColor3          = Color3.fromRGB(255, 255, 255)
-		badge.Font                = Enum.Font.GothamBlack
-		badge.TextSize            = 9
-		badge.LayoutOrder         = 2
-		badge.Parent              = textArea
-		corner(badge, 8)
-	end
-
 	-- @username
 	local unLabel = label({
 		Size          = UDim2.new(1, 0, 0, D.USER_SIZE + 4),
 		Text          = "@" .. (data.username or ""),
 		TextColor3    = D.TEXT_MUTED,
-		Font          = Enum.Font.Gotham,
+		Font          = Enum.Font.GothamBold,
 		TextSize      = D.USER_SIZE,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextTruncate  = Enum.TextTruncate.AtEnd,
-		LayoutOrder   = isAdmin and 3 or 2,
+		LayoutOrder   = 2,
 		Parent        = textArea,
 	})
 
-	-- Status / quote
+	-- Status / quote (se actualiza async con descripción del servidor)
+	-- Si el target es el jugador local → clickeable para editar
+	local isOwnPanel = (data.userId == player.UserId)
 	local statusText = (data.status and data.status ~= "") and ('"' .. data.status .. '"') or '"nothing to say."'
-	label({
-		Size          = UDim2.new(1, 0, 0, D.STATUS_SIZE + 6),
-		Text          = statusText,
-		TextColor3    = D.TEXT_STATUS,
-		Font          = Enum.Font.GothamItalic,
-		TextSize      = D.STATUS_SIZE,
+
+	local statusLabel = label({
+		Size           = UDim2.new(1, 0, 0, D.STATUS_SIZE + 6),
+		Text           = statusText,
+		TextColor3     = D.TEXT_STATUS,
+		Font           = Enum.Font.GothamBold,
+		TextSize       = D.STATUS_SIZE,
 		TextXAlignment = Enum.TextXAlignment.Left,
-		TextTruncate  = Enum.TextTruncate.AtEnd,
-		LayoutOrder   = isAdmin and 4 or 3,
-		Parent        = textArea,
+		TextTruncate   = Enum.TextTruncate.AtEnd,
+		LayoutOrder    = 3,
+		Parent         = textArea,
 	})
+	State.bioLabel = statusLabel
+
+	-- Si es mi panel, hacer clickeable para editar status
+	if isOwnPanel then
+		local editBtn = Instance.new("TextButton")
+		editBtn.Size                   = UDim2.new(1, 0, 1, 0)
+		editBtn.BackgroundTransparency = 1
+		editBtn.Text                   = ""
+		editBtn.ZIndex                 = 10
+		editBtn.Parent                 = statusLabel
+
+		editBtn.MouseButton1Click:Connect(function()
+			-- Extraer texto limpio (sin comillas)
+			local currentText = statusLabel.Text
+			if currentText:sub(1, 1) == '"' then
+				currentText = currentText:sub(2)
+			end
+			if currentText:sub(-1) == '"' then
+				currentText = currentText:sub(1, -2)
+			end
+			if currentText == "nothing to say." then
+				currentText = ""
+			end
+
+			local textBox = Instance.new("TextBox")
+			textBox.Size                   = UDim2.new(1, 0, 0, D.STATUS_SIZE + 6)
+			textBox.BackgroundTransparency = 1
+			textBox.BorderSizePixel        = 0
+			textBox.Text                   = currentText
+			textBox.PlaceholderText        = "Escribe tu estado..."
+			textBox.TextColor3             = Color3.fromRGB(255, 255, 255)
+			textBox.Font                   = Enum.Font.Gotham
+			textBox.TextSize               = D.STATUS_SIZE
+			textBox.TextXAlignment         = Enum.TextXAlignment.Left
+			textBox.ClearTextOnFocus       = false
+			textBox.LayoutOrder            = 3
+			textBox.ZIndex                 = 10
+			textBox.Parent                 = textArea
+			corner(textBox, 4)
+
+			statusLabel.Visible = false
+			textBox:CaptureFocus()
+
+			local function submitStatus()
+				local newText = textBox.Text:sub(1, 80):gsub("[\n\r]", " ")
+				textBox:Destroy()
+				statusLabel.Visible = true
+
+				if newText ~= "" then
+					statusLabel.Text = '"' .. newText .. '"'
+				else
+					statusLabel.Text = '"nothing to say."'
+				end
+
+				-- Enviar al servidor
+				task.spawn(function()
+					pcall(function()
+						Remotes.Remotes.SetStatus:InvokeServer(newText)
+					end)
+				end)
+			end
+
+			textBox.FocusLost:Connect(function(enterPressed)
+				submitStatus()
+			end)
+		end)
+	end
 
 	return header
 end
@@ -428,21 +434,18 @@ function PanelView.createPanel(data)
 
 	-- ── CONTENEDOR PRINCIPAL ─────────────────────────────────
 	--   Centrado en pantalla, sin drag
-	local numBtns = 5
+	local numBtns = 3
 	local btnsH   = numBtns * D.BTN_H + (numBtns - 1) * D.BTN_GAP
 	local totalH  = D.HEADER_H + D.PADDING + btnsH + D.PADDING
 
 	local container = Instance.new("Frame")
 	container.Size               = UDim2.new(0, D.PANEL_W, 0, totalH)
 	container.Position           = UDim2.new(0.5, -D.PANEL_W / 2, 1, 60)   -- empieza abajo (animación)
-	container.BackgroundColor3   = D.PANEL_BG
-	container.BackgroundTransparency = 0
+	container.BackgroundTransparency = 1
 	container.BorderSizePixel    = 0
 	container.ClipsDescendants   = false
 	container.ZIndex             = 10
 	container.Parent             = screenGui
-	corner(container, D.CORNER)
-	stroke(container, D.BTN_STROKE, 1.2, 0.3)
 
 	State.container = container
 
@@ -474,28 +477,12 @@ function PanelView.createPanel(data)
 		syncDebounce = false
 	end)
 
-	-- 2. Abrazar
-	--    ← LÓGICA: conecta tu Remote de abrazo aquí
-	local hugBtn = createButton(btnArea, "Abrazar", 2, playerColor)
-	hugBtn.MouseButton1Click:Connect(function()
-		if not target then return end
-		-- Ejemplo: Remotes.HugRemote:FireServer(target)
-	end)
-
-	-- 3. Propina
-	--    ← LÓGICA: conecta tu Remote de propina aquí
-	local tipBtn = createButton(btnArea, "Propina", 3, playerColor)
-	tipBtn.MouseButton1Click:Connect(function()
-		if not target then return end
-		-- Ejemplo: Remotes.TipRemote:FireServer(target)
-	end)
-
-	-- 4. Añadir Amigo
-	local addFriendBtn = createButton(btnArea, "Añadir Amigo", 4, playerColor)
+	-- 2. Añadir Amigo
+	local addFriendBtn = createButton(btnArea, "Añadir Amigo", 2, playerColor)
 	setupAddFriendButton(addFriendBtn, target)
 
-	-- 5. Ver Avatar
-	local avatarBtn = createButton(btnArea, "Ver Avatar", 5, playerColor)
+	-- 3. Ver Avatar
+	local avatarBtn = createButton(btnArea, "Ver Avatar", 3, playerColor)
 	avatarBtn.MouseButton1Click:Connect(function()
 		if target then
 			pcall(function() Services.GuiService:InspectPlayerFromUserId(target.UserId) end)
@@ -504,7 +491,7 @@ function PanelView.createPanel(data)
 
 	-- ── ANIMACIÓN DE ENTRADA ─────────────────────────────────
 	--   Desliza desde abajo hasta el centro-inferior de la pantalla
-	local targetY = 1 - ((totalH + 20) / workspace.CurrentCamera.ViewportSize.Y)
+	local targetY = 1 - ((totalH + 80) / workspace.CurrentCamera.ViewportSize.Y)
 	task.defer(function()
 		tween(
 			container,
@@ -526,6 +513,14 @@ function PanelView.cleanupTweens()
 		pcall(function() tw:Cancel() end)
 		activeTweens[k] = nil
 	end
+end
+
+function PanelView.getLayout()
+	return { panelWidth = D.PANEL_W }
+end
+
+function PanelView.safeTween(inst, props, t, style, dir)
+	return tween(inst, props, t, style, dir)
 end
 
 function PanelView.invalidateLayoutCache()

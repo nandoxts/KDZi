@@ -16,6 +16,7 @@ local Modules = script.Parent.Modules
 
 local Config = require(Modules.Config)
 local State = require(Modules.State)
+local pendingDestroyUi = nil  -- UI que espera ser destruida tras animación de cierre
 local RemotesSetup = require(Modules.RemotesSetup)
 local Utils = require(Modules.Utils)
 local SyncSystem = require(Modules.SyncSystem)
@@ -92,7 +93,11 @@ local function closePanel()
 	end
 
 	-- Destruir después de que termine la animación
+	pendingDestroyUi = closingUi
 	task.delay(1.05, function()
+		if pendingDestroyUi == closingUi then
+			pendingDestroyUi = nil
+		end
 		pcall(function() closingUi:Destroy() end)
 	end)
 end
@@ -109,6 +114,12 @@ local function openPanel(target)
 	State.isPanelOpening = true
 
 	if State.refreshThread then task.cancel(State.refreshThread) end
+
+	-- Destruir inmediatamente cualquier UI en animación de cierre
+	if pendingDestroyUi then
+		pcall(function() pendingDestroyUi:Destroy() end)
+		pendingDestroyUi = nil
+	end
 
 	-- Cleanup previo
 	Utils.clearConnections()
@@ -146,15 +157,14 @@ local function openPanel(target)
 			end
 		end)
 
-			-- Cargar descripción del perfil (async)
+			-- Cargar descripción/status del perfil (async)
 			task.spawn(function()
 				local ok, data = pcall(function()
 					return Remotes.Remotes.GetUserData:InvokeServer(target.UserId)
 				end)
-				if ok and data and data.description and data.description ~= "" then
-					if State.bioLabel and State.userId == target.UserId then
-						State.bioLabel.Text = '"' .. data.description .. '"'
-						State.bioLabel.Visible = true
+				if ok and data and State.bioLabel and State.userId == target.UserId then
+					if data.status and data.status ~= "" then
+						State.bioLabel.Text = '"' .. data.status .. '"'
 					end
 				end
 			end)
