@@ -66,7 +66,7 @@ function SubTabs.new(parent, THEME, config)
 		btn.Position = UDim2.new(btnScale * (idx - 1), 0, 0, 0)
 		btn.BackgroundTransparency = 1
 		btn.Font = Enum.Font.GothamBold
-		btn.TextSize = 13
+		btn.TextSize = config.textSize or 13
 		btn.TextColor3 = THEME.muted
 		btn.Text = tabDef.label
 		btn.BorderSizePixel = 0
@@ -111,7 +111,7 @@ function SubTabs:_setActive(tabId, instant)
 	-- Colorear textos
 	local dur = instant and 0 or 0.2
 	for id, btn in pairs(self.labels) do
-		local targetColor = (id == tabId) and THEME.text or THEME.muted
+		local targetColor = (id == tabId) and Color3.new(1, 1, 1) or THEME.muted
 		if instant then
 			btn.TextColor3 = targetColor
 		else

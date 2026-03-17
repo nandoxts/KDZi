@@ -107,7 +107,7 @@ local function CreateStroke(parent, color, thickness, transparency)
 end
 
 local function GetCardHeight()
-	return IsMobile and 30 or 36 -- Mismo tamaño que SearchContainer
+	return IsMobile and 38 or 46
 end
 
 local function EncontrarDatos(BaileId)
@@ -305,7 +305,7 @@ end)
 -- TABS (SubTabs con Blob Indicator)
 -- ════════════════════════════════════════════════════════════════════════════════
 
-local tabHeight = IsMobile and 28 or 34
+local tabHeight = IsMobile and 38 or 46
 
 local subTabs = SubTabs.new(ContentCanvas, THEME_CONFIG, {
 	tabs = {
@@ -329,7 +329,7 @@ local SearchContainer, SearchBox
 if mostrarBusqueda then
 	SearchContainer = Instance.new("Frame")
 	SearchContainer.Name = "SearchContainer"
-	SearchContainer.Size = UDim2.new(1, 0, 0, IsMobile and 30 or 36)
+	SearchContainer.Size = UDim2.new(1, 0, 0, IsMobile and 32 or 40)
 	SearchContainer.Position = UDim2.new(0, 0, 0, posY)
 	SearchContainer.BackgroundTransparency = 1
 	SearchContainer.BorderSizePixel = 0
@@ -394,7 +394,7 @@ if mostrarBusqueda then
 		Tween(SearchHandle, 0.2, {BackgroundColor3 = THEME_CONFIG.subtle, BackgroundTransparency = THEME_CONFIG.lightAlpha})
 	end))
 
-	posY = posY + (IsMobile and 30 or 36)
+	posY = posY + (IsMobile and 32 or 40)
 end
 
 
@@ -797,7 +797,7 @@ local function CrearTarjeta(nombre, id, tipo, orden)
 	nameLabel.Font = Enum.Font.GothamBold
 	nameLabel.Text = nombre
 	nameLabel.TextColor3 = THEME_CONFIG.text
-	nameLabel.TextSize = IsMobile and 12 or 15
+	nameLabel.TextSize = IsMobile and 13 or 16
 	nameLabel.TextXAlignment = Enum.TextXAlignment.Left
 	nameLabel.TextTruncate = Enum.TextTruncate.AtEnd
 	nameLabel.ZIndex = 3
@@ -806,8 +806,8 @@ local function CrearTarjeta(nombre, id, tipo, orden)
 	-- Contenedor del botón favorito (más pequeño, pegado a la derecha)
 	local favContainer = Instance.new("Frame")
 	favContainer.Name = "FavContainer"
-	favContainer.Size = UDim2.new(0, IsMobile and 18 or 22, 0, IsMobile and 18 or 22)
-	favContainer.Position = UDim2.new(1, IsMobile and -8 or -10, 0.5, 0)
+	favContainer.Size = UDim2.new(0, IsMobile and 22 or 26, 0, IsMobile and 22 or 26)
+	favContainer.Position = UDim2.new(1, IsMobile and -10 or -12, 0.5, 0)
 	favContainer.AnchorPoint = Vector2.new(1, 0.5)
 	favContainer.BackgroundTransparency = 1
 	favContainer.ZIndex = 4
@@ -818,8 +818,8 @@ local function CrearTarjeta(nombre, id, tipo, orden)
 	favBtn.Name = "FavBtn"
 	favBtn.Size = UDim2.new(1, 0, 1, 0)
 	favBtn.BackgroundTransparency = 1
-	-- Assets diferentes: sin favorito (130993498569336) vs con favorito (80912525064014)
-	favBtn.Image = esFavorito and "rbxassetid://80912525064014" or "rbxassetid://130993498569336"
+	-- Assets diferentes: sin favorito (72553305447429) vs con favorito (75212439359134)
+	favBtn.Image = esFavorito and "rbxassetid://75212439359134" or "rbxassetid://72553305447429"
 	favBtn.ImageColor3 = THEME_CONFIG.accent
 	favBtn.ImageTransparency = esFavorito and 0 or 0.2
 	favBtn.ZIndex = 5
@@ -885,15 +885,15 @@ local function CrearTarjeta(nombre, id, tipo, orden)
 			table.insert(EmotesFavs, id)
 			card:SetAttribute("IsFavorite", true)
 
-			Tween(favBtn, 0.2, {ImageColor3 = THEME_CONFIG.accent, ImageTransparency = 0})
-			favBtn.Image = "rbxassetid://80912525064014"
+				Tween(favBtn, 0.2, {ImageColor3 = THEME_CONFIG.accent, ImageTransparency = 0})
+			favBtn.Image = "rbxassetid://75212439359134"
 
 			-- Sincronizar otras cards con el mismo ID
 			for _, child in ipairs(ScrollFrame:GetChildren()) do
 				if child:GetAttribute("ID") == id and child ~= card then
 					local innerBtn = child:FindFirstChild("FavContainer"):FindFirstChild("FavBtn")
 					if innerBtn then
-						innerBtn.Image = "rbxassetid://80912525064014"
+						innerBtn.Image = "rbxassetid://75212439359134"
 						innerBtn.ImageColor3 = THEME_CONFIG.accent
 						innerBtn.ImageTransparency = 0
 					end
@@ -931,13 +931,13 @@ local function CrearTarjeta(nombre, id, tipo, orden)
 				end)
 			else
 				Tween(favBtn, 0.2, {ImageColor3 = THEME_CONFIG.accent, ImageTransparency = THEME_CONFIG.lightAlpha})
-				favBtn.Image = "rbxassetid://130993498569336"
+				favBtn.Image = "rbxassetid://72553305447429"
 				-- Sincronizar otras cards
 				for _, child in ipairs(ScrollFrame:GetChildren()) do
 					if child:GetAttribute("ID") == id and child ~= card then
 						local innerBtn = child:FindFirstChild("FavContainer"):FindFirstChild("FavBtn")
 						if innerBtn then
-							innerBtn.Image = "rbxassetid://130993498569336"
+							innerBtn.Image = "rbxassetid://72553305447429"
 							innerBtn.ImageColor3 = THEME_CONFIG.accent
 							innerBtn.ImageTransparency = THEME_CONFIG.lightAlpha
 						end
