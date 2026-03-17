@@ -981,12 +981,15 @@ local function updatePendingCard(response, songId)
 				if loadingIcon then loadingIcon.Visible = false end
 				local icon = addBtn:FindFirstChild("IconImage")
 				if icon then icon.Visible = true end
+				local abStroke = addBtn:FindFirstChildWhichIsA("UIStroke")
 				if response.success or response.code == ResponseCodes.ERROR_DUPLICATE then
 					if icon then icon.Image = UI.ICONS.CHECK; icon.ImageColor3 = Color3.new(1, 1, 1) end
-					addBtn.BackgroundColor3 = THEME.success; addBtn.AutoButtonColor = false
+					addBtn.BackgroundTransparency = 0; addBtn.BackgroundColor3 = THEME.success; addBtn.AutoButtonColor = false
+					if abStroke then abStroke.Color = THEME.success end
 				else
 					if icon then icon.Image = UI.ICONS.PLAY_ADD; icon.ImageColor3 = THEME.text end
-					addBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 68); addBtn.AutoButtonColor = true
+					addBtn.BackgroundTransparency = 1; addBtn.AutoButtonColor = true
+					if abStroke then abStroke.Color = THEME.stroke end
 				end
 				break
 			end
