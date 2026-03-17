@@ -203,14 +203,7 @@ local VISIBLE_BUFFER, MAX_POOL_SIZE = 3, 25
 local MAX_QUEUE_POOL = 30
 local DEV_USER_ID = 8387751399
 
-local ICONS = {
-	PLAY_ADD = "rbxassetid://84692791859484",
-	CHECK    = "rbxassetid://102926522001210",
-	DELETE   = "rbxassetid://94904012825024",
-	LOADING  = "rbxassetid://72909990569897",
-	VOL_DOWN = "rbxassetid://118993192034241",
-	VOL_UP   = "rbxassetid://114456072508401",
-}
+-- ICONS: usar UI.ICONS directamente
 
 local VISUALIZER = {
 	BAR_COUNT = 20, BAR_WIDTH = 14, BAR_GAP = 3,
@@ -611,11 +604,13 @@ _ui.songCountLabel = makeLabel({
 })
 
 if isAdmin then
-	_ui.clearB = makeBtn({
-		dim = UDim2.new(0, 60, 0, 28),
-		pos = UDim2.new(1, -76, 0, mob and 16 or 26),
-		bg = Color3.fromRGB(161, 124, 72), text = "CLEAR", textSize = 11,
-		z = 107, round = 6, parent = _ui.headerContent,
+	_ui.clearB = UI.outlinedCircleBtn(_ui.headerContent, {
+		size = mob and 28 or 32,
+		icon = UI.ICONS.DELETE,
+		zIndex = 107,
+		position = UDim2.new(1, mob and -34 or -38, 0, mob and 14 or 24),
+		name = "ClearBtn",
+		theme = {stroke = Color3.fromRGB(200, 140, 70), dim = Color3.fromRGB(200, 140, 70)},
 	})
 end
 
@@ -834,7 +829,7 @@ do
 	_ui.quickAddBtnStroke = _ui.quickAddBtn:FindFirstChildWhichIsA("UIStroke")
 	_ui.quickAddBtnLoading = makeImage({
 		dim = UDim2.new(0.65, 0, 0.65, 0), pos = UDim2.new(0.175, 0, 0.175, 0),
-		image = ICONS.LOADING, z = 116, visible = false, parent = _ui.quickAddBtn,
+		image = UI.ICONS.LOADING, z = 116, visible = false, parent = _ui.quickAddBtn,
 	})
 
 	_ui.songIdDisplay = makeLabel({
@@ -987,10 +982,10 @@ local function updatePendingCard(response, songId)
 				local icon = addBtn:FindFirstChild("IconImage")
 				if icon then icon.Visible = true end
 				if response.success or response.code == ResponseCodes.ERROR_DUPLICATE then
-					if icon then icon.Image = ICONS.CHECK; icon.ImageColor3 = Color3.new(1, 1, 1) end
+					if icon then icon.Image = UI.ICONS.CHECK; icon.ImageColor3 = Color3.new(1, 1, 1) end
 					addBtn.BackgroundColor3 = THEME.success; addBtn.AutoButtonColor = false
 				else
-					if icon then icon.Image = ICONS.PLAY_ADD; icon.ImageColor3 = THEME.text end
+					if icon then icon.Image = UI.ICONS.PLAY_ADD; icon.ImageColor3 = THEME.text end
 					addBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 68); addBtn.AutoButtonColor = true
 				end
 				break
@@ -1168,8 +1163,14 @@ local function createQueueCard()
 	makeLabel({text = "", color = THEME.text, font = Enum.Font.GothamBold, size = 12, truncate = Enum.TextTruncate.AtEnd, z = 102, name = "NameLabel", parent = nameClip})
 	makeLabel({dim = UDim2.new(1, -58, 0, 16), pos = UDim2.new(0, 50, 0, 28), text = "", color = THEME.muted, font = Enum.Font.GothamBold, size = 12, truncate = Enum.TextTruncate.AtEnd, z = 102, name = "RequesterLabel", parent = card})
 	if isAdmin then
-		local removeBtn = makeBtn({dim = UDim2.new(0, 28, 0, 28), pos = UDim2.new(1, -32, 0.5, -14), bg = THEME.btnDanger, z = 103, round = 8, name = "RemoveBtn", parent = card})
-		makeImage({dim = UDim2.new(0.7, 0, 0.7, 0), pos = UDim2.new(0.15, 0, 0.15, 0), image = ICONS.DELETE, z = 104, name = "IconImage", parent = removeBtn})
+		UI.outlinedCircleBtn(card, {
+			size = 28,
+			icon = UI.ICONS.DELETE,
+			zIndex = 103,
+			position = UDim2.new(1, -32, 0.5, -14),
+			name = "RemoveBtn",
+			theme = {stroke = THEME.btnDanger, dim = THEME.btnDanger},
+		})
 	end
 	return card
 end
@@ -1304,7 +1305,7 @@ local function createSongCard()
 		name = "AddButton",
 		theme = {stroke = THEME.stroke, dim = THEME.text},
 	})
-	makeImage({dim = UDim2.new(0.75, 0, 0.75, 0), pos = UDim2.new(0.125, 0, 0.125, 0), image = ICONS.LOADING, imageColor = THEME.text, z = 105, visible = false, name = "LoadingIcon", parent = addBtn})
+	makeImage({dim = UDim2.new(0.75, 0, 0.75, 0), pos = UDim2.new(0.125, 0, 0.125, 0), image = UI.ICONS.LOADING, imageColor = THEME.text, z = 105, visible = false, name = "LoadingIcon", parent = addBtn})
 	addBtn.MouseButton1Click:Connect(function()
 		local songId = card:GetAttribute("SongID")
 		if songId and not isInQueue(songId) and not state.pendingCardSongIds[songId] then
@@ -1376,12 +1377,12 @@ local function updateSongCard(card, data, index, inQ)
 		elseif inQ then
 			ab.BackgroundTransparency = 0; ab.BackgroundColor3 = THEME.success; ab.AutoButtonColor = false
 			if abStroke then abStroke.Color = THEME.success end
-			if icon then icon.Image = ICONS.CHECK; icon.ImageColor3 = Color3.new(1,1,1); icon.Visible = true end
+			if icon then icon.Image = UI.ICONS.CHECK; icon.ImageColor3 = Color3.new(1,1,1); icon.Visible = true end
 			if li then li.Visible = false end
 		else
 			ab.BackgroundTransparency = 1; ab.AutoButtonColor = true
 			if abStroke then abStroke.Color = THEME.stroke end
-			if icon then icon.Image = ICONS.PLAY_ADD; icon.ImageColor3 = THEME.text; icon.Visible = true end
+			if icon then icon.Image = UI.ICONS.PLAY_ADD; icon.ImageColor3 = THEME.text; icon.Visible = true end
 			if li then li.Visible = false end
 		end
 	end
@@ -1526,24 +1527,68 @@ local function drawDJs()
 		makeLabel({text = "No DJs", color = THEME.muted, size = 11, dim = UDim2.new(1, 0, 0, 40), wrap = true, alignX = Enum.TextXAlignment.Center, parent = _ui.djsScroll})
 		return
 	end
-	local thumbSize = SIDEBAR_W - 24
 	for _, dj in ipairs(state.allDJs) do
 		local isSel = state.selectedDJ == dj.name
 		local card = makeCanvas(_ui.djsScroll, 10, 102)
 		card.Name = "DJThumb"; card.Size = UDim2.new(1, 0, 0, DJ_THUMB_H)
-		card.BackgroundColor3 = THEME.card; card.BackgroundTransparency = THEME.lightAlpha
+		card.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+		card.BackgroundTransparency = 0
 		local stroke = make("UIStroke", {
 			Color = isSel and THEME.accent or THEME.stroke, Thickness = isSel and 2 or 1,
 			Transparency = isSel and 0.2 or 0.7, ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 			Name = "CardStroke", Parent = card,
 		})
 		if isSel then state.selectedDJCard = card end
-		local coverBg = makeFrame({dim = UDim2.new(0, thumbSize, 0, thumbSize), pos = UDim2.new(0.5, -thumbSize/2, 0, 4), bg = Color3.fromRGB(30, 30, 40), bgT = 0, z = 103, clip = true, name = "CoverBg", parent = card})
-		makeLabel({dim = UDim2.new(1, 0, 1, 0), text = "♪", font = Enum.Font.GothamBold, size = 22, color = isSel and THEME.accent or THEME.muted, alignX = Enum.TextXAlignment.Center, z = 104, parent = coverBg})
+
+		-- Cover al 100%: sin padding, llena toda la card
+		local coverBg = makeFrame({
+			dim = UDim2.new(1, 0, 1, 0), pos = UDim2.new(0, 0, 0, 0),
+			bg = Color3.fromRGB(22, 22, 28), bgT = 0,
+			z = 103, clip = false, name = "CoverBg", parent = card,
+		})
+		-- Ícono placeholder si no hay cover
+		makeLabel({
+			dim = UDim2.new(1, 0, 1, 0), text = "♪",
+			font = Enum.Font.GothamBold, size = 26,
+			color = isSel and THEME.accent or THEME.muted,
+			alignX = Enum.TextXAlignment.Center, z = 104, parent = coverBg,
+		})
 		if dj.cover and dj.cover ~= "" then
-			make("ImageLabel", {Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Image = dj.cover, ScaleType = Enum.ScaleType.Crop, BorderSizePixel = 0, ZIndex = 105, Parent = coverBg})
+			make("ImageLabel", {
+				Size = UDim2.new(1, 0, 1, 0), Position = UDim2.new(0, 0, 0, 0),
+				BackgroundTransparency = 1, Image = dj.cover,
+				ScaleType = Enum.ScaleType.Crop,
+				BorderSizePixel = 0, ZIndex = 105, Parent = coverBg,
+			})
 		end
-		makeLabel({dim = UDim2.new(1, -4, 0, 16), pos = UDim2.new(0, 2, 1, -(mob and 16 or 18)), text = dj.name, font = Enum.Font.GothamBold, size = mob and 9 or 11, color = isSel and Color3.new(1,1,1) or Color3.fromRGB(180, 180, 190), alignX = Enum.TextXAlignment.Center, truncate = Enum.TextTruncate.AtEnd, z = 103, name = "DJNameLabel", parent = card})
+
+		-- Gradient negro de abajo para que el texto resalte
+		local gradOverlay = makeFrame({
+			dim = UDim2.new(1, 0, 0.55, 0),
+			pos = UDim2.new(0, 0, 0.45, 0),
+			bg = Color3.fromRGB(0, 0, 0), bgT = 0,
+			z = 106, name = "GradOverlay", parent = card,
+		})
+		make("UIGradient", {
+			Transparency = NumberSequence.new{
+				NumberSequenceKeypoint.new(0, 1),
+				NumberSequenceKeypoint.new(1, 0),
+			},
+			Rotation = 90, Parent = gradOverlay,
+		})
+
+		-- Texto encima del gradient
+		makeLabel({
+			dim = UDim2.new(1, -8, 0, mob and 16 or 18),
+			pos = UDim2.new(0, 4, 1, mob and -18 or -20),
+			text = dj.name, font = Enum.Font.GothamBold,
+			size = mob and 9 or 11,
+			color = Color3.new(1, 1, 1),
+			alignX = Enum.TextXAlignment.Center,
+			truncate = Enum.TextTruncate.AtEnd,
+			z = 107, name = "DJNameLabel", parent = card,
+		})
+
 		local clickBtn = makeBtn({dim = UDim2.new(1, 0, 1, 0), z = 110, parent = card})
 		clickBtn.BackgroundTransparency = 1
 		clickBtn.MouseEnter:Connect(function() if state.selectedDJCard ~= card then tween(stroke, 0.15, {Color = THEME.accent, Transparency = 0.35, Thickness = 1.5}) end end)
