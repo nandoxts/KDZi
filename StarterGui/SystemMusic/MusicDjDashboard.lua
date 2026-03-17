@@ -1255,7 +1255,7 @@ local function drawQueue()
 				else
 					avatar.Image = ""
 					task.spawn(function()
-						local ok, thumb = pcall(Players.GetUserThumbnailAsync, Players, userId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size100x100)
+						local ok, thumb = pcall(Players.GetUserThumbnailAsync, Players, userId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
 						if ok then state.avatarCache[userId] = thumb; if avatar and avatar.Parent then avatar.Image = thumb end end
 					end)
 				end
@@ -1703,7 +1703,7 @@ local function updateNowPlayingInfo(song)
 		else
 			_ui.headerAvatar.Image = ""
 			task.spawn(function()
-				local ok, thumb = pcall(Players.GetUserThumbnailAsync, Players, userId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150)
+				local ok, thumb = pcall(Players.GetUserThumbnailAsync, Players, userId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
 				if ok and thumb then
 					state.avatarCache[userId] = thumb
 					if _ui.headerAvatar then _ui.headerAvatar.Image = thumb end
