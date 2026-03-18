@@ -3,12 +3,8 @@ local OverheadTemplate = script:WaitForChild("Template")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
-local LocalizationService = game:GetService("LocalizationService")
-local DataStoreService = game:GetService("DataStoreService")
+local RunService = game:GetService("RunService")
 
--- DataStores
-local streakStore = DataStoreService:GetDataStore("LoginStreaks")
-local TopRachaStore = DataStoreService:GetOrderedDataStore("TopRacha")
 
 --  GESTIÓN DE CONEXIONES POR JUGADOR
 local playerConnections = {}
@@ -34,24 +30,15 @@ end
 --// Módulos
 local Systems = ServerScriptService:WaitForChild("Systems")
 local Configuration = require(game.ReplicatedStorage.Config.Configuration)
-local ShopManager = require(Systems:WaitForChild("GiftManager"):WaitForChild("ShopManager"))
+local GamepassManager = require(Systems:WaitForChild("Gamepass Gifting"):WaitForChild("GamepassManager"))
 local Colors = require(game.ReplicatedStorage.Config.ColorConfig)
 local AdminConfig = require(game.ReplicatedStorage.Config.AdminConfig)
-local DataStoreQueue = require(ReplicatedStorage:WaitForChild("Systems"):WaitForChild("DataStore"):WaitForChild("DataStoreQueueManager"))
-
--- DataStore Queues para manejo de rate limit
-local streakQueue = DataStoreQueue.new(streakStore, "StreakQueue")
-local topRachaQueue = DataStoreQueue.new(TopRachaStore, "TopRachaQueue")
 
 --// Constantes
 local GroupID = Configuration.GroupID
 local VIP_ID = Configuration.Gamepasses.VIP.id
 local GROUP_ROLES = Configuration.GroupRoles
 
---// Configuración de tiempos de espera para carga de datos
-local CLAN_LOAD_DELAY = 1.5
-local CLAN_MAX_WAIT = 5
-local CLAN_CHECK_INTERVAL = 0.5
 
 --// Cache de componentes del overhead para acceso rápido
 local function getOverheadComponents(char)
@@ -66,7 +53,6 @@ local function getOverheadComponents(char)
 
 	return {
 		frame = frame,
-		clanFrame = frame:FindFirstChild("ClanFrame"),
 		roleFrame = frame:FindFirstChild("RoleFrame"),
 		nameFrame = frame:FindFirstChild("NameFrame"),
 		otherFrame = frame:FindFirstChild("OtherFrame")
@@ -74,71 +60,55 @@ local function getOverheadComponents(char)
 end
 
 --------------------------------------------------------------------------------------------------------
--- ✅ BUSCADOR ROBUSTO PARA :rc (Name o DisplayName, sin importar mayúsculas)
-local function findPlayerByNameOrDisplay(query)
-	if not query or query == "" then return nil end
-	local q = tostring(query):lower()
+-- ✅ Sistema de degradé animado para nombres (solo Creator, Head Admin, Admin)
+local GRADIENT_SPEED = 0.5 -- ciclos por segundo
+local GRADIENT_UPDATE_RATE = 0.033 -- ~30 FPS para animación fluida
+local activeGradientRoles = {} -- [userId] = { player, gradient, icon, roleName }
+local lastGradientUpdate = 0
 
-	for _, p in ipairs(Players:GetPlayers()) do
-		if p.Name:lower() == q or p.DisplayName:lower() == q then
-			return p
-		end
-	end
-
-	for _, p in ipairs(Players:GetPlayers()) do
-		if p.Name:lower():sub(1, #q) == q or p.DisplayName:lower():sub(1, #q) == q then
-			return p
-		end
-	end
-
-	return nil
+local function lerpColor3(c1, c2, t)
+	return Color3.new(
+		c1.R + (c2.R - c1.R) * t,
+		c1.G + (c2.G - c1.G) * t,
+		c1.B + (c2.B - c1.B) * t
+	)
 end
 
---------------------------------------------------------------------------------------------------------
--- ✅ Country Flags Catalog desde ReplicatedStorage/Config/CountryFlags (ModuleScript)
-local CountryFlags = nil
-
-do
-	local configFolder = ReplicatedStorage:FindFirstChild("Config")
-	if configFolder then
-		local flags = configFolder:FindFirstChild("CountryFlags")
-		if flags and flags:IsA("ModuleScript") then
-			local ok, data = pcall(require, flags)
-			if ok then
-				CountryFlags = data
-			end
-		end
-	end
+local function color3ToHex(c)
+	return string.format("#%02X%02X%02X",
+		math.clamp(math.round(c.R * 255), 0, 255),
+		math.clamp(math.round(c.G * 255), 0, 255),
+		math.clamp(math.round(c.B * 255), 0, 255)
+	)
 end
 
-
--- cache país por userId para no spammear LocalizationService
-local countryCache = {} -- [userId] = { code="PE", t=os.clock() }
-local COUNTRY_CACHE_TTL = 300 -- 5 min
-
-local function getCountryCodeSafe(player)
-	local userId = tostring(player.UserId)
-
-	local cached = countryCache[userId]
-	if cached and (os.clock() - cached.t) < COUNTRY_CACHE_TTL then
-		return cached.code
-	end
-
-	local ok, code = pcall(function()
-		return LocalizationService:GetCountryRegionForPlayerAsync(player)
-	end)
-
-	if ok and type(code) == "string" and #code == 2 then
-		countryCache[userId] = { code = code, t = os.clock() }
-		return code
-	end
-
-	return nil
+local function interpolateGradient(colors, t)
+	if #colors == 1 then return colors[1] end
+	local segments = #colors - 1
+	local seg = math.clamp(math.floor(t * segments), 0, segments - 1)
+	local localT = (t * segments) - seg
+	return lerpColor3(colors[seg + 1], colors[seg + 2], localT)
 end
 
+local function applyGradientText(text, gradientColors, offset)
+	if not gradientColors or #gradientColors == 0 then
+		return text
+	end
+	offset = offset or 0
+	if #text <= 1 then
+		return '<font color="' .. color3ToHex(gradientColors[1]) .. '">' .. text .. '</font>'
+	end
+	local result = {}
+	for i = 1, #text do
+		local char = text:sub(i, i)
+		local t = ((i - 1) / (#text - 1) + offset) % 1
+		local color = interpolateGradient(gradientColors, t)
+		table.insert(result, '<font color="' .. color3ToHex(color) .. '">' .. char .. '</font>')
+	end
+	return table.concat(result)
+end
 
--- ✅ Render del DisplayName SIN bandera (solo nombre + racha)
-local function renderDisplayName(player, streakValue)
+local function renderDisplayName(player)
 	if not player or not player.Character then return end
 
 	local components = getOverheadComponents(player.Character)
@@ -147,332 +117,49 @@ local function renderDisplayName(player, streakValue)
 	local displayNameLabel = components.nameFrame:FindFirstChild("DisplayName")
 	if not displayNameLabel then return end
 
-	displayNameLabel.Text = player.DisplayName .. " 🔥" .. tostring(streakValue or 1)
+	displayNameLabel.RichText = false
+	displayNameLabel.Text = player.DisplayName
+	displayNameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 end
 
+-- ✅ Loop de animación global para degradé en roles (Creator, Head Admin, Admin)
+RunService.Heartbeat:Connect(function()
+	local now = os.clock()
+	if now - lastGradientUpdate < GRADIENT_UPDATE_RATE then return end
+	lastGradientUpdate = now
 
-local function resolveCountryForPlayer(player)
-	if not player or not player.Parent then return end
+	local offset = (now * GRADIENT_SPEED) % 1
 
-	task.spawn(function()
-		local code = getCountryCodeSafe(player)
-		if code and code ~= "" then
-			player:SetAttribute("CountryCode", code)
-
-		else
-			player:SetAttribute("CountryCode", "")
+	for userId, data in pairs(activeGradientRoles) do
+		local player = data.player
+		if not player or not player.Parent or not player.Character then
+			activeGradientRoles[userId] = nil
+			continue
 		end
-	end)
-end
+
+		local components = getOverheadComponents(player.Character)
+		if not components or not components.roleFrame then continue end
+
+		local roleText = components.roleFrame:FindFirstChild("Role")
+		if not roleText then continue end
+
+		roleText.Text = "[" .. data.icon .. "] " .. applyGradientText(data.roleName, data.gradient, offset)
+	end
+end)
 
 -- Función para sincronizar estado VIP en tiempo real
 local function updateVIPStatus(player)
 	if not player or not player.Parent then return end
-	local hasVIP = ShopManager.HasGamepass(player, VIP_ID)
+	local hasVIP = GamepassManager.HasGamepass(player, VIP_ID)
 	player:SetAttribute("HasVIP", hasVIP)
 end
 
-local function renderCountryFlag(player)
-	if not player or not player.Character then return end
-
-	local components = getOverheadComponents(player.Character)
-	if not components then return end
-
-	local paisFrame = components.frame:FindFirstChild("PaisFrame")
-	if not paisFrame then return end
-
-	-- Mostrar el frame siempre
-	paisFrame.Visible = true
-
-	-- Actualizar contenido de la bandera
-	local code = player:GetAttribute("CountryCode")
-	if not code or code == "" then
-		code = getCountryCodeSafe(player) or ""
-		player:SetAttribute("CountryCode", code)
-	end
-
-	code = string.upper(code)
-
-	local flagLabel = paisFrame:FindFirstChild("Pais")
-	if flagLabel then
-		if CountryFlags and CountryFlags[code] then
-			local data = CountryFlags[code]
-			flagLabel.Text = data.emoji .. " " .. data.name
-		else
-			flagLabel.Text = ""
-		end
-	end
-end
-
 --------------------------------------------------------------------------------------------------------
---// Funciones para el sistema de racha
-local function getCurrentDay()
-	return math.floor(os.time() / 86400) -- Días desde epoch (24h completas)
-end
-
-local streakCache = {}
-
-local function safeUpdateAsync(store, key, transformFn)
-	local maxRetries = 5
-	for attempt = 1, maxRetries do
-		local ok, result = pcall(function()
-			return store:UpdateAsync(key, transformFn)
-		end)
-		if ok then
-			return true, result
-		end
-		warn(string.format("[RACHA] UpdateAsync error (intento %d/%d): %s", attempt, maxRetries, tostring(result)))
-		task.wait(2 * attempt)
-	end
-	return false, nil
-end
-
-local function getSavedStreak(player)
-	if not player or not player.UserId then return 1 end
-	local userId = tostring(player.UserId)
-
-	local cached = streakCache[userId]
-	if cached then
-		return cached.streak
-	end
-
-	local result = 1
-	local isComplete = false
-
-	streakQueue:GetAsync(userId, function(success, data)
-		if success and data and data.streak then
-			streakCache[userId] = {
-				streak = data.streak,
-				lastDay = data.lastLoginDay or data.lastDay or 0
-			}
-			result = data.streak
-		end
-		isComplete = true
-	end)
-
-	-- Esperar hasta que se complete (máximo 1 segundo)
-	local startTime = tick()
-	while not isComplete and (tick() - startTime) < 1 do
-		task.wait(0.02)
-	end
-
-	return result
-end
-
--- ✅ No pisa la racha si GetAsync falla
-local function updateStreak(player)
-	if not player or not player.UserId then return 1 end
-	local userId = tostring(player.UserId)
-	local today = getCurrentDay()
-
-	local cached = streakCache[userId]
-	if cached and cached.lastDay == today then
-		return cached.streak
-	end
-
-	local success, data = false, nil
-	local isComplete = false
-
-	streakQueue:GetAsync(userId, function(s, d)
-		success = s
-		data = d
-		isComplete = true
-	end)
-
-	-- Esperar hasta que se complete (máximo 1 segundo)
-	local startTime = tick()
-	while not isComplete and (tick() - startTime) < 1 do
-		task.wait(0.02)
-	end
-
-	if not success then
-		if cached then return cached.streak end
-		warn("[RACHA] GetAsync falló para userId:", userId, "no se guardará nada.")
-		return 1
-	end
-
-	local currentStreak = 1
-	local lastDay = -1
-
-	if data then
-		currentStreak = tonumber(data.streak) or 1
-		lastDay = tonumber(data.lastLoginDay or data.lastDay) or -1
-	end
-
-	local newStreak
-	if lastDay == today then
-		newStreak = currentStreak
-	elseif lastDay == today - 1 then
-		newStreak = currentStreak + 1
-	else
-		newStreak = 1
-	end
-
-	if (not cached) or cached.streak ~= newStreak or cached.lastDay ~= today then
-		local ok = safeUpdateAsync(streakStore, userId, function(old)
-			old = old or {}
-			local oldStreak = tonumber(old.streak) or 1
-			local oldLastDay = tonumber(old.lastLoginDay or old.lastDay) or -1
-
-			local finalStreak
-			if oldLastDay == today then
-				finalStreak = oldStreak
-			elseif oldLastDay == today - 1 then
-				finalStreak = oldStreak + 1
-			else
-				finalStreak = 1
-			end
-
-			return {
-				streak = finalStreak,
-				lastLoginDay = today,
-				lastDay = today
-			}
-		end)
-
-		if ok then
-			topRachaQueue:SetAsync(userId, newStreak, function() end)
-		end
-		streakCache[userId] = { streak = newStreak, lastDay = today }
-	end
-
-	return newStreak
-end
-
-local function setStreakManual(player, amount)
-	if not player or not player.UserId then return end
-	local userId = tostring(player.UserId)
-	local today = getCurrentDay()
-
-	amount = math.max(1, tonumber(amount) or 1)
-
-	local newStreakData = {
-		streak = amount,
-		lastLoginDay = today,
-		lastDay = today
-	}
-	streakQueue:SetAsync(userId, newStreakData, function() end)
-	topRachaQueue:SetAsync(userId, amount, function() end)
-	streakCache[userId] = { streak = amount, lastDay = today }
-
-	renderDisplayName(player, amount)
-end
-
-local function EsAdminGrupo(player)
-	return AdminConfig:IsAdmin(player)
-end
-
---------------------------------------------------------------------------------------------------------
--- ✅ COMANDO :rc (arreglado)
-Players.PlayerAdded:Connect(function(plr)
-	plr.Chatted:Connect(function(msg)
-		local original = msg
-		local lower = tostring(msg):lower()
-
-		if lower:sub(1,3) == ":rc" then
-			if not EsAdminGrupo(plr) then return end
-
-			local args = original:split(" ")
-			local targetName = args[2]
-			local amount = tonumber(args[3])
-
-			if not targetName or not amount then
-				warn("[RC] Uso: :rc <jugador> <cantidad>")
-				return
-			end
-
-			local target = findPlayerByNameOrDisplay(targetName)
-			if target then
-				setStreakManual(target, amount)
-			else
-				warn("[RC] Jugador no encontrado:", targetName)
-			end
-		end
-	end)
-end)
-
---------------------------------------------------------------------------------------------------------
--- Actualizar color del nombre
+-- Actualizar degradé del nombre
 local function updatePlayerNameColor(player)
-	local char = player.Character
-	if not char then return end
-
-	local components = getOverheadComponents(char)
-	if not components or not components.nameFrame then return end
-
-	local colorName = player:GetAttribute("SelectedColor") or "default"
-	local color = Colors.colors[colorName] or Colors.defaultSelectedColor
-
-	local displayName = components.nameFrame:FindFirstChild("DisplayName")
-	if displayName and typeof(color) == "Color3" then
-		displayName.TextColor3 = color
-	elseif displayName then
-		displayName.TextColor3 = Color3.fromRGB(255,255,255)
-	end
+	renderDisplayName(player)
 end
 
---------------------------------------------------------------------------------------------------------
--- ✅ ClanTag centralizado
-local function updateClanTagDisplay(player, clanTagLabel)
-	if not clanTagLabel then return end
-
-	local clanTag = player:GetAttribute("ClanTag")
-	local clanEmoji = player:GetAttribute("ClanEmoji")
-	local clanColor = player:GetAttribute("ClanColor")
-	local clanFrame = clanTagLabel.Parent
-
-	if clanTag and clanTag ~= "" then
-		local prefix = (clanEmoji and clanEmoji ~= "") and (clanEmoji .. " ") or ""
-		clanTagLabel.Text = prefix .. "[" .. clanTag .. "]"
-		if clanFrame and clanFrame:IsA("GuiObject") then
-			clanFrame.Visible = true
-		end
-	else
-		clanTagLabel.Text = ""
-		if clanFrame and clanFrame:IsA("GuiObject") then
-			clanFrame.Visible = false
-		end
-	end
-
-	if clanColor and typeof(clanColor) == "Color3" then
-		clanTagLabel.TextColor3 = clanColor
-	else
-		clanTagLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-	end
-end
-
-local function refreshClanTagWithRetry(player, char)
-	if not player or not char then return end
-	if player.Character ~= char then return end
-
-	local components = getOverheadComponents(char)
-	if not components or not components.clanFrame then return end
-
-	local clanTagLabel = components.clanFrame:FindFirstChild("ClanTag")
-	if not clanTagLabel then return end
-
-	updateClanTagDisplay(player, clanTagLabel)
-
-	local clanTag = player:GetAttribute("ClanTag")
-	if not clanTag or clanTag == "" then
-		task.spawn(function()
-			local elapsed = 0
-			while elapsed < CLAN_MAX_WAIT do
-				task.wait(CLAN_CHECK_INTERVAL)
-				elapsed = elapsed + CLAN_CHECK_INTERVAL
-
-				if not player or not player.Parent then return end
-				if player.Character ~= char then return end
-
-				local newClanTag = player:GetAttribute("ClanTag")
-				if newClanTag and newClanTag ~= "" then
-					updateClanTagDisplay(player, clanTagLabel)
-					break
-				end
-			end
-		end)
-	end
-end
 
 --------------------------------------------------------------------------------------------------------
 -- Gestión de AFK
@@ -526,23 +213,12 @@ function OverheadManager:configureOverhead(overhead, player)
 	local frame = overhead:FindFirstChild("Frame")
 	if not frame then return end
 
-	local clanFrame = frame:FindFirstChild("ClanFrame")
 	local roleFrame = frame:FindFirstChild("RoleFrame")
 	local nameFrame = frame:FindFirstChild("NameFrame")
 	local otherFrame = frame:FindFirstChild("OtherFrame")
 
-	if clanFrame then
-		local clanTagLabel = clanFrame:FindFirstChild("ClanTag")
-		if clanTagLabel then
-			updateClanTagDisplay(player, clanTagLabel)
-		end
-	end
-
 	if nameFrame then
-		-- ✅ Nombre renderizado con bandera + racha (bandera al inicio)
-		local streak = getSavedStreak(player)
-		renderDisplayName(player, streak)
-		renderCountryFlag(player)
+		renderDisplayName(player)
 	end
 
 	self:setupRole(roleFrame, player)
@@ -554,10 +230,26 @@ function OverheadManager:setupRole(roleFrame, player)
 	local roleText = roleFrame:FindFirstChild("Role")
 	if not roleText then return end
 
-	local function applyRoleText(label, color)
-		roleText.RichText = false
-		roleText.Text = tostring(label or "Jugador")
-		roleText.TextColor3 = color
+	local function applyRoleText(icon, label, color, gradient)
+		local safeIcon = (icon and icon ~= "") and icon or "👤"
+		if gradient then
+			-- Rol con degradé animado
+			roleText.RichText = true
+			local offset = (os.clock() * GRADIENT_SPEED) % 1
+			roleText.Text = "[" .. safeIcon .. "] " .. applyGradientText(label, gradient, offset)
+			activeGradientRoles[player.UserId] = {
+				player = player,
+				gradient = gradient,
+				icon = safeIcon,
+				roleName = label
+			}
+		else
+			-- Rol con color sólido
+			activeGradientRoles[player.UserId] = nil
+			roleText.RichText = false
+			roleText.Text = string.format("[%s] %s", safeIcon, label)
+			roleText.TextColor3 = color
+		end
 	end
 
 	local function updateRoleDisplay()
@@ -566,7 +258,7 @@ function OverheadManager:setupRole(roleFrame, player)
 		local titleColor = player:GetAttribute("EquippedTitleColor") or "#FFFFFF"
 
 		if titleLabel ~= "" then
-			applyRoleText(titleLabel, Colors.fromHex(titleColor))
+			applyRoleText("🏷️", titleLabel, Colors.fromHex(titleColor))
 			return
 		end
 
@@ -579,32 +271,30 @@ function OverheadManager:setupRole(roleFrame, player)
 			end)
 
 			if success then
-				if GROUP_ROLES[rank] then
-					applyRoleText(GROUP_ROLES[rank].Name, GROUP_ROLES[rank].Color)
-					roleAssigned = true
-				else
+				local role = GROUP_ROLES[rank]
+				if not role then
 					local highestRole = nil
 					for roleRank in pairs(GROUP_ROLES) do
 						if rank >= roleRank and (not highestRole or roleRank > highestRole) then
 							highestRole = roleRank
 						end
 					end
-
-					if highestRole then
-						applyRoleText(GROUP_ROLES[highestRole].Name, GROUP_ROLES[highestRole].Color)
-						roleAssigned = true
-					end
+					if highestRole then role = GROUP_ROLES[highestRole] end
+				end
+				if role then
+					applyRoleText(role.Icon, role.Name, role.Color, role.Gradient)
+					roleAssigned = true
 				end
 			end
 		end
 
-		-- 3. VIP / Latino
+		-- 3. VIP / Invitado
 		if not roleAssigned then
 			local hasVIP = player:GetAttribute("HasVIP") or false
 			if hasVIP then
-				applyRoleText("VIP", Color3.fromRGB(217, 43, 13))
+				applyRoleText("💎", "[ VIP ]", Color3.fromRGB(255, 85, 255))
 			else
-				applyRoleText("Latino", Color3.fromRGB(119, 0, 255))
+				applyRoleText("👤", "[ Invitado ]", Color3.fromRGB(200, 200, 200))
 			end
 		end
 	end
@@ -665,46 +355,24 @@ local function setupMovementDetection(char, player)
 	end))
 end
 
---------------------------------------------------------------------------------------------------------
+
 local function onCharacterAdded(char, player)
 	OverheadManager:setupOverhead(char, player)
-	updatePlayerNameColor(player)
+	renderDisplayName(player)
 	setAFK(player, false)
 	setupMovementDetection(char, player)
-
-	-- ✅ Actualiza racha y repinta nombre (con bandera al inicio)
-	local currentStreak = updateStreak(player)
-	renderDisplayName(player, currentStreak)
-
-	task.delay(CLAN_LOAD_DELAY, function()
-		refreshClanTagWithRetry(player, char)
-	end)
 end
 
 Players.PlayerAdded:Connect(function(player)
-	resolveCountryForPlayer(player)
 	updateVIPStatus(player)
 
 	trackConnection(player, player:GetAttributeChangedSignal("SelectedColor"):Connect(function()
 		updatePlayerNameColor(player)
 	end))
 
-	local function refreshClanTag()
-		if not player or not player.Parent then return end
-		if not player.Character then return end
-
-		local components = getOverheadComponents(player.Character)
-		if not components or not components.clanFrame then return end
-
-		local clanTagLabel = components.clanFrame:FindFirstChild("ClanTag")
-		if not clanTagLabel then return end
-
-		updateClanTagDisplay(player, clanTagLabel)
-	end
-
-	trackConnection(player, player:GetAttributeChangedSignal("ClanTag"):Connect(refreshClanTag))
-	trackConnection(player, player:GetAttributeChangedSignal("ClanEmoji"):Connect(refreshClanTag))
-	trackConnection(player, player:GetAttributeChangedSignal("ClanColor"):Connect(refreshClanTag))
+	trackConnection(player, player:GetAttributeChangedSignal("HasVIP"):Connect(function()
+		renderDisplayName(player)
+	end))
 
 	setupPlayerChat(player)
 
@@ -720,38 +388,23 @@ end)
 for _, player in ipairs(Players:GetPlayers()) do
 	task.spawn(function()
 		setupPlayerChat(player)
-		resolveCountryForPlayer(player)
 		updateVIPStatus(player)
 
 		trackConnection(player, player:GetAttributeChangedSignal("SelectedColor"):Connect(function()
 			updatePlayerNameColor(player)
 		end))
 
-		local function refreshClanTag()
-			if not player or not player.Parent then return end
-			if not player.Character then return end
-
-			local components = getOverheadComponents(player.Character)
-			if not components or not components.clanFrame then return end
-
-			local clanTagLabel = components.clanFrame:FindFirstChild("ClanTag")
-			if not clanTagLabel then return end
-
-			updateClanTagDisplay(player, clanTagLabel)
-		end
-
-		trackConnection(player, player:GetAttributeChangedSignal("ClanTag"):Connect(refreshClanTag))
-		trackConnection(player, player:GetAttributeChangedSignal("ClanEmoji"):Connect(refreshClanTag))
-		trackConnection(player, player:GetAttributeChangedSignal("ClanColor"):Connect(refreshClanTag))
+		trackConnection(player, player:GetAttributeChangedSignal("HasVIP"):Connect(function()
+			renderDisplayName(player)
+		end))
 
 		local char = player.Character or player.CharacterAdded:Wait()
 		onCharacterAdded(char, player)
 	end)
 end
 
--- LIMPIAR CONEXIONES / CACHES CUANDO EL JUGADOR SALE
+-- LIMPIAR CONEXIONES CUANDO EL JUGADOR SALE
 Players.PlayerRemoving:Connect(function(player)
 	disconnectAllPlayerConnections(player.UserId)
-	streakCache[tostring(player.UserId)] = nil
-	countryCache[tostring(player.UserId)] = nil
+	activeGradientRoles[player.UserId] = nil
 end)

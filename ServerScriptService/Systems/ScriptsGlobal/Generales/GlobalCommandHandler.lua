@@ -8,18 +8,16 @@ local TextService = game:GetService("TextService")
 -- ═══════════════════════════════════════════════════════════════════
 local AdminConfig = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("AdminConfig"))
 local MusicConfig = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("MusicSystemConfig"))
+local Configuration = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("Configuration"))
 
--- Configuración HD Admin
-local SetupHd = ReplicatedStorage:WaitForChild("HDAdminSetup", 10)
-local hdMain = SetupHd and require(SetupHd):GetMain()
-local hd = hdMain and hdMain:GetModule("API")
+local GroupService = game:GetService("GroupService")
+local GroupId = Configuration.GroupID
 
 
 local CONFIG = {
 	eventPrefix = ";event",
 	uneventPrefix = ";unevent",
 	m2Prefix = ";m2",
-	m2RequiredRank = "Influencer", -- Cambiar aquí el rol mínimo para usar ;m2
 }
 
 -- ═══════════════════════════════════════════════════════════════════
@@ -42,8 +40,7 @@ local m2FilterNotif = messageFolder:WaitForChild("M2FilterNotif")
 -- ═══════════════════════════════════════════════════════════════════
 
 -- Filtrar mensaje con TextService de Roblox
--- Solo bloquea si Roblox confirma contenido inapropiado con #
--- En cualquier error de API, deja pasar (fail-open)
+
 local function filterMessage(text, userId)
 	local ok1, result = pcall(TextService.FilterStringAsync, TextService, text, userId, Enum.TextFilterContext.PublicChat)
 	if not ok1 or not result then return text end
@@ -57,15 +54,20 @@ local function filterMessage(text, userId)
 	return filtered
 end
 
--- Validar permisos para ;m2 (Solo el rango configurado en CONFIG.m2RequiredRank en adelante)
+-- Validar permisos para ;m2 (DJ o superior = rango 251+)
 local function canUseM2Command(player)
-	if not hd then return false end
+	local ok, groups = pcall(function()
+		return GroupService:GetGroupsAsync(player.UserId)
+	end)
 
-	local rankId = hd:GetRank(player)
-	local requiredRankId = hd:GetRankId(CONFIG.m2RequiredRank)
+	if not ok then return false end
 
-	if rankId and requiredRankId then
-		return rankId >= requiredRankId
+	for _, group in ipairs(groups) do
+		if group.Id == GroupId then
+			local rankId = group.Rank
+			-- DJ o superior (251+)
+			return rankId >= 251
+		end
 	end
 
 	return false

@@ -1,6 +1,6 @@
 --[[
 	Command System (Refactored)
-	- Efectos visuales, auras, comandos especiales, items por gamepass
+	- Efectos visuales, items VIP
 	- Refactorizado: sin memory leaks, anti-spam funcional, código centralizado
 ]]
 
@@ -16,8 +16,10 @@ local Debris             = game:GetService("Debris")
 
 --> Modules
 local Configuration  = require(game.ReplicatedStorage.Config.Configuration)
+local AdminConfig    = require(game.ReplicatedStorage.Config.AdminConfig)
 local GamepassManager = require(ServerScriptService["Gamepass Gifting"].GamepassManager)
-local ColorEffects   = require(game.ReplicatedStorage.Config.ColorConfig)
+local ColorEffects = require(game.ReplicatedStorage.Config.ColorConfig)
+
 
 --> ClanData (carga segura)
 local ClanData = nil
@@ -35,83 +37,20 @@ end
 
 --> Constants
 local EFFECT_PARTS = {"Head", "LeftLowerArm", "RightLowerArm", "LeftLowerLeg", "RightLowerLeg"}
-local BLACKLISTED_USERIDS = Configuration.OWS
 local COOLDOWN_SECONDS = 0.5 -- Anti-spam entre comandos
 
-local SPECIAL_COMMANDS = {
-	TOMBO = {
-		gamepassKey = Configuration.Gamepasses.TOMBO and Configuration.Gamepasses.TOMBO.id,
-		clothing    = { pantsID = 10820482467, shirtID = 16963556758 },
-		itemFolder  = "TOMBO",
-	},
-	SERE = {
-		gamepassKey = Configuration.Gamepasses.SERE and Configuration.Gamepasses.SERE.id,
-		clothing    = { shirtID = 7650880991 },
-		accessories = { hatID = 125648027192051, backAccessoryID = 125602307013071 },
-		itemFolder  = "SERE",
-	},
-	CHORO = {
-		gamepassKey = Configuration.Gamepasses.CHORO and Configuration.Gamepasses.CHORO.id,
-		itemFolder  = "CHORO",
-	},
-	ARMYBOOMS = {
-		gamepassKey = Configuration.Gamepasses.ARMYBOOMS and Configuration.Gamepasses.ARMYBOOMS.id,
-		itemFolder  = "ARMYBOOMS",
-	},
-	LIGHTSTICK = {
-		gamepassKey = Configuration.Gamepasses.LIGHTSTICK and Configuration.Gamepasses.LIGHTSTICK.id,
-		itemFolder  = "LIGHTSTICK",
-	},
-}
 
-local AURA_COMMANDS = {
-	atomic   = { gamepassKey = Configuration.Gamepasses.AURA_ATOMIC and Configuration.Gamepasses.AURA_ATOMIC.id,   folder = "ATOMIC"    },
-	blazing  = { gamepassKey = Configuration.Gamepasses.AURA_BLAZING and Configuration.Gamepasses.AURA_BLAZING.id,  folder = "BLAZING"   },
-	nano     = { gamepassKey = Configuration.Gamepasses.AURA_NANO and Configuration.Gamepasses.AURA_NANO.id,     folder = "NANO"      },
-	redheart = { gamepassKey = Configuration.Gamepasses.AURA_REDHEART and Configuration.Gamepasses.AURA_REDHEART.id, folder = "RED HEART" },
-	snow     = { gamepassKey = Configuration.Gamepasses.AURA_SNOW and Configuration.Gamepasses.AURA_SNOW.id,     folder = "SNOW"      },
-	dragon   = { gamepassKey = Configuration.Gamepasses.AURA_PACK and Configuration.Gamepasses.AURA_PACK.id,     folder = "DRAGON"    },
-}
-
-local AURA_SOUNDS = {
-	atomic   = "rbxassetid://96776624852409",
-	blazing  = "rbxassetid://82388464656965",
-	nano     = "rbxassetid://139565608032266",
-	redheart = "rbxassetid://82388464656965",
-	snow     = "rbxassetid://9125402528",
-	dragon   = "rbxassetid://121322612850251",
-}
-
-local R6_TO_R15 = {
-	["Head"]             = {"Head"},
-	["Torso"]            = {"UpperTorso", "LowerTorso"},
-	["HumanoidRootPart"] = {"HumanoidRootPart"},
-	["Left Arm"]         = {"LeftUpperArm", "LeftLowerArm", "LeftHand"},
-	["Right Arm"]        = {"RightUpperArm", "RightLowerArm", "RightHand"},
-	["Left Leg"]         = {"LeftUpperLeg", "LeftLowerLeg", "LeftFoot"},
-	["Right Leg"]        = {"RightUpperLeg", "RightLowerLeg", "RightFoot"},
-}
-
-local MANNEQUIN_SKIP = {
-	ThumbnailCamera = true, ["Body Colors"] = true,
-	Description = true, Humanoid = true,
-}
-
-local PAID_ITEM_FOLDERS = {"VIP", "TOMBO", "CHORO", "SERE", "ARMYBOOMS", "LIGHTSTICK"}
 
 --> Player State (todo centralizado en una tabla por UserId)
-local playerState = {} -- [userId] = { effects, activeCommand, activeAura, origAccessories, origTools, giftEquipped, lastCommandTime }
+local playerState = {} -- [userId] = { effects, origAccessories, origTools, lastCommandTime }
 
 local function getState(player)
 	local uid = player.UserId
 	if not playerState[uid] then
 		playerState[uid] = {
 			effects          = {},    -- instancias de efectos activos
-			activeCommand    = nil,   -- comando especial activo (TOMBO, SERE, etc.)
-			activeAura       = nil,   -- aura activa ("atomic", "blazing", etc.)
 			origAccessories  = {},    -- nombres de accesorios originales
 			origTools        = {},    -- nombres de tools originales
-			giftEquipped     = false, -- si ya se equiparon gift items
 			lastCommandTime  = 0,     -- timestamp del último comando (anti-spam)
 		}
 	end
@@ -172,11 +111,9 @@ local function isVIPItem(item)
 	local itemsFolder = ServerStorage:FindFirstChild("Items")
 	if not itemsFolder then return false end
 
-	for _, folderName in ipairs(PAID_ITEM_FOLDERS) do
-		local folder = itemsFolder:FindFirstChild(folderName)
-		if folder and folder:FindFirstChild(item.Name) then
-			return true
-		end
+	local folder = itemsFolder:FindFirstChild("VIP")
+	if folder and folder:FindFirstChild(item.Name) then
+		return true
 	end
 	return false
 end
@@ -315,7 +252,7 @@ local function applyEffectToPlayer(targetPlayer, effectType, color, commandingPl
 	if not character then return end
 
 	if commandingPlayer and commandingPlayer ~= targetPlayer then
-		if not ColorEffects.hasPermission(commandingPlayer, Configuration.GroupID, Configuration.ALLOWED_RANKS_OWS) then
+		if not AdminConfig:IsAdmin(commandingPlayer) then
 			return
 		end
 	end
@@ -326,108 +263,6 @@ local function applyEffectToPlayer(targetPlayer, effectType, color, commandingPl
 	if fn then
 		getState(targetPlayer).effects = fn(character, color)
 	end
-end
-
---=============================================================================
--- AURA SYSTEM
---=============================================================================
-
-local function removeAura(player)
-	local character = player.Character
-	if character then
-		local toRemove = {}
-		for _, obj in ipairs(character:GetDescendants()) do
-			if obj:GetAttribute("PlayerAura") then
-				table.insert(toRemove, obj)
-			end
-		end
-		for _, obj in ipairs(toRemove) do
-			pcall(function() obj:Destroy() end)
-		end
-	end
-	getState(player).activeAura = nil
-end
-
-local function handleAuraCommand(player, auraName)
-	local key = string.lower(auraName)
-	local config = AURA_COMMANDS[key]
-	if not config then return end
-
-	-- Si tiene el AURA PACK, puede usar todas las auras
-	local hasAuraPack = Configuration.Gamepasses.AURA_PACK and GamepassManager.HasGamepass(player, Configuration.Gamepasses.AURA_PACK.id)
-	local hasPass = GamepassManager.HasGamepass(player, config.gamepassKey) or hasAuraPack
-	if not hasPass then return end
-
-	local character = player.Character
-	if not character then return end
-
-	removeAura(player)
-
-	-- Buscar carpeta del aura (Assets está dentro de Systems = ServerStorage)
-	local assetsFolder = ServerStorage:FindFirstChild("Assets")
-	if not assetsFolder then return end
-	local aurasGMPS = assetsFolder:FindFirstChild("AurasGMPS")
-	if not aurasGMPS then return end
-	local auraFolder = aurasGMPS:FindFirstChild(config.folder)
-	if not auraFolder then return end
-
-	local hrp = character:FindFirstChild("HumanoidRootPart")
-	if not hrp then return end
-
-	-- Sonido de inicio
-	local sound = Instance.new("Sound")
-	sound.SoundId = AURA_SOUNDS[key] or "rbxassetid://9122258437"
-	sound.Volume = 1
-	sound.Parent = hrp
-	task.defer(function()
-		if hrp.Parent and sound.Parent then
-			sound:Play()
-			Debris:AddItem(sound, 5)
-		end
-	end)
-
-	-- Clonar efectos del maniquí al personaje
-	for _, auraPartContainer in ipairs(auraFolder:GetChildren()) do
-		local partName = auraPartContainer.Name
-		if not MANNEQUIN_SKIP[partName] then
-			local targetNames = R6_TO_R15[partName] or {partName}
-
-			for _, targetName in ipairs(targetNames) do
-				local targetPart = character:FindFirstChild(targetName)
-				if targetPart then
-					for _, effect in ipairs(auraPartContainer:GetChildren()) do
-						if not (effect:IsA("Decal") and string.lower(effect.Name) == "face") then
-							local clone = effect:Clone()
-							clone:SetAttribute("PlayerAura", true)
-							for _, desc in ipairs(clone:GetDescendants()) do
-								desc:SetAttribute("PlayerAura", true)
-							end
-
-							-- Fade in según tipo
-							if clone:IsA("ParticleEmitter") then
-								local originalRate = effect.Rate or 10
-								clone.Rate = 0
-								clone.Enabled = true
-								clone.Parent = targetPart
-								TweenService:Create(clone, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Rate = originalRate}):Play()
-
-							elseif clone:IsA("PointLight") then
-								local originalBrightness = effect.Brightness or 5
-								clone.Brightness = 0
-								clone.Parent = targetPart
-								TweenService:Create(clone, TweenInfo.new(0.6, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {Brightness = originalBrightness}):Play()
-
-							else
-								clone.Parent = targetPart
-							end
-						end
-					end
-				end
-			end
-		end
-	end
-
-	getState(player).activeAura = key
 end
 
 --=============================================================================
@@ -500,100 +335,6 @@ local function equipItems(player, itemType)
 			clone.Parent = backpack
 		end
 	end
-end
-
-local function grantItemsBasedOnPasses(player)
-	local autoGrant = {
-		{folder = "VIP",        id = Configuration.Gamepasses.VIP.id},
-		{folder = "ARMYBOOMS",  id = Configuration.Gamepasses.ARMYBOOMS and Configuration.Gamepasses.ARMYBOOMS.id},
-		{folder = "LIGHTSTICK", id = Configuration.Gamepasses.LIGHTSTICK and Configuration.Gamepasses.LIGHTSTICK.id},
-	}
-
-	for _, gp in ipairs(autoGrant) do
-		if gp.id and GamepassManager.HasGamepass(player, gp.id) then
-			equipItems(player, gp.folder)
-		end
-	end
-end
-
---=============================================================================
--- SPECIAL COMMANDS (TOMBO, SERE, CHORO, etc.)
---=============================================================================
-
-local function removeSpecialCommandItems(player, commandName)
-	local config = SPECIAL_COMMANDS[commandName]
-	if not config then return end
-
-	local character = player.Character
-	local backpack = player.Backpack
-
-	-- Remover tools del folder
-	if config.itemFolder then
-		local itemsFolder = ServerStorage:FindFirstChild("Items")
-		local typeFolder = itemsFolder and itemsFolder:FindFirstChild(config.itemFolder)
-		if typeFolder then
-			local function removeMatchingTools(container)
-				for _, tool in ipairs(container:GetChildren()) do
-					if tool:IsA("Tool") and typeFolder:FindFirstChild(tool.Name) then
-						tool:Destroy()
-					end
-				end
-			end
-			removeMatchingTools(backpack)
-			if character then removeMatchingTools(character) end
-		end
-	end
-
-	-- Reset ropa a la original
-	if config.clothing and character then
-		local humanoid = character:FindFirstChildOfClass("Humanoid")
-		if humanoid then
-			local ok, origDesc = pcall(Players.GetHumanoidDescriptionFromUserId, Players, player.UserId)
-			if ok and origDesc then
-				pcall(function()
-					local currentDesc = humanoid:GetAppliedDescription()
-					if config.clothing.shirtID then currentDesc.Shirt = origDesc.Shirt end
-					if config.clothing.pantsID then currentDesc.Pants = origDesc.Pants end
-					humanoid:ApplyDescription(currentDesc)
-				end)
-			end
-		end
-	end
-end
-
-local function clearAllSpecialCommands(player)
-	for commandName in pairs(SPECIAL_COMMANDS) do
-		removeSpecialCommandItems(player, commandName)
-	end
-	getState(player).activeCommand = nil
-end
-
-local function handleSpecialCommand(player, commandName)
-	local config = SPECIAL_COMMANDS[commandName]
-	if not config then return end
-	if not GamepassManager.HasGamepass(player, config.gamepassKey) then return end
-
-	local character = player.Character
-	if not character then return end
-
-	local state = getState(player)
-
-	-- Si hay otro comando activo, limpiarlo primero
-	if state.activeCommand and state.activeCommand ~= commandName then
-		removeSpecialCommandItems(player, state.activeCommand)
-	end
-
-	if config.clothing then applyClothing(character, config.clothing) end
-
-	if config.accessories then
-		for _, accId in pairs(config.accessories) do
-			equipAccessory(character, accId)
-		end
-	end
-
-	if config.itemFolder then equipItems(player, config.itemFolder) end
-
-	state.activeCommand = commandName
 end
 
 --=============================================================================
@@ -687,9 +428,6 @@ local function resetCharacter(player)
 
 	-- Limpiar todo
 	clearPlayerEffect(player)
-	clearAllSpecialCommands(player)
-	removeAura(player)
-	state.giftEquipped = false
 	storeOriginalItems(player)
 end
 
@@ -737,11 +475,9 @@ local function handleCloneCommand(player, targetName)
 	local ok, targetUserId = pcall(Players.GetUserIdFromNameAsync, Players, targetName)
 	if not ok then return end
 
-	for _, blocked in ipairs(BLACKLISTED_USERIDS) do
-		if targetUserId == blocked then
-			player:Kick("No puedes clonar a este usuario")
-			return
-		end
+	if AdminConfig:IsAdmin(targetName) then
+		player:Kick("No puedes clonar a este usuario")
+		return
 	end
 
 	local humanoidDescription
@@ -780,7 +516,7 @@ local function handleAppearanceCommand(player, commandType)
 
 	local attempt = 0
 	local function tryModify()
-		attempt = attempt + 1
+		attempt += 1
 		if attempt > 3 then return end
 		if not modifyCharacter(character, modification) and attempt < 3 then
 			task.delay(0.5 * attempt, tryModify)
@@ -811,7 +547,7 @@ local function applyEffectWithTarget(player, effectType, input)
 
 	local lower = string.lower(targetName)
 	if lower == "all" or lower == "todos" then
-		local isAdmin = ColorEffects.hasPermission(player, Configuration.GroupID, Configuration.ALLOWED_RANKS_OWS)
+		local isAdmin = AdminConfig:IsAdmin(player)
 		for _, target in ipairs(Players:GetPlayers()) do
 			if target == player or isAdmin then
 				applyEffectToPlayer(target, effectType, color, player)
@@ -838,7 +574,6 @@ local function processCommand(player, message)
 	-- Mapeo de efectos: patrón → tipo
 	local EFFECT_MAP = {
 		{pattern = Configuration.CommandFIRE,      effect = "fire"},
-		{pattern = Configuration.CommandSMK,       effect = "smk"},
 		{pattern = Configuration.CommandLGHT,      effect = "lght"},
 		{pattern = Configuration.CommandPRTCL,     effect = "prtcl"},
 		{pattern = Configuration.CommandTRAIL,     effect = "trail"},
@@ -860,14 +595,13 @@ local function processCommand(player, message)
 		local rmv = message:match(Configuration.CommandRMV)
 		if rmv then
 			clearPlayerEffect(player)
-			removeAura(player)
 			return
 		end
 	end
 
 	-- 2. VIP commands (korblox, headless)
 	local function checkVIP()
-		return not Configuration.Gamepasses.VIP or GamepassManager.HasGamepass(player, Configuration.Gamepasses.VIP.id)
+		return GamepassManager.HasGamepass(player, Configuration.Gamepasses.VIP.id)
 	end
 
 	local korblox = message:match(Configuration.CommandKorblox)
@@ -882,63 +616,10 @@ local function processCommand(player, message)
 		return
 	end
 
-	-- 3. Commands gamepass extras
-	if hasCommands then
-		local hatMatch = message:match(Configuration.CommandHat)
-		if hatMatch then
-			for id in string.gmatch(hatMatch, "%d+") do
-				equipAccessory(character, tonumber(id))
-			end
-			return
-		end
-
-		local particleMatch = message:match(Configuration.CommandParticle)
-		if particleMatch then
-			handleParticleCommand(player, character, particleMatch)
-			return
-		end
-
-		local sizeMatch = message:match(Configuration.CommandSize)
-		if sizeMatch then
-			local size = tonumber(sizeMatch)
-			if size and size >= 0.5 and size <= 2 then
-				modifyCharacter(character, {type = "scale", value = size})
-			end
-			return
-		end
-
-		local cloneMatch = message:match(Configuration.CommandClone)
-		if cloneMatch then
-			handleCloneCommand(player, cloneMatch)
-			return
-		end
-	end
-
-	-- 4. Comandos especiales (cada uno verifica su propio gamepass)
-	local SPECIAL_PATTERNS = {
-		{pattern = Configuration.CommandTOMBO, name = "TOMBO"},
-		{pattern = Configuration.CommandCHORO, name = "CHORO"},
-		{pattern = Configuration.CommandSERE,  name = "SERE"},
-	}
-
-	for _, entry in ipairs(SPECIAL_PATTERNS) do
-		if message:match(entry.pattern) then
-			handleSpecialCommand(player, entry.name)
-			return
-		end
-	end
-
-	-- 5. Auras
-	local auraMatch = message:match(Configuration.CommandAURA)
-	if auraMatch then
-		handleAuraCommand(player, auraMatch)
-		return
-	end
-
-	-- 6. Reset
+	-- 4. Reset
 	local isReset = message:match(Configuration.CommandReset) or message:match(Configuration.CommandReset2)
 	if isReset then
-		if not Configuration.Gamepasses.COMMANDS or hasCommands then
+		if hasCommands then
 			resetCharacter(player)
 		end
 	end
@@ -952,7 +633,10 @@ Players.PlayerAdded:Connect(function(player)
 	-- Una sola conexión a CharacterAdded (no anidamos Chatted aquí)
 	player.CharacterAdded:Connect(function(character)
 		storeOriginalItems(player)
-		grantItemsBasedOnPasses(player)
+		-- Equipar items VIP automáticamente
+		if GamepassManager.HasGamepass(player, Configuration.Gamepasses.VIP.id) then
+			equipItems(player, "VIP")
+		end
 	end)
 
 	-- Chatted conectado UNA sola vez (fuera de CharacterAdded = sin memory leak)
@@ -967,7 +651,7 @@ Players.PlayerAdded:Connect(function(player)
 		local count = 0
 		for _, tool in ipairs(player.Backpack:GetChildren()) do
 			if tool.Name == child.Name then
-				count = count + 1
+				count += 1
 				if count > 1 then
 					child:Destroy()
 					return
