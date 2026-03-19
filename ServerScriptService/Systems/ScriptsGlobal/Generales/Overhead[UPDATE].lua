@@ -33,6 +33,7 @@ local Configuration = require(game.ReplicatedStorage.Config.Configuration)
 local GamepassManager = require(Systems:WaitForChild("Gamepass Gifting"):WaitForChild("GamepassManager"))
 local Colors = require(game.ReplicatedStorage.Config.ColorConfig)
 local AdminConfig = require(game.ReplicatedStorage.Config.AdminConfig)
+local LevelConfig = require(game.ReplicatedStorage.Config.LevelConfig)
 
 --// Constantes
 local GroupID = Configuration.GroupID
@@ -55,7 +56,8 @@ local function getOverheadComponents(char)
 		frame = frame,
 		roleFrame = frame:FindFirstChild("RoleFrame"),
 		nameFrame = frame:FindFirstChild("NameFrame"),
-		otherFrame = frame:FindFirstChild("OtherFrame")
+		otherFrame = frame:FindFirstChild("OtherFrame"),
+		levelFrame = frame:FindFirstChild("LevelFrame")
 	}
 end
 
@@ -154,6 +156,14 @@ local function updateVIPStatus(player)
 	player:SetAttribute("HasVIP", hasVIP)
 end
 
+-- Actualizar nivel en LevelFrame
+local function updateLevelDisplay(levelLabel, level)
+	if not levelLabel then return end
+	local config = LevelConfig.getLevelConfig(level)
+	levelLabel.Text = "Lv. " .. level .. " " .. config.Emoji
+	levelLabel.TextColor3 = config.Color
+end
+
 --------------------------------------------------------------------------------------------------------
 -- Actualizar degradé del nombre
 local function updatePlayerNameColor(player)
@@ -213,9 +223,10 @@ function OverheadManager:configureOverhead(overhead, player)
 	local frame = overhead:FindFirstChild("Frame")
 	if not frame then return end
 
-	local roleFrame = frame:FindFirstChild("RoleFrame")
-	local nameFrame = frame:FindFirstChild("NameFrame")
+	local roleFrame  = frame:FindFirstChild("RoleFrame")
+	local nameFrame  = frame:FindFirstChild("NameFrame")
 	local otherFrame = frame:FindFirstChild("OtherFrame")
+	local levelFrame = frame:FindFirstChild("LevelFrame")
 
 	if nameFrame then
 		renderDisplayName(player)
@@ -223,6 +234,50 @@ function OverheadManager:configureOverhead(overhead, player)
 
 	self:setupRole(roleFrame, player)
 	self:setupBadges(otherFrame, player)
+	self:setupLevelDisplay(levelFrame, player)
+end
+
+function OverheadManager:setupLevelDisplay(levelFrame, player)
+	if not levelFrame then return end
+
+	local levelLabel = levelFrame:FindFirstChild("Level")
+	if not levelLabel then return end
+
+	local function connectLevelStat(levelStat)
+		updateLevelDisplay(levelLabel, levelStat.Value)
+		trackConnection(player, levelStat:GetPropertyChangedSignal("Value"):Connect(function()
+			updateLevelDisplay(levelLabel, levelStat.Value)
+		end))
+	end
+
+	local function connectLeaderstats(leaderstats)
+		local levelStat = leaderstats:FindFirstChild("Level 🌟")
+		if levelStat then
+			connectLevelStat(levelStat)
+			return
+		end
+		local conn
+		conn = leaderstats.ChildAdded:Connect(function(child)
+			if child.Name == "Level 🌟" then
+				conn:Disconnect()
+				connectLevelStat(child)
+			end
+		end)
+	end
+
+	local leaderstats = player:FindFirstChild("leaderstats")
+	if leaderstats then
+		connectLeaderstats(leaderstats)
+		return
+	end
+
+	local conn
+	conn = player.ChildAdded:Connect(function(child)
+		if child.Name == "leaderstats" then
+			conn:Disconnect()
+			connectLeaderstats(child)
+		end
+	end)
 end
 
 function OverheadManager:setupRole(roleFrame, player)
