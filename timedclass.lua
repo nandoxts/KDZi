@@ -166,9 +166,11 @@ end
 
 
 function TimePlayedClass:_clearBoard ()
-	for _, folder in pairs({self._scoreBlock.Leaderboard.Names, self._scoreBlock.Leaderboard.Photos, self._scoreBlock.Leaderboard.Score}) do
-		for _, item in pairs(folder:GetChildren()) do
-			item.Visible = false
+	for _, folder in pairs({self._scoreBlock.Leaderboard.Names, self._scoreBlock.Leaderboard.Photos, self._scoreBlock.Leaderboard.Score, self._scoreBlock.Leaderboard.Level}) do
+		if folder then
+			for _, item in pairs(folder:GetChildren()) do
+				item.Visible = false
+			end
 		end
 	end
 end
@@ -196,10 +198,15 @@ function TimePlayedClass:_updateBoard ()
 		local userid = tonumber(string.split(v.key, self._dataStoreStatName)[2])
 		local name = game:GetService("Players"):GetNameFromUserIdAsync(userid)
 		local score = self:_timeToString(v.value)
+		local level = math.max(1, math.floor((tonumber(v.value) or 0) / self._minutesPerLevel) + 1)
 		self:_onPlayerScoreUpdate(userid, v.value)
 		sufgui.Names["Name"..k].Visible = true
 		sufgui.Score["Score"..k].Visible = true
 		sufgui.Photos["Photo"..k].Visible = true
+		if sufgui.Level and sufgui.Level["Level"..k] then
+			sufgui.Level["Level"..k].Visible = true
+			sufgui.Level["Level"..k].Text = "Nvl. " .. tostring(level)
+		end
 		sufgui.Names["Name"..k].Text = name
 		sufgui.Score["Score"..k].Text = score
 		sufgui.Photos["Photo"..k].Image = game:GetService("Players"):GetUserThumbnailAsync(userid, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150)
@@ -225,6 +232,9 @@ function TimePlayedClass:_updateScore ()
 			local stat = self._dataStoreStatName .. player.UserId
 			local newval = self._datastore:IncrementAsync(stat, self._scoreUpdateDelay / 60)
 			if self._doDebug then print("Incremented time played stat of", player, stat, "to", newval) end
+			if newval then
+				self:_onPlayerScoreUpdate(player.UserId, newval)
+			end
 		end
 	end))
 	if not suc then warn(err) end

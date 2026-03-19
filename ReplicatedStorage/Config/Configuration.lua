@@ -23,6 +23,9 @@ return {
 	CommandTRAIL  = "^[,.;]trail%s*(.+)$",
 	CommandRMV    = "^[,.;]rmv$",
 	CommandDestacado   = "^[,.;]hl%s*(.+)$",
+	CommandReset  = "^[,.;]ref$",
+	CommandReset2 = "^[,.;]unchar$",
+	CommandClone  = "^[,.;]clone%s+(%S+)$",
 
 	-- DANCE LEADER --
 	FOLLOWER_DANCE = 15, -- Cantidad de seguidores para activar el gui

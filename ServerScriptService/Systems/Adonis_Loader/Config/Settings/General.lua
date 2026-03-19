@@ -3,7 +3,7 @@
 ----------------------
 
 return {
-	Prefix = {";", ":"};		-- Prefijos (migrado de HD Admin: ";")
+	Prefix = {":"};		-- Prefijos (migrado de HD Admin: ";")
 	PlayerPrefix = "!";			-- El ! en !donate
 	SpecialPrefix = "";			-- Usado para "all", "me", "others"
 	SplitKey = " ";				-- Separador (migrado de HD Admin)

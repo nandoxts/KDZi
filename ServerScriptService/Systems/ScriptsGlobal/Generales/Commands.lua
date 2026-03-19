@@ -39,6 +39,41 @@ end
 local EFFECT_PARTS = {"Head", "LeftLowerArm", "RightLowerArm", "LeftLowerLeg", "RightLowerLeg"}
 local COOLDOWN_SECONDS = 0.5 -- Anti-spam entre comandos
 
+--=============================================================================
+-- RANK SYSTEM  (fuente única de verdad: Configuration)
+--=============================================================================
+
+local _gp = {}
+for _, e in ipairs(Configuration.AdminRanksByGamepass) do _gp[e.Name] = e.Level end
+
+local RANK = {
+	NONE       = 0,
+	VIP        = _gp.VIP,
+	COMMANDS   = _gp.COMMANDS,
+	SOCIO      = 249,
+	INFLUENCER = 250,
+	DJ         = 251,
+	MOD        = 252,
+	ADMIN      = 253,
+	HEAD_ADMIN = 254,
+	CREATOR    = 255,
+}
+
+-- Retorna el rango efectivo del jugador: rango de grupo > gamepass > ninguno
+local function getPlayerRank(player)
+	local ok, groupRank = pcall(function()
+		return player:GetRankInGroup(Configuration.GroupID)
+	end)
+	if ok and groupRank >= RANK.SOCIO then return groupRank end
+	if GamepassManager.HasGamepass(player, Configuration.Gamepasses.COMMANDS.id) then
+		return RANK.COMMANDS
+	end
+	if GamepassManager.HasGamepass(player, Configuration.Gamepasses.VIP.id) then
+		return RANK.VIP
+	end
+	return RANK.NONE
+end
+
 
 
 --> Player State (todo centralizado en una tabla por UserId)
@@ -252,7 +287,7 @@ local function applyEffectToPlayer(targetPlayer, effectType, color, commandingPl
 	if not character then return end
 
 	if commandingPlayer and commandingPlayer ~= targetPlayer then
-		if not AdminConfig:IsAdmin(commandingPlayer) then
+		if getPlayerRank(commandingPlayer) < RANK.SOCIO then
 			return
 		end
 	end
@@ -547,11 +582,9 @@ local function applyEffectWithTarget(player, effectType, input)
 
 	local lower = string.lower(targetName)
 	if lower == "all" or lower == "todos" then
-		local isAdmin = AdminConfig:IsAdmin(player)
+		if getPlayerRank(player) < RANK.MOD then return end
 		for _, target in ipairs(Players:GetPlayers()) do
-			if target == player or isAdmin then
-				applyEffectToPlayer(target, effectType, color, player)
-			end
+			applyEffectToPlayer(target, effectType, color, player)
 		end
 	else
 		local target = Players:FindFirstChild(targetName)
@@ -580,10 +613,10 @@ local function processCommand(player, message)
 		{pattern = Configuration.CommandDestacado, effect = "destacar"},
 	}
 
-	local hasCommands = GamepassManager.HasGamepass(player, Configuration.Gamepasses.COMMANDS.id)
+	local rank = getPlayerRank(player)
 
-	-- 1. Efectos (requieren COMMANDS gamepass)
-	if hasCommands then
+	-- 1. Efectos visuales (rango mínimo: VIP)
+	if rank >= RANK.VIP then
 		for _, entry in ipairs(EFFECT_MAP) do
 			local match = message:match(entry.pattern)
 			if match then
@@ -599,29 +632,31 @@ local function processCommand(player, message)
 		end
 	end
 
-	-- 2. VIP commands (korblox, headless)
-	local function checkVIP()
-		return GamepassManager.HasGamepass(player, Configuration.Gamepasses.VIP.id)
-	end
-
+	-- 2. Apariencia propia (rango mínimo: VIP)
 	local korblox = message:match(Configuration.CommandKorblox)
-	if korblox and checkVIP() then
+	if korblox and rank >= RANK.VIP then
 		handleAppearanceCommand(player, "korblox")
 		return
 	end
 
 	local headless = message:match(Configuration.CommandHeadless)
-	if headless and checkVIP() then
+	if headless and rank >= RANK.VIP then
 		handleAppearanceCommand(player, "headless")
 		return
 	end
 
-	-- 4. Reset
+	-- 3. Clone (rango mínimo: Socio)
+	local cloneTarget = message:match(Configuration.CommandClone)
+	if cloneTarget and rank >= RANK.SOCIO then
+		handleCloneCommand(player, cloneTarget)
+		return
+	end
+
+	-- 4. Reset de personaje (rango mínimo: VIP)
 	local isReset = message:match(Configuration.CommandReset) or message:match(Configuration.CommandReset2)
-	if isReset then
-		if hasCommands then
-			resetCharacter(player)
-		end
+	if isReset and rank >= RANK.VIP then
+		resetCharacter(player)
+		return
 	end
 end
 

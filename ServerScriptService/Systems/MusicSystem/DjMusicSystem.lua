@@ -10,14 +10,17 @@ local SoundService       = game:GetService("SoundService")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local MusicConfig    = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("MusicSystemConfig"))
-local Systems        = ServerScriptService:WaitForChild("Systems")
 local Configuration  = require(game.ReplicatedStorage.Config.Configuration)
-local ShopManager = require(Systems:WaitForChild("GiftManager"):WaitForChild("ShopManager"))
 
 -- ════════════════════════════════════════════════════════════════
 -- CONSTANTS
 -- ════════════════════════════════════════════════════════════════
 local VIP_ID            = Configuration.Gamepasses.VIP.id
+
+local function hasGamepass(player, gamepassId)
+	local ok, owns = pcall(MarketplaceService.UserOwnsGamePassAsync, MarketplaceService, player.UserId, gamepassId)
+	return ok and owns
+end
 local DEV_USER_ID       = 8387751399
 local DEV_DISPLAY_NAME  = "Sistema"
 local ASSET_PREFIX      = "rbxassetid://"
@@ -52,7 +55,7 @@ local RC = {
 -- ════════════════════════════════════════════════════════════════
 local musicDatabase   = {}
 local djOrder         = {
-	"Top Hits", "Trap Latino", "Mix Brazil", "Kpop Army",
+	"Top Hits", "Trap Latino", "DaniFlow", "Kpop Army",
 	"DJ Angelisai", "DJ AngeloGarcia", "Hora Loca", "Rock",
 	"Reparto", "Phonk", "Vallenatos", "Mix Argentina",
 	"Electronica", "Romanticas", "Mixes Djs", "Mix chile",
@@ -413,7 +416,7 @@ end
 local function getUserQueueLimit(player)
 	if MusicConfig:IsAdmin(player) then
 		return MusicConfig.LIMITS.MaxSongsPerUserAdmin, "Admin"
-	elseif ShopManager.HasGamepass(player, VIP_ID) then
+	elseif hasGamepass(player, VIP_ID) then
 		return MusicConfig.LIMITS.MaxSongsPerUserVIP, "VIP"
 	end
 	return MusicConfig.LIMITS.MaxSongsPerUserNormal, "Normal"
