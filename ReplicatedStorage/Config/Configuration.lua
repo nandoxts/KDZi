@@ -12,7 +12,7 @@ return {
 		COMMANDS   = { id = 1753652728, devId = 0 },
 	},
 	-- GRUPO --
-	GroupID = 35712251,
+	GroupID = 156212776,
 
 	-- COMMANDS --
 	CommandKorblox = "[,.;]korblox",
@@ -28,7 +28,7 @@ return {
 	CommandClone  = "^[,.;]clone%s+(%S+)$",
 
 	-- DANCE LEADER --
-	FOLLOWER_DANCE = 15, -- Cantidad de seguidores para activar el gui
+	FOLLOWER_DANCE = 10, -- Cantidad de seguidores para activar el gui
 	CHECK_TIME_FOLLOWER = 300, -- Tiempo de comprobación de seguidores
 	BILLBOARD_NAME = "Dance_Leader",
 
@@ -48,16 +48,18 @@ return {
 	--  AdminLevel → Nivel de permisos en Adonis (nil = sin admin)
 	-- ══════════════════════════════════════
 	GroupRoles = {
-		[255] = { Name = "[Creator]",      Color = Color3.fromRGB(186, 85, 211),   Icon = "👑", AdminRank = "Creators",      AdminLevel = 900,
-			Gradient = { Color3.fromRGB(186, 85, 211), Color3.fromRGB(138, 43, 226), Color3.fromRGB(75, 0, 130) } },
-		[254] = { Name = "[Head Admin]",   Color = Color3.fromRGB(0, 206, 209),   Icon = "🔰", AdminRank = "HeadAdmins",    AdminLevel = 300,
+		[255] = { Name = "[Creator]",      Color = Color3.fromRGB(0, 255, 255),   Icon = "💎", AdminRank = "Creators",      AdminLevel = 900,
+			Gradient = { Color3.fromRGB(255, 255, 255), Color3.fromRGB(85, 255, 255), Color3.fromRGB(0, 170, 255) } },
+		[254] = { Name = "[Creator]",      Color = Color3.fromRGB(0, 255, 255),   Icon = "💎", AdminRank = "Creators",      AdminLevel = 900,
+			Gradient = { Color3.fromRGB(255, 255, 255), Color3.fromRGB(0, 255, 255), Color3.fromRGB(0, 170, 255) } },
+		[253] = { Name = "[Head Admin]",   Color = Color3.fromRGB(0, 206, 209),   Icon = "🔰", AdminRank = "HeadAdmins",    AdminLevel = 300,
 			Gradient = { Color3.fromRGB(0, 206, 209), Color3.fromRGB(64, 224, 208) } },
-		[253] = { Name = "[Admin]",        Color = Color3.fromRGB(50, 205, 50),     Icon = "🚨", AdminRank = "Administrador", AdminLevel = 200,
+		[252] = { Name = "[Admin]",        Color = Color3.fromRGB(50, 205, 50),     Icon = "🚨", AdminRank = "Administrador", AdminLevel = 200,
 			Gradient = { Color3.fromRGB(50, 205, 50), Color3.fromRGB(144, 238, 144) } },
-		[252] = { Name = "[Mod]",          Color = Color3.fromRGB(255, 20, 147),    Icon = "🛡", AdminRank = "Moderador",     AdminLevel = 150 },
-		[251] = { Name = "[DJ]",           Color = Color3.fromRGB(255, 140, 0),     Icon = "🎧", AdminRank = "DJ",            AdminLevel = 100 },
-		[250] = { Name = "[Influencer]",   Color = Color3.fromRGB(255, 215, 0),   Icon = "⭐", AdminRank = "Influencer",    AdminLevel = 75 },
-		[249] = { Name = "[Socio]",        Color = Color3.fromRGB(135, 206, 250),     Icon = "🤝" },
+		[251] = { Name = "[Mod]",          Color = Color3.fromRGB(255, 20, 147),    Icon = "🛡", AdminRank = "Moderador",     AdminLevel = 150 },
+		[250] = { Name = "[DJ]",           Color = Color3.fromRGB(255, 140, 0),     Icon = "🎧", AdminRank = "DJ",            AdminLevel = 100 },
+		[249] = { Name = "[Influencer]",   Color = Color3.fromRGB(255, 215, 0),   Icon = "⭐", AdminRank = "Influencer",    AdminLevel = 75 },
+		[248] = { Name = "[Socio]",        Color = Color3.fromRGB(135, 206, 250),     Icon = "🤝" },
 	},
 
 	-- ══════════════════════════════════════
@@ -65,8 +67,8 @@ return {
 	-- ══════════════════════════════════════
 	AdminOwners = {
 		{ Username = "ignxts",  UserId = 8387751399 },
+		{ Username = "Gatita17play",  UserId = 8771639155 },
 	},
-
 	-- ══════════════════════════════════════
 	--  ADMIN POR GAMEPASS
 	-- ══════════════════════════════════════
