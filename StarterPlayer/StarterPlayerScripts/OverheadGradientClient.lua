@@ -1,67 +1,44 @@
-local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
+local TweenService = game:GetService("TweenService")
+local Workspace    = game:GetService("Workspace")
 
 local GRADIENT_NAME = "RoleGradient"
-local GRADIENT_SPEED = 0.5
-local RESCAN_INTERVAL = 1
+local CYCLE_TIME    = 2       -- segundos para un ciclo completo (ida y vuelta)
 
-local trackedGradients = {}
+local tweenInfo = TweenInfo.new(
+	CYCLE_TIME,                    -- duración
+	Enum.EasingStyle.Linear,       -- sin aceleración
+	Enum.EasingDirection.InOut,
+	-1,                            -- repetir infinito
+	true                           -- reversa (va y vuelve)
+)
 
-local function shouldTrack(instance)
-	return instance:IsA("UIGradient") and instance.Name == GRADIENT_NAME
+local trackedGradients = {} -- [gradient] = Tween
+
+local function startTween(gradient)
+	if trackedGradients[gradient] then return end
+	if not (gradient:IsA("UIGradient") and gradient.Name == GRADIENT_NAME) then return end
+
+	gradient.Offset = Vector2.new(-1, 0)
+	local tween = TweenService:Create(gradient, tweenInfo, { Offset = Vector2.new(1, 0) })
+	tween:Play()
+	trackedGradients[gradient] = tween
 end
 
-local function trackGradient(gradient)
-	if not shouldTrack(gradient) then
-		return
+local function stopTween(gradient)
+	local tween = trackedGradients[gradient]
+	if tween then
+		tween:Cancel()
 	end
-	trackedGradients[gradient] = true
-end
-
-local function untrackGradient(gradient)
 	trackedGradients[gradient] = nil
 end
 
-local function scanWorkspaceGradients()
-	for _, instance in ipairs(Workspace:GetDescendants()) do
-		if shouldTrack(instance) then
-			trackGradient(instance)
-		end
-	end
+-- Enganchar los que ya existen
+for _, inst in ipairs(Workspace:GetDescendants()) do
+	startTween(inst)
 end
 
-scanWorkspaceGradients()
+-- Enganchar nuevos
+Workspace.DescendantAdded:Connect(startTween)
 
-Workspace.DescendantAdded:Connect(function(instance)
-	if shouldTrack(instance) then
-		trackGradient(instance)
-	end
-end)
-
-Workspace.DescendantRemoving:Connect(function(instance)
-	if trackedGradients[instance] then
-		untrackGradient(instance)
-	end
-end)
-
-RunService.RenderStepped:Connect(function()
-	local now = os.clock()
-	local x = ((now * GRADIENT_SPEED) % 2) - 1
-
-	for gradient in pairs(trackedGradients) do
-		if gradient.Parent then
-			if gradient.Enabled then
-				gradient.Offset = Vector2.new(x, 0)
-			end
-		else
-			untrackGradient(gradient)
-		end
-	end
-end)
-
-task.spawn(function()
-	while true do
-		task.wait(RESCAN_INTERVAL)
-		scanWorkspaceGradients()
-	end
-end)
+-- Limpiar al removerse
+Workspace.DescendantRemoving:Connect(stopTween)
