@@ -36,10 +36,10 @@
 	Formato: "comando:NivelMínimo"
 
 	Niveles de referencia (ver Configuration.GroupRoles):
-		900 = Creators    |  400 = Help Creator  |  350 = Lead Admin
-		300 = HeadAdmins  |  200 = Administrador  |  150 = Moderador
-		100 = DJ          |   75 = Influencer     |   50 = Socio
-		 20 = COMMANDS    |   10 = VIP            |    0 = Todos
+		900 = Creators (255, 254)  |  300 = Head Admin (253)
+		200 = Admin (252)          |  150 = Moderador (251)
+		100 = DJ (250)             |   75 = Influencer (249)
+		 20 = COMMANDS (gamepass)   |   10 = VIP (gamepass)   |   0 = Todos
 ]]
 
 ----------------------------------

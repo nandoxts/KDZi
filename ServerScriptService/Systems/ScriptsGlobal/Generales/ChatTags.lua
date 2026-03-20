@@ -273,7 +273,7 @@ end
 
 updateTagEvent.OnServerEvent:Connect(function(player, targetUserId)
 	-- Solo admins pueden forzar actualización
-	if player:GetRankInGroup(configuration.GroupID) >= 255 then -- Admin o superior
+	if player:GetRankInGroup(configuration.GroupID) >= 254 then -- Creator (254+)
 		local targetPlayer = Players:GetPlayerByUserId(targetUserId)
 		if targetPlayer then
 			forceUpdatePlayerTag(targetPlayer)

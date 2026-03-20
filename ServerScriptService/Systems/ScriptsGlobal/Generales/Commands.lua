@@ -50,13 +50,13 @@ local RANK = {
 	NONE       = 0,
 	VIP        = _gp.VIP,
 	COMMANDS   = _gp.COMMANDS,
-	SOCIO      = 249,
-	INFLUENCER = 250,
-	DJ         = 251,
-	MOD        = 252,
-	ADMIN      = 253,
-	HEAD_ADMIN = 254,
-	CREATOR    = 255,
+	SOCIO      = 248,
+	INFLUENCER = 249,
+	DJ         = 250,
+	MOD        = 251,
+	ADMIN      = 252,
+	HEAD_ADMIN = 253,
+	CREATOR    = 254, -- 254 y 255 son ambos Creator
 }
 
 -- Retorna el rango efectivo del jugador: rango de grupo > gamepass > ninguno

@@ -51,16 +51,14 @@ return{
 	-- GROUPS
 	Groups = {
 		[Configuration.GroupID] = {
-			[255] = "Owner"; -- [ Propietario ]
-			[254] = "Owner"; -- [ Co-Owner ]
-			[253] = "Help Creator"; -- [ Help Creator ]
-			[252] = "Lead Admin"; -- [ Lead Admin ]
-			[251] = "Head Admin"; -- [ Head Admin ]
-			[250] = "Administrador"; -- [ Administrador ]
-			[249] = "Moderador"; -- [ Moderador ]
-			[248] = "DJ"; -- [ DJ ]
-			[247] = "Influencer"; -- [ Influencer ]
-			[246] = "Socio" -- [ Socio ]
+			[255] = "Owner"; -- [ Creator / Propietario ]
+			[254] = "Owner"; -- [ Creator / Comunidad ]
+			[253] = "Head Admin"; -- [ Head Admin ]
+			[252] = "Administrador"; -- [ Admin ]
+			[251] = "Moderador"; -- [ Mod ]
+			[250] = "DJ"; -- [ DJ ]
+			[249] = "Influencer"; -- [ Influencer ]
+			[248] = "Socio"; -- [ Socio ]
 		};
 	};
 
