@@ -59,7 +59,7 @@ return {
 		[251] = { Name = "[Mod]",          Color = Color3.fromRGB(255, 20, 147),    Icon = "🛡", AdminRank = "Moderador",     AdminLevel = 150 },
 		[250] = { Name = "[DJ]",           Color = Color3.fromRGB(255, 140, 0),     Icon = "🎧", AdminRank = "DJ",            AdminLevel = 100 },
 		[249] = { Name = "[Influencer]",   Color = Color3.fromRGB(255, 215, 0),   Icon = "⭐", AdminRank = "Influencer",    AdminLevel = 75 },
-		[248] = { Name = "[Socio]",        Color = Color3.fromRGB(135, 206, 250),     Icon = "🤝" },
+		[248] = { Name = "[Socio]",        Color = Color3.fromRGB(135, 206, 250),     Icon = "🤝", AdminRank = "Socio",    AdminLevel = 50 },
 	},
 
 	-- ══════════════════════════════════════
