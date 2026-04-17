@@ -8,8 +8,8 @@ return {
 	--  devId = 0  →  sin versión de prueba
 	-- ══════════════════════════════════════
 	Gamepasses = {
-		VIP        = { id = 1749571764, devId = 0 },
-		COMMANDS   = { id = 1753652728, devId = 0 },
+		VIP        = { id = 1749571764, devId = 1749571764  order = 1, state= true, color = Color3.fromRGB(251, 255, 0),   desc = "[ + ] Sistema de VIP exclusivo!\n[ + ] Ascensor para VIP!\n[ + ] Fondo de comunidad!\n[ + ] Comandos HD Admin!" },
+		COMMANDS   = { id = 1753652728, devId = 1753652728 order = 2, state= true,  color = Color3.fromRGB(0, 217, 255),   desc = "[ + ] Acceso exclusivo a Tarima!\n[ + ] Pon musica en el server!\n[ + ] Beneficios de tarima!" },
 	},
 	-- GRUPO --
 	GroupID = 156212776,
