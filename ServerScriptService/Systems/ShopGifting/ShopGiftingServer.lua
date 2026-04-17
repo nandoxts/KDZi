@@ -19,7 +19,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 -- SETUP
 -- ═══════════════════════════════════════════════════════════════
 local Configuration = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("Configuration"))
-local TitleConfig = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("TitleConfig"))
 local ShopManager = require(game.ServerScriptService.Systems.GiftManager.ShopManager)
 
 -- ═══════════════════════════════════════════════════════════════
@@ -47,28 +46,12 @@ OwnershipUpdated.Name = "OwnershipUpdated"
 local ownershipCache = {} -- [userId-itemId] = {owns = bool, timestamp = tick()}
 local CACHE_DURATION = 300
 
--- Lista pre-computada: playersWithout[itemId][userId] = playerInfo
--- Se construye al entrar cada jugador y se sirve instantáneamente
-local playersWithout = {}
-
 local function getCacheKey(userId, itemId)
 	return userId .. "-" .. itemId
 end
 
-local function buildPlayerInfo(plr)
-	return {
-		userId = plr.UserId,
-		username = plr.Name,
-		displayName = plr.DisplayName or plr.Name,
-		isPremium = plr.MembershipType == Enum.MembershipType.Premium,
-	}
-end
-
 local function invalidateCache(userId, itemId)
 	ownershipCache[getCacheKey(userId, itemId)] = nil
-	if playersWithout[itemId] then
-		playersWithout[itemId][userId] = nil
-	end
 end
 
 local function checkOwnership(userId, itemId)
@@ -90,25 +73,12 @@ do
 	for _, gp in pairs(Configuration.Gamepasses) do
 		table.insert(ALL_ITEM_IDS, gp.id)
 	end
-	for _, title in ipairs(TitleConfig) do
-		if title.gamepassId then
-			table.insert(ALL_ITEM_IDS, title.gamepassId)
-		end
-	end
 end
 
-local function warmCache(plr)
-	local info = buildPlayerInfo(plr)
-	local uid = plr.UserId
+local function warmCache(player)
 	for _, itemId in ipairs(ALL_ITEM_IDS) do
 		task.spawn(function()
-			local owns = checkOwnership(uid, itemId)
-			if not playersWithout[itemId] then playersWithout[itemId] = {} end
-			if not owns then
-				playersWithout[itemId][uid] = info
-			else
-				playersWithout[itemId][uid] = nil
-			end
+			checkOwnership(player.UserId, itemId)
 		end)
 	end
 end
@@ -129,26 +99,53 @@ local function getPlayersWithoutItem(requestingPlayer, itemType, itemId)
 		return { success = false, error = "Parámetros inválidos" }
 	end
 
-	-- Lectura instantánea desde lista pre-computada (0 llamadas async)
-	local cached = playersWithout[itemId]
-	local result = {}
+	local allPlayers = Players:GetPlayers()
+	local results = {} -- [index] = { data = ..., owns = bool }
+	local pending = 0
 
-	if cached then
-		for uid, info in pairs(cached) do
-			if uid ~= requestingPlayer.UserId then
-				table.insert(result, info)
-			end
+	for i, targetPlayer in ipairs(allPlayers) do
+		if targetPlayer.UserId ~= requestingPlayer.UserId then
+			pending = pending + 1
+			local idx = i
+			local tp = targetPlayer
+			task.spawn(function()
+				local owns = checkOwnership(tp.UserId, itemId)
+				results[idx] = {
+					owns = owns,
+					data = {
+						userId = tp.UserId,
+						username = tp.Name,
+						displayName = tp.DisplayName or tp.Name,
+						isPremium = tp.MembershipType == Enum.MembershipType.Premium,
+					},
+				}
+				pending = pending - 1
+			end)
 		end
 	end
 
-	table.sort(result, function(a, b)
+	-- Esperar a que todos los checks terminen (max 8s safety)
+	local deadline = tick() + 8
+	while pending > 0 and tick() < deadline do
+		task.wait(0.05)
+	end
+
+	local playersWithout = {}
+	for _, entry in pairs(results) do
+		if not entry.owns then
+			table.insert(playersWithout, entry.data)
+		end
+	end
+
+	-- Ordenar alfabéticamente por displayName
+	table.sort(playersWithout, function(a, b)
 		return (a.displayName or ""):lower() < (b.displayName or ""):lower()
 	end)
 
 	return {
 		success = true,
-		players = result,
-		total = #result
+		players = playersWithout,
+		total = #playersWithout
 	}
 end
 
@@ -194,15 +191,13 @@ end
 -- CLEANUP
 -- ═══════════════════════════════════════════════════════════════
 Players.PlayerRemoving:Connect(function(player)
-	local uid = player.UserId
+	-- Limpiar rate limit del jugador
 	if _G.shopGiftingRateLimit then
-		_G.shopGiftingRateLimit[uid .. "_shopGifting"] = nil
+		_G.shopGiftingRateLimit[player.UserId .. "_shopGifting"] = nil
 	end
+	-- Limpiar cache de ownership del jugador
 	for _, itemId in ipairs(ALL_ITEM_IDS) do
-		ownershipCache[getCacheKey(uid, itemId)] = nil
-		if playersWithout[itemId] then
-			playersWithout[itemId][uid] = nil
-		end
+		ownershipCache[getCacheKey(player.UserId, itemId)] = nil
 	end
 end)
 

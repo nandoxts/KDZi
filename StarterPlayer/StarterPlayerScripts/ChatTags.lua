@@ -24,10 +24,12 @@ end)
 -- Handler del chat (CERO consultas API)
 textChatService.OnIncomingMessage = function(message)
 	local properties = Instance.new("TextChatMessageProperties")
+	print("[ChatTags CLIENT] Mensaje recibido, TextSource:", message.TextSource and message.TextSource.UserId or "nil")
 
 	if message.TextSource then
 		local userId = message.TextSource.UserId
 		local tagInfo = clientTagCache[userId]
+		print("[ChatTags CLIENT] tagInfo en cache:", tagInfo ~= nil, "| userId:", userId)
 
 		if tagInfo then
 			-- Aplicar prefix

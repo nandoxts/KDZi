@@ -4,10 +4,11 @@ local AdminConfig = {}
 
 -- Lista de admins por nombre de usuario ONLY (sin UserIds)
 AdminConfig.AdminUserNames = {
-	"xlm_brem",
-	"AngeloGarciia",
-	"bvwdhfv",
-	"ignxts",
+	"ZackTheSad2",
+	"Gatita17play",
+	"Daniel249Xx",
+	"Jeniferr_xd",
+	"nxndoxt",
 }
 
 -- Acepta un Instance (Player) o un string (nombre)

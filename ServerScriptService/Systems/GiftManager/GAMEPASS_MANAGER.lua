@@ -1,51 +1,60 @@
 -- ═══════════════════════════════════════════════════════════════
---  Gift.lua  |  GiftManager
---  Sistema central de regalos (gamepasses + títulos)
+--  GAMEPASS_MANAGER.lua  |  GiftManager
+--  Sistema central de gamepasses: compras directas, regalos y ownership
 -- ═══════════════════════════════════════════════════════════════
 
 -- ── Services ─────────────────────────────────────────────────
 local MarketplaceService = game:GetService("MarketplaceService")
 local ReplicatedStorage  = game:GetService("ReplicatedStorage")
-local BadgeService       = game:GetService("BadgeService")
 local Players            = game:GetService("Players")
-local HttpService        = game:GetService("HttpService")
 local DataStoreService   = game:GetService("DataStoreService")
 
 -- ── Modules ──────────────────────────────────────────────────
 local Configuration      = require(ReplicatedStorage.Config.Configuration)
-local AdminConfig        = require(ReplicatedStorage.Config.AdminConfig)
 local ShopManager        = require(script.Parent.ShopManager)
 local CentralPurchaseHandler = require(script.Parent.ManagerProcess)
 
-local RemotesGlobal      = ReplicatedStorage:WaitForChild("RemotesGlobal")
-local GiftingFolder      = RemotesGlobal:WaitForChild("Gamepass Gifting")
+local RemotesGlobal      = ReplicatedStorage:FindFirstChild("RemotesGlobal") or Instance.new("Folder")
+RemotesGlobal.Name = "RemotesGlobal"
+RemotesGlobal.Parent = ReplicatedStorage
+
+local GiftingFolder      = RemotesGlobal:FindFirstChild("Gamepass Gifting") or Instance.new("Folder")
+GiftingFolder.Name = "Gamepass Gifting"
+GiftingFolder.Parent = RemotesGlobal
 local GiftingConfig      = require(ReplicatedStorage.Config.GiftingConfig)
 
-local EventMessage       = RemotesGlobal:WaitForChild("Commands"):WaitForChild("EventMessage")
+local CommandsFolder     = RemotesGlobal:FindFirstChild("Commands")
+local EventMessage       = CommandsFolder and CommandsFolder:FindFirstChild("EventMessage") or nil
 
-local DataStoreQueueMgr  = require(ReplicatedStorage.Systems.DataStore.DataStoreQueueManager)
 local GiftDataStore      = DataStoreService:GetDataStore("Gifting.1")
-local DataStoreQueue     = DataStoreQueueMgr.new(GiftDataStore, "GiftedGamepasses", 0.15)
 
 -- ── Remotes ──────────────────────────────────────────────────
-local Remotes            = GiftingFolder:WaitForChild("Remotes")
-local GiftingRemote      = Remotes.Gifting
-local OwnershipRemote    = Remotes.Ownership
+local Remotes            = GiftingFolder:FindFirstChild("Remotes") or Instance.new("Folder")
+Remotes.Name = "Remotes"
+Remotes.Parent = GiftingFolder
+
+local GiftingRemote      = Remotes:FindFirstChild("Gifting") or Instance.new("RemoteEvent")
+GiftingRemote.Name = "Gifting"
+GiftingRemote.Parent = Remotes
+
+local OwnershipRemote    = Remotes:FindFirstChild("Ownership") or Instance.new("RemoteFunction")
+OwnershipRemote.Name = "Ownership"
+OwnershipRemote.Parent = Remotes
 
 
 -- ── Constants ────────────────────────────────────────────────
-local BADGE_GIFT     = Configuration.BADGES_Gift
-local VIP_GAMEPASS   = Configuration.Gamepasses.VIP.id
-local GAME_NAME      = (function()
-	local ok, info = pcall(function() return MarketplaceService:GetProductInfoAsync(game.PlaceId) end)
-	return ok and info and info.Name or "Experiencia"
-end)()
-local WEBHOOK_URL    = "https://discord.com/api/webhooks/1479279603896815618/ptCDNX6y0LLLqIpSx6SzFLLoJvXCYNJ4StdZfAHBa78C_IxK3ihrCzToE29hlJKZQ_x8"
-local DEFAULT_AVATAR = "https://t3.rbxcdn.com/9fc30fe577bf95e045c9a3d4abaca05d"
+local VIP_GAMEPASS   = Configuration.Gamepasses.VIP and Configuration.Gamepasses.VIP.id or nil
+local CAMINO_GAMEPASS = ((Configuration.Gamepasses.CAMINO and Configuration.Gamepasses.CAMINO.id)
+	or (Configuration.Gamepasses.CAMINO_AL_CIELO and Configuration.Gamepasses.CAMINO_AL_CIELO.id)) or nil
+local TARIMA_GAMEPASS = Configuration.Gamepasses.TARIMA and Configuration.Gamepasses.TARIMA.id or nil
+local GROUP_ID = tonumber(Configuration.GroupID) or 0
+local HIGHEST_GROUP_RANK = 255
 
 -- ── State ────────────────────────────────────────────────────
--- pendingGifts[donorUserId] = { recipientId, donorName, donorId }
+-- pendingGifts[donorUserId] = { recipientId, donorName, donorId, gamepassId }
+-- Capa 1: memoria (rápido). Capa 2: DataStore (sobrevive restarts).
 local pendingGifts = {}
+local PendingGiftStore = DataStoreService:GetDataStore("PendingGifts.1")
 
 -- Lista unificada de items regalables (se construye una sola vez desde GiftingConfig)
 local ALL_ITEMS = {}
@@ -56,9 +65,26 @@ for _, title in ipairs(GiftingConfig.Titles) do table.insert(ALL_ITEMS, title) e
 -- HELPERS
 -- ═══════════════════════════════════════════════════════════════
 
+local itemNameCache = {}
+
+local function fireGiftFeed(message)
+	if EventMessage then
+		EventMessage:FireAllClients(message, "gift")
+	end
+end
+
 local function getItemName(gamepassId)
-	local ok, asset = pcall(MarketplaceService.GetProductInfo, MarketplaceService, gamepassId, Enum.InfoType.GamePass)
-	return ok and asset and asset.Name or nil
+	if itemNameCache[gamepassId] then
+		return itemNameCache[gamepassId]
+	end
+	local ok, asset = pcall(function()
+		return MarketplaceService:GetProductInfo(gamepassId, Enum.InfoType.GamePass)
+	end)
+	if ok and asset and asset.Name then
+		itemNameCache[gamepassId] = asset.Name
+		return asset.Name
+	end
+	return nil
 end
 
 local function ensureFolder(player)
@@ -83,6 +109,25 @@ local function setFolderValue(folder, name, value)
 	end
 end
 
+local function setOwnedAttribute(player, gamepassId, owns)
+	if VIP_GAMEPASS and gamepassId == VIP_GAMEPASS then
+		player:SetAttribute("HasVIP", owns)
+	elseif CAMINO_GAMEPASS and gamepassId == CAMINO_GAMEPASS then
+		player:SetAttribute("HasCAMINO", owns)
+	elseif TARIMA_GAMEPASS and gamepassId == TARIMA_GAMEPASS then
+		player:SetAttribute("HasTARIMA", owns)
+	end
+end
+
+local function isHighestRank(player)
+	if not player or GROUP_ID <= 0 then
+		return false
+	end
+
+	local ok, rank = pcall(player.GetRankInGroup, player, GROUP_ID)
+	return ok and rank == HIGHEST_GROUP_RANK
+end
+
 local function grantToOnlinePlayer(recipientUserId, gamepassId)
 	local player = Players:GetPlayerByUserId(recipientUserId)
 	if not player then return end
@@ -92,52 +137,7 @@ local function grantToOnlinePlayer(recipientUserId, gamepassId)
 	if name then
 		setFolderValue(folder, name, true)
 	end
-
-	if gamepassId == VIP_GAMEPASS then
-		player:SetAttribute("HasVIP", true)
-	end
-
-	if _G.HDConnect_HandleGiftedGamepass then
-		pcall(_G.HDConnect_HandleGiftedGamepass, recipientUserId, gamepassId)
-	end
-end
-
--- ═══════════════════════════════════════════════════════════════
--- DISCORD WEBHOOK
--- ═══════════════════════════════════════════════════════════════
-
-local function fetchThumbnail(userId)
-	local ok, data = pcall(function()
-		return HttpService:JSONDecode(HttpService:GetAsync(
-			"https://thumbnails.roproxy.com/v1/users/avatar-headshot?userIds=" .. userId .. "&size=150x150&format=Png"
-			))
-	end)
-	return ok and data.data[1].imageUrl or DEFAULT_AVATAR
-end
-
-local function sendWebhook(recipientName, recipientId, donorName, donorId, gamepassId)
-	pcall(function()
-		local itemName = getItemName(gamepassId) or ("ID: " .. tostring(gamepassId))
-		HttpService:PostAsync(WEBHOOK_URL, HttpService:JSONEncode({
-			embeds = {{
-				title     = "Regalo enviado",
-				description = "**" .. donorName .. "** le regaló **" .. itemName .. "** a **" .. recipientName .. "**",
-				type      = "rich",
-				color     = 0xFF0000,
-				thumbnail = { url = fetchThumbnail(recipientId) },
-				fields    = {
-					{ name = "Destinatario",     value = recipientName, inline = true },
-					{ name = "Perfil",           value = "[Ver perfil](https://www.roblox.com/users/" .. recipientId .. "/profile)", inline = true },
-					{ name = "Donante",          value = donorName, inline = true },
-					{ name = "Perfil",           value = "[Ver perfil](https://www.roblox.com/users/" .. donorId .. "/profile)", inline = true },
-					{ name = "Item",             value = itemName, inline = true },
-					{ name = "Experiencia",      value = GAME_NAME, inline = true },
-				},
-				footer = { text = GAME_NAME .. " • Gift System" },
-				timestamp = DateTime.now():ToIsoDate(),
-			}},
-		}), Enum.HttpContentType.ApplicationJson)
-	end)
+	setOwnedAttribute(player, gamepassId, true)
 end
 
 -- ═══════════════════════════════════════════════════════════════
@@ -159,18 +159,22 @@ local function giftFree(admin, gamepass, recipientUserId, recipientName)
 		return
 	end
 
-	-- Guardar en DataStore
-	DataStoreQueue:SetAsync(recipientUserId .. "-" .. gamepassId, true)
+	-- Guardar en DataStore SÍNCRONO (confirmar antes de notificar)
+	local writeOk, writeErr = pcall(function()
+		GiftDataStore:SetAsync(recipientUserId .. "-" .. gamepassId, true)
+	end)
+	if not writeOk then
+		warn("[GIFT-FREE] Fallo DataStore write:", writeErr)
+		GiftingRemote:FireClient(admin, "Error", "Error al guardar, intenta de nuevo")
+		return
+	end
 
 	-- Conceder al jugador online
 	grantToOnlinePlayer(recipientUserId, gamepassId)
 
-	-- Webhook Discord
-	sendWebhook(recipientName, recipientUserId, admin.Name, admin.UserId, gamepassId)
-
 	-- Notificar en el chat (color rosa = regalo)
 	local gpName = getItemName(gamepassId) or "Item"
-	EventMessage:FireAllClients(admin.Name .. " le regaló [" .. gpName .. "] a " .. recipientName .. "!", "gift")
+	fireGiftFeed(admin.Name .. " le regaló [" .. gpName .. "] a " .. recipientName .. "!")
 
 	-- Notificar a ShopGifting
 	if _G.ShopGifting_OnItemGifted then
@@ -179,30 +183,46 @@ local function giftFree(admin, gamepass, recipientUserId, recipientName)
 
 	-- Confirmar al admin
 	GiftingRemote:FireClient(admin, "Purchase")
-
-	-- Badge
-	if BADGE_GIFT and BADGE_GIFT ~= 0 then
-		pcall(function()
-			if not BadgeService:UserHasBadgeAsync(admin.UserId, BADGE_GIFT) then
-				BadgeService:AwardBadge(admin.UserId, BADGE_GIFT)
-			end
-		end)
-	end
 end
 
 -- ═══════════════════════════════════════════════════════════════
 -- EVENT: SOLICITUD DE REGALO
 -- ═══════════════════════════════════════════════════════════════
 
+-- ── Rate limit por jugador (1 request cada 2s) ──────────────
+local giftRateLimit = {}
+local GIFT_RATE_COOLDOWN = 2
+
+Players.PlayerRemoving:Connect(function(p)
+	giftRateLimit[p.UserId] = nil
+end)
+
 GiftingRemote.OnServerEvent:Connect(function(player, gamepass, userId, username, identifier)
+	-- Rate limit
+	local now = tick()
+	local last = giftRateLimit[player.UserId]
+	if last and (now - last) < GIFT_RATE_COOLDOWN then
+		return
+	end
+	giftRateLimit[player.UserId] = now
+
 	if not gamepass or type(gamepass) ~= "table" or not gamepass[1] or not gamepass[2] then
 		GiftingRemote:FireClient(player, "Error", "Datos inválidos")
 		return
 	end
 
+	-- Validar tipos (protección anti-exploit)
+	if type(gamepass[1]) ~= "number" or type(gamepass[2]) ~= "number" then
+		GiftingRemote:FireClient(player, "Error", "Datos inválidos")
+		return
+	end
+	if gamepass[1] <= 0 or gamepass[2] <= 0 then
+		return
+	end
+
 	userId     = tonumber(userId)
 	identifier = tonumber(identifier)
-	if not userId or userId == 0 then return end
+	if not userId or userId <= 0 then return end
 	if not identifier or identifier == 0 then identifier = userId end
 
 	local recipientName
@@ -213,15 +233,29 @@ GiftingRemote.OnServerEvent:Connect(function(player, gamepass, userId, username,
 		if item[1] == gamepass[1] and item[2] == gamepass[2] then
 			if player.UserId == userId then return end
 
-			if AdminConfig:IsAdmin(player) then
+			if isHighestRank(player) then
 				giftFree(player, gamepass, userId, recipientName)
 			else
 				if not ShopManager.HasGamepassByUserId(userId, gamepass[1]) then
-					pendingGifts[player.UserId] = {
+					local giftData = {
 						recipientId = userId,
 						donorName   = player.Name,
 						donorId     = player.UserId,
+						gamepassId  = gamepass[1],
 					}
+
+					-- Persistir en DataStore ANTES de cobrar (sobrevive server restart)
+					local saveOk, saveErr = pcall(function()
+						PendingGiftStore:SetAsync("pending-" .. player.UserId, giftData)
+					end)
+					if not saveOk then
+						warn("[GIFT] No se pudo guardar pending gift:", saveErr)
+						GiftingRemote:FireClient(player, "Error", "Error al preparar el regalo, intenta de nuevo")
+						return
+					end
+
+					-- Guardar también en memoria (acceso rápido)
+					pendingGifts[player.UserId] = giftData
 					MarketplaceService:PromptProductPurchase(player, gamepass[2])
 				else
 					local name = getItemName(gamepass[1])
@@ -241,6 +275,11 @@ end)
 
 Players.PlayerAdded:Connect(function(player)
 	local folder = ensureFolder(player)
+	player:SetAttribute("HasVIP", false)
+	player:SetAttribute("HasCAMINO", false)
+	if TARIMA_GAMEPASS then
+		player:SetAttribute("HasTARIMA", false)
+	end
 
 	local function syncOwnership()
 		for _, item in ipairs(ALL_ITEMS) do
@@ -251,6 +290,7 @@ Players.PlayerAdded:Connect(function(player)
 				if name then
 					setFolderValue(folder, name, owns)
 				end
+				setOwnedAttribute(player, id, owns)
 			end
 		end
 	end
@@ -265,6 +305,17 @@ end)
 
 MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, gamepassId, wasPurchased)
 	if not wasPurchased or not player or not player.Parent then return end
+
+	-- Siempre sincronizar atributos de zonas VIP/TARIMA/CAMINO en compra directa,
+	-- ANTES del gate isOurs, para que el cliente reciba el cambio incluso si
+	-- el gamepass no está en GiftingConfig.
+	if VIP_GAMEPASS and gamepassId == VIP_GAMEPASS then
+		setOwnedAttribute(player, gamepassId, true)
+	elseif CAMINO_GAMEPASS and gamepassId == CAMINO_GAMEPASS then
+		setOwnedAttribute(player, gamepassId, true)
+	elseif TARIMA_GAMEPASS and gamepassId == TARIMA_GAMEPASS then
+		setOwnedAttribute(player, gamepassId, true)
+	end
 
 	-- Verificar que es uno de nuestros items
 	local isOurs = false
@@ -288,23 +339,61 @@ end)
 local function handleGiftPurchase(receiptInfo)
 	for _, item in ipairs(ALL_ITEMS) do
 		if receiptInfo.ProductId == item[2] then
+			-- ── Recuperar info del regalo (memoria → DataStore fallback) ──
 			local giftInfo = pendingGifts[receiptInfo.PlayerId]
-			if not giftInfo then return Enum.ProductPurchaseDecision.NotProcessedYet end
-			pendingGifts[receiptInfo.PlayerId] = nil
+			if not giftInfo then
+				-- Server pudo reiniciarse: leer de DataStore
+				local readOk, stored = pcall(function()
+					return PendingGiftStore:GetAsync("pending-" .. receiptInfo.PlayerId)
+				end)
+				if readOk and stored and type(stored) == "table" and stored.recipientId then
+					giftInfo = stored
+				else
+					-- No hay info en ningún lado → reintentar después
+					warn("[GIFT] Sin pending gift para PlayerId:", receiptInfo.PlayerId, "- reintentando")
+					return Enum.ProductPurchaseDecision.NotProcessedYet
+				end
+			end
 
 			local recipientId = giftInfo.recipientId
 			local donorName   = giftInfo.donorName
 			local donorId     = giftInfo.donorId
 			local gamepassId  = item[1]
 
-			-- Guardar en DataStore
-			DataStoreQueue:SetAsync(recipientId .. "-" .. gamepassId, true)
-
-			-- Webhook Discord
+			-- ── Validar: ¿el destinatario ya tiene el pase? ──
+			local alreadyOwns = false
 			pcall(function()
-				local recipientName = Players:GetNameFromUserIdAsync(recipientId)
-				sendWebhook(recipientName, recipientId, donorName, donorId, gamepassId)
+				alreadyOwns = ShopManager.HasGamepassByUserId(recipientId, gamepassId)
 			end)
+
+			if alreadyOwns then
+				-- Ya lo tiene → no conceder de nuevo pero SÍ marcar como procesado
+				-- (ya se cobró, no se puede reembolsar desde aquí)
+				warn("[GIFT] Destinatario", recipientId, "ya tiene gamepass", gamepassId, "- cobrado pero duplicado evitado")
+				pendingGifts[receiptInfo.PlayerId] = nil
+				pcall(function() PendingGiftStore:RemoveAsync("pending-" .. receiptInfo.PlayerId) end)
+
+				local donor = Players:GetPlayerByUserId(donorId)
+				if donor then
+					local gpName = getItemName(gamepassId) or "Item"
+					GiftingRemote:FireClient(donor, "Error", "El jugador ya obtuvo " .. gpName .. " antes de completar tu compra.")
+				end
+				return Enum.ProductPurchaseDecision.PurchaseGranted
+			end
+
+			-- ── Escribir en DataStore SÍNCRONO (confirmar antes de PurchaseGranted) ──
+			local writeOk, writeErr = pcall(function()
+				GiftDataStore:SetAsync(recipientId .. "-" .. gamepassId, true)
+			end)
+			if not writeOk then
+				warn("[GIFT] Fallo DataStore write:", writeErr, "- reintentando")
+				-- NO retornar PurchaseGranted → Roblox reintentará
+				return Enum.ProductPurchaseDecision.NotProcessedYet
+			end
+
+			-- ── Write confirmado → limpiar pending ──
+			pendingGifts[receiptInfo.PlayerId] = nil
+			pcall(function() PendingGiftStore:RemoveAsync("pending-" .. receiptInfo.PlayerId) end)
 
 			-- Conceder al jugador online
 			grantToOnlinePlayer(recipientId, gamepassId)
@@ -313,20 +402,13 @@ local function handleGiftPurchase(receiptInfo)
 			pcall(function()
 				local recipientName2 = Players:GetNameFromUserIdAsync(recipientId)
 				local gpName = getItemName(gamepassId) or "Item"
-				EventMessage:FireAllClients(donorName .. " le regaló [" .. gpName .. "] a " .. recipientName2 .. "!", "gift")
+				fireGiftFeed(donorName .. " le regaló [" .. gpName .. "] a " .. recipientName2 .. "!")
 			end)
 
 			-- Notificar al donante
 			local donor = Players:GetPlayerByUserId(donorId)
 			if donor then
 				GiftingRemote:FireClient(donor, "Purchase")
-				if BADGE_GIFT and BADGE_GIFT ~= 0 then
-					pcall(function()
-						if not BadgeService:UserHasBadgeAsync(donor.UserId, BADGE_GIFT) then
-							BadgeService:AwardBadge(donor.UserId, BADGE_GIFT)
-						end
-					end)
-				end
 			end
 
 			-- Notificar a ShopGifting

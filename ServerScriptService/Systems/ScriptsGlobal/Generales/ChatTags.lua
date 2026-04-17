@@ -114,6 +114,7 @@ local function calculatePlayerTag(player)
 	-- 1. Rango de grupo (prioridad principal)
 	local playerRank = getPlayerGroupRank(player)
 	local roleData = groupRoles[playerRank]
+	print("[ChatTags DEBUG] Player:", player.Name, "| Rank:", playerRank, "| roleData existe:", roleData ~= nil)
 
 	if roleData and playerRank >= 10 then -- Recruiter hacia arriba
 		local colorHex = color3ToHex(roleData.Color)

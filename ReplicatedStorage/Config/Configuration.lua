@@ -68,6 +68,7 @@ return {
 	AdminOwners = {
 		{ Username = "ignxts",  UserId = 8387751399 },
 		{ Username = "Gatita17play",  UserId = 8771639155 },
+		
 	},
 	-- ══════════════════════════════════════
 	--  ADMIN POR GAMEPASS
