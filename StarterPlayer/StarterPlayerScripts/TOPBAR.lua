@@ -95,100 +95,20 @@ else
 end
 
 -- ════════════════════════════════════════════════════════════════
--- ICONO: FREECAM (DINÁMICO) - MEJORES PRÁCTICAS
+-- ICONO: TIENDA (Gamepass)
 -- ════════════════════════════════════════════════════════════════
+_G.GamepassIcon = Icon.new()
+	:setImage("9405933217")
+	:setOrder(2)
+	:autoDeselect(false)
 
--- Crear BindableEvent para comunicación eficiente (mejor que _G polling)
-local FreeCamEvent = Instance.new("BindableEvent")
-_G.FreeCamEvent = FreeCamEvent
-
-local FreeCamIcon = nil
-local iconsHidden = false
-
--- Lista de todos los iconos a gestionar
-local topbarIcons = {
-	_G.MusicDashboardIcon,
-	soundIcon
-}
-
--- Función optimizada para ocultar todos los iconos
-local function HideAllIcons()
-	if iconsHidden then return end
-
-	for _, icon in ipairs(topbarIcons) do
-		if icon then
-			pcall(function()
-				icon:setEnabled(false)
-			end)
-		end
-	end
-
-	iconsHidden = true
-end
-
--- Función optimizada para mostrar todos los iconos
-local function ShowAllIcons()
-	if not iconsHidden then return end
-
-	for _, icon in ipairs(topbarIcons) do
-		if icon then
-			pcall(function()
-				icon:setEnabled(true)
-			end)
-		end
-	end
-
-	iconsHidden = false
-end
-
--- Función para activar FreeCam UI
-local function EnableFreeCamUI()
-	if FreeCamIcon then return end
-
-	-- Ocultar todos los botones del TopBar
-	HideAllIcons()
-
-	-- Crear icono de FreeCam
-	FreeCamIcon = Icon.new()
-		:setLabel("F6 DESACTIVAR")
-		:setCaption("Presiona para desactivar (F6)")
-		:align("Right")
-		:setOrder(0)
-		:select()
-
-	-- Evento para desactivar
-	FreeCamIcon:bindEvent("deselected", function()
-		-- Notificar a FreeCam.lua que debe desactivarse
-		FreeCamEvent:Fire(false)
-	end)
-end
-
--- Función para desactivar FreeCam UI
-local function DisableFreeCamUI()
-	if not FreeCamIcon then return end
-
-	-- Destruir icono
-	pcall(function()
-		FreeCamIcon:destroy()
-	end)
-	FreeCamIcon = nil
-
-	-- Restaurar todos los botones del TopBar
-	ShowAllIcons()
-end
-
--- Escuchar eventos de FreeCam (mejor que polling)
-FreeCamEvent.Event:Connect(function(isActive)
-	if isActive then
-		EnableFreeCamUI()
-	else
-		DisableFreeCamUI()
-	end
+_G.GamepassIcon:bindEvent("selected", function(icon)
+	GlobalModalManager:openModal("Gamepass")
 end)
 
--- Variable global solo para compatibilidad (se usa BindableEvent internamente)
-_G.FreeCamActive = false
-_G.FreeCamIcon = FreeCamIcon
+_G.GamepassIcon:bindEvent("deselected", function(icon)
+	GlobalModalManager:closeModal("Gamepass")
+end)
 
 -- ════════════════════════════════════════════════════════════════
 -- FIN DEL SCRIPT

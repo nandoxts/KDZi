@@ -44,9 +44,7 @@ OwnershipRemote.Parent = Remotes
 
 -- ── Constants ────────────────────────────────────────────────
 local VIP_GAMEPASS   = Configuration.Gamepasses.VIP and Configuration.Gamepasses.VIP.id or nil
-local CAMINO_GAMEPASS = ((Configuration.Gamepasses.CAMINO and Configuration.Gamepasses.CAMINO.id)
-	or (Configuration.Gamepasses.CAMINO_AL_CIELO and Configuration.Gamepasses.CAMINO_AL_CIELO.id)) or nil
-local TARIMA_GAMEPASS = Configuration.Gamepasses.TARIMA and Configuration.Gamepasses.TARIMA.id or nil
+local COMMANDS_GAMEPASS = Configuration.Gamepasses.COMMANDS and Configuration.Gamepasses.COMMANDS.id or nil
 local GROUP_ID = tonumber(Configuration.GroupID) or 0
 local HIGHEST_GROUP_RANK = 255
 
@@ -112,10 +110,8 @@ end
 local function setOwnedAttribute(player, gamepassId, owns)
 	if VIP_GAMEPASS and gamepassId == VIP_GAMEPASS then
 		player:SetAttribute("HasVIP", owns)
-	elseif CAMINO_GAMEPASS and gamepassId == CAMINO_GAMEPASS then
-		player:SetAttribute("HasCAMINO", owns)
-	elseif TARIMA_GAMEPASS and gamepassId == TARIMA_GAMEPASS then
-		player:SetAttribute("HasTARIMA", owns)
+	elseif COMMANDS_GAMEPASS and gamepassId == COMMANDS_GAMEPASS then
+		player:SetAttribute("HasCOMMANDS", owns)
 	end
 end
 
@@ -171,6 +167,11 @@ local function giftFree(admin, gamepass, recipientUserId, recipientName)
 
 	-- Conceder al jugador online
 	grantToOnlinePlayer(recipientUserId, gamepassId)
+
+	-- Sincronizar rangos de Adonis al instante (regalos admin)
+	if _G.Adonis_SyncAdmin then
+		pcall(_G.Adonis_SyncAdmin, recipientUserId, gamepassId)
+	end
 
 	-- Notificar en el chat (color rosa = regalo)
 	local gpName = getItemName(gamepassId) or "Item"
@@ -276,10 +277,7 @@ end)
 Players.PlayerAdded:Connect(function(player)
 	local folder = ensureFolder(player)
 	player:SetAttribute("HasVIP", false)
-	player:SetAttribute("HasCAMINO", false)
-	if TARIMA_GAMEPASS then
-		player:SetAttribute("HasTARIMA", false)
-	end
+	player:SetAttribute("HasCOMMANDS", false)
 
 	local function syncOwnership()
 		for _, item in ipairs(ALL_ITEMS) do
@@ -306,14 +304,12 @@ end)
 MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, gamepassId, wasPurchased)
 	if not wasPurchased or not player or not player.Parent then return end
 
-	-- Siempre sincronizar atributos de zonas VIP/TARIMA/CAMINO en compra directa,
+	-- Siempre sincronizar atributos en compra directa,
 	-- ANTES del gate isOurs, para que el cliente reciba el cambio incluso si
 	-- el gamepass no está en GiftingConfig.
 	if VIP_GAMEPASS and gamepassId == VIP_GAMEPASS then
 		setOwnedAttribute(player, gamepassId, true)
-	elseif CAMINO_GAMEPASS and gamepassId == CAMINO_GAMEPASS then
-		setOwnedAttribute(player, gamepassId, true)
-	elseif TARIMA_GAMEPASS and gamepassId == TARIMA_GAMEPASS then
+	elseif COMMANDS_GAMEPASS and gamepassId == COMMANDS_GAMEPASS then
 		setOwnedAttribute(player, gamepassId, true)
 	end
 
@@ -325,6 +321,11 @@ MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, gamep
 	if not isOurs then return end
 
 	grantToOnlinePlayer(player.UserId, gamepassId)
+
+	-- Sincronizar rangos de Adonis al instante (compra directa mid-session)
+	if _G.Adonis_SyncAdmin then
+		pcall(_G.Adonis_SyncAdmin, player.UserId, gamepassId)
+	end
 
 	-- Actualizar cache de ShopGifting (quitar de lista "sin pase")
 	if _G.ShopGifting_OnItemGifted then
@@ -397,6 +398,11 @@ local function handleGiftPurchase(receiptInfo)
 
 			-- Conceder al jugador online
 			grantToOnlinePlayer(recipientId, gamepassId)
+
+			-- Sincronizar rangos de Adonis al instante (regalo pagado)
+			if _G.Adonis_SyncAdmin then
+				pcall(_G.Adonis_SyncAdmin, recipientId, gamepassId)
+			end
 
 			-- Notificar en el chat (color rosa = regalo)
 			pcall(function()

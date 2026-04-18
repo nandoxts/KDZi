@@ -64,6 +64,25 @@ local modals = {
 		icon = function() return nil end,  -- No tiene icono en topbar
 		category = "independent"  -- Puede coexistir con otros modales
 	},
+
+	Gamepass = {
+		open = function()
+			if _G.OpenGamepassUI then
+				local ok, err = pcall(function() _G.OpenGamepassUI() end)
+				if not ok then warn("[GMM] Error abriendo Gamepass: " .. tostring(err)) end
+			else
+				warn("[GMM] _G.OpenGamepassUI no está disponible")
+			end
+		end,
+		close = function()
+			if _G.CloseGamepassUI then
+				local ok, err = pcall(function() _G.CloseGamepassUI() end)
+				if not ok then warn("[GMM] Error cerrando Gamepass: " .. tostring(err)) end
+			end
+		end,
+		icon = function() return _G.GamepassIcon end,
+		category = "main"
+	},
 }
 
 -- ════════════════════════════════════════════════════════════════
