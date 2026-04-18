@@ -76,7 +76,7 @@ return {
 	Console_AdminsOnly = false;
 
 	HelpSystem = true;
-	HelpButton = true;
+	HelpButton = false;
 	HelpButtonImage = "rbxassetid://357249130";
 
 	HttpWait = 60;

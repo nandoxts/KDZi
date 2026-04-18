@@ -17,7 +17,7 @@ local Debris             = game:GetService("Debris")
 --> Modules
 local Configuration  = require(game.ReplicatedStorage.Config.Configuration)
 local AdminConfig    = require(game.ReplicatedStorage.Config.AdminConfig)
-local GamepassManager = require(ServerScriptService["Gamepass Gifting"].GamepassManager)
+local ShopManager = require(game.ServerScriptService.Systems.GiftManager.ShopManager)
 local ColorEffects = require(game.ReplicatedStorage.Config.ColorConfig)
 
 
@@ -65,11 +65,10 @@ local function getPlayerRank(player)
 		return player:GetRankInGroup(Configuration.GroupID)
 	end)
 	if ok and groupRank >= RANK.SOCIO then return groupRank end
-	if GamepassManager.HasGamepass(player, Configuration.Gamepasses.COMMANDS.id) then
+	if ShopManager.HasGamepass(player, Configuration.Gamepasses.COMMANDS.id) then
 		return RANK.COMMANDS
 	end
-	if GamepassManager.HasGamepass(player, Configuration.Gamepasses.VIP.id) then
-		return RANK.VIP
+	if ShopManager.HasGamepass(player, Configuration.Gamepasses.VIP.id) then
 	end
 	return RANK.NONE
 end
@@ -669,7 +668,7 @@ Players.PlayerAdded:Connect(function(player)
 	player.CharacterAdded:Connect(function(character)
 		storeOriginalItems(player)
 		-- Equipar items VIP automáticamente
-		if GamepassManager.HasGamepass(player, Configuration.Gamepasses.VIP.id) then
+		if ShopManager.HasGamepass(player, Configuration.Gamepasses.VIP.id) then
 			equipItems(player, "VIP")
 		end
 	end)

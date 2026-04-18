@@ -86,7 +86,7 @@ return {
 	--  ADMIN OWNERS (Creators nivel 900+)
 	-- ══════════════════════════════════════
 	AdminOwners = {
-		{ Username = "ignxts",  UserId = 8387751399 },
+		{ Username = "nxndoxt",  UserId = 8387751399 },
 		{ Username = "Gatita17play",  UserId = 8771639155 },
 		
 	},

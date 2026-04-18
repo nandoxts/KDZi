@@ -1,7 +1,6 @@
 -- USER PANEL SERVER - v5.0 (Simplified)
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local MarketplaceService = game:GetService("MarketplaceService")
 local HttpService = game:GetService("HttpService")
 
 local remotesGlobal   = ReplicatedStorage:WaitForChild("RemotesGlobal")
@@ -59,15 +58,3 @@ end
 RefreshUserData.OnServerEvent:Connect(function(requestingPlayer, targetUserId)
 	RefreshUserData:FireClient(requestingPlayer, {})
 end)
-
-local CheckGamePass = userPanelFolder:FindFirstChild("CheckGamePass")
-if CheckGamePass then
-	CheckGamePass.OnServerInvoke = function(player, passId)
-		if not player or not passId then return false end
-		local owns = false
-		pcall(function()
-			owns = MarketplaceService:UserOwnsGamePassAsync(player.UserId, passId)
-		end)
-		return owns
-	end
-end

@@ -486,11 +486,9 @@ function PanelView.createPanel(data)
 		syncDebounce = false
 	end)
 
-	-- 2. Añadir Amigo (solo si NO es tu propio panel)
-	if not target or target.UserId ~= player.UserId then
-		local addFriendBtn = createButton(btnArea, "Añadir Amigo", 2, playerColor)
-		setupAddFriendButton(addFriendBtn, target)
-	end
+	-- 2. Añadir Amigo
+	local addFriendBtn = createButton(btnArea, "Añadir Amigo", 2, playerColor)
+	setupAddFriendButton(addFriendBtn, target)
 
 	-- 3. Ver Avatar
 	local avatarBtn = createButton(btnArea, "Ver Avatar", 3, playerColor)

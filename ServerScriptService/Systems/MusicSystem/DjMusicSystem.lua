@@ -11,17 +11,14 @@ local ServerScriptService = game:GetService("ServerScriptService")
 
 local MusicConfig    = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("MusicSystemConfig"))
 local Configuration  = require(game.ReplicatedStorage.Config.Configuration)
+local ShopManager    = require(game.ServerScriptService.Systems.GiftManager.ShopManager)
 
 -- ════════════════════════════════════════════════════════════════
 -- CONSTANTS
 -- ════════════════════════════════════════════════════════════════
 local VIP_ID            = Configuration.Gamepasses.VIP.id
 
-local function hasGamepass(player, gamepassId)
-	local ok, owns = pcall(MarketplaceService.UserOwnsGamePassAsync, MarketplaceService, player.UserId, gamepassId)
-	return ok and owns
-end
-local DEV_USER_ID       = 8387751399
+local DEV_USER_ID= 8387751399
 local DEV_DISPLAY_NAME  = "Sistema"
 local ASSET_PREFIX      = "rbxassetid://"
 local DEFAULT_PITCH     = 1
@@ -416,7 +413,7 @@ end
 local function getUserQueueLimit(player)
 	if MusicConfig:IsAdmin(player) then
 		return MusicConfig.LIMITS.MaxSongsPerUserAdmin, "Admin"
-	elseif hasGamepass(player, VIP_ID) then
+	elseif ShopManager.HasGamepass(player, VIP_ID) then
 		return MusicConfig.LIMITS.MaxSongsPerUserVIP, "VIP"
 	end
 	return MusicConfig.LIMITS.MaxSongsPerUserNormal, "Normal"

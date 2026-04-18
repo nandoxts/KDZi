@@ -29,14 +29,12 @@ end
 --// Módulos
 local Systems = ServerScriptService:WaitForChild("Systems")
 local Configuration = require(game.ReplicatedStorage.Config.Configuration)
-local GamepassManager = require(Systems:WaitForChild("Gamepass Gifting"):WaitForChild("GamepassManager"))
 local Colors = require(game.ReplicatedStorage.Config.ColorConfig)
 local AdminConfig = require(game.ReplicatedStorage.Config.AdminConfig)
 local LevelConfig = require(game.ReplicatedStorage.Config.LevelConfig)
 
 --// Constantes
 local GroupID = Configuration.GroupID
-local VIP_ID = Configuration.Gamepasses.VIP.id
 local GROUP_ROLES = Configuration.GroupRoles
 
 
@@ -120,13 +118,6 @@ local function renderDisplayName(player)
 	displayNameLabel.Text = player.DisplayName
 	displayNameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 end
--- Función para sincronizar estado VIP en tiempo real
-local function updateVIPStatus(player)
-	if not player or not player.Parent then return end
-	local hasVIP = GamepassManager.HasGamepass(player, VIP_ID)
-	player:SetAttribute("HasVIP", hasVIP)
-end
-
 -- Actualizar nivel en LevelFrame
 local function updateLevelDisplay(levelLabel, level)
 	if not levelLabel then return end
@@ -383,8 +374,6 @@ local function onCharacterAdded(char, player)
 end
 
 Players.PlayerAdded:Connect(function(player)
-	updateVIPStatus(player)
-
 	trackConnection(player, player:GetAttributeChangedSignal("SelectedColor"):Connect(function()
 		updatePlayerNameColor(player)
 	end))
@@ -407,7 +396,6 @@ end)
 for _, player in ipairs(Players:GetPlayers()) do
 	task.spawn(function()
 		setupPlayerChat(player)
-		updateVIPStatus(player)
 
 		trackConnection(player, player:GetAttributeChangedSignal("SelectedColor"):Connect(function()
 			updatePlayerNameColor(player)

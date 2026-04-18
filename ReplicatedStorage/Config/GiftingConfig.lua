@@ -19,20 +19,9 @@ for _, gpData in pairs(Configuration.Gamepasses) do
 end
 
 -- ══════════════════════════════════════════════════════════════
---  TÍTULOS  →  { gamepassId, gamepassId }
---  Se construye automáticamente desde TitleConfig
--- ══════════════════════════════════════════════════════════════
-local titles = {}
-for _, title in ipairs(TitleConfig) do
-	if title.gamepassId then
-		table.insert(titles, { title.gamepassId, title.gamepassId })
-	end
-end
-
--- ══════════════════════════════════════════════════════════════
 --  EXPORT
 -- ══════════════════════════════════════════════════════════════
 return {
 	Gamepasses = gamepasses,
-	Titles     = titles,
+	Titles     = {},
 }

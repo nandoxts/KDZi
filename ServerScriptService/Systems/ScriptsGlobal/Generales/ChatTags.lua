@@ -4,15 +4,12 @@
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage"):WaitForChild("RemotesGlobal")
-local ServerScriptService = game:GetService("ServerScriptService"):WaitForChild("Systems")
 local MarketplaceService = game:GetService("MarketplaceService")
-local DataStoreService = game:GetService("DataStoreService")
 
 local configuration = require(game.ReplicatedStorage.Config.Configuration)
+local ShopManager = require(game.ServerScriptService.Systems.GiftManager.ShopManager)
 
--- DataStore y cache para gamepasses
-local GiftedGamepassesData = DataStoreService:GetDataStore("Gifting.1")
-local GamepassCache = {}
+-- Cache para tags
 
 -- Cache del servidor para tags
 local serverTagCache = {}
@@ -28,38 +25,15 @@ end
 
 local remoteFunction = ReplicatedStorage.Chat.CheckGamePass
 
--- Función optimizada para verificar gamepasses (tu código integrado)
+-- Verificar gamepass (compra directa + regalos via ShopManager)
 local function checkPlayerGamepasses(userId)
-	-- Si ya está en cache, devolverlo
-	if GamepassCache[userId] then
-		return GamepassCache[userId]
-	end
-
-	local cacheEntry = {
-		status = nil, -- "VIP" o nil
-		lastChecked = os.time()
-	}
-
-	-- Verificar VIP
 	local vipId = configuration.Gamepasses and configuration.Gamepasses.VIP and configuration.Gamepasses.VIP.id
-	if vipId then
-		local successVIP, hasVIP = pcall(function()
-			if MarketplaceService:UserOwnsGamePassAsync(userId, vipId) then
-				return true
-			end
-			return GiftedGamepassesData:GetAsync(userId .. "-" .. vipId)
-		end)
+	local cacheEntry = { status = nil, lastChecked = os.time() }
 
-		if successVIP and hasVIP then
-			cacheEntry.status = "VIP"
-			GamepassCache[userId] = cacheEntry
-			return cacheEntry
-		end
+	if vipId and ShopManager.HasGamepassByUserId(userId, vipId) then
+		cacheEntry.status = "VIP"
 	end
 
-	-- No tiene VIP
-	cacheEntry.status = nil
-	GamepassCache[userId] = cacheEntry
 	return cacheEntry
 end
 
@@ -186,7 +160,6 @@ local function setupPlayer(player)
 	player.CharacterAdded:Connect(function()
 		-- Limpiar cache para forzar re-verificación
 		serverTagCache[player.UserId] = nil
-		GamepassCache[player.UserId] = nil
 
 		-- Recalcular después de un pequeño delay
 		wait(1)
@@ -206,10 +179,9 @@ end
 
 Players.PlayerAdded:Connect(setupPlayer)
 
--- Limpiar ambos caches al desconectar
+-- Limpiar cache al desconectar
 Players.PlayerRemoving:Connect(function(player)
 	serverTagCache[player.UserId] = nil
-	GamepassCache[player.UserId] = nil
 end)
 
 -- Para jugadores ya conectados cuando se inicia el script
@@ -225,22 +197,15 @@ for _, player in ipairs(Players:GetPlayers()) do
 	end)
 end
 
--- Manejar la invocación remota (tu código integrado - compatibilidad)
+-- Manejar la invocación remota (compatibilidad)
 remoteFunction.OnServerInvoke = function(player, targetUserId)
-	-- Si no está en cache, verificar ahora
-	if not GamepassCache[targetUserId] then
-		checkPlayerGamepasses(targetUserId)
-	end
-
-	-- Devolver el estado cacheado (puede ser nil)
-	return GamepassCache[targetUserId] and GamepassCache[targetUserId].status
+	local result = checkPlayerGamepasses(targetUserId)
+	return result and result.status
 end
 
--- Función para forzar actualización de tag (útil para cambios de gamepass)
+-- Función para forzar actualización de tag
 local function forceUpdatePlayerTag(player)
-	-- Limpiar ambos caches
 	serverTagCache[player.UserId] = nil
-	GamepassCache[player.UserId] = nil
 
 	-- Recalcular
 	local tagInfo = calculatePlayerTag(player)
