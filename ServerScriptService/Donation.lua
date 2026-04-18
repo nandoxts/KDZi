@@ -7,6 +7,20 @@ local TweenService = game:GetService("TweenService")
 local MessagingService = game:GetService("MessagingService")
 local Workspace = game:GetService("Workspace")
 
+local AdminConfig = require(replicatedStorage.Config.AdminConfig)
+
+local RemotesGlobal   = replicatedStorage:FindFirstChild("RemotesGlobal") or Instance.new("Folder")
+RemotesGlobal.Name = "RemotesGlobal"
+RemotesGlobal.Parent = replicatedStorage
+
+local CommandsFolder  = RemotesGlobal:FindFirstChild("Commands") or Instance.new("Folder")
+CommandsFolder.Name = "Commands"
+CommandsFolder.Parent = RemotesGlobal
+
+local EventMessage    = CommandsFolder:FindFirstChild("EventMessage") or Instance.new("RemoteEvent")
+EventMessage.Name = "EventMessage"
+EventMessage.Parent = CommandsFolder
+
 local database = DataStoreService:GetDataStore("DonatedRaised")
 local sessionData = {}
 
@@ -61,7 +75,7 @@ end
 local function spawnGiantDonationEffect(donatingPlayer, donatedPlayer, amount)
 	if not RobuxHammerGiant or not donatingPlayer or not donatedPlayer then return end
 	local giantClone = RobuxHammerGiant:Clone()
-	local mamboKing = Workspace:FindFirstChild("MAMBO KING")
+	local mamboKing = Workspace:FindFirstChild("KDZ")
 	if not mamboKing then giantClone:Destroy(); return end
 	giantClone.Parent = mamboKing
 
@@ -112,7 +126,9 @@ local function applyDonationEffect(targetPlayer, amount, donatingPlayer)
 			selectedEffect = DONATION_EFFECTS[i]; break
 		end
 	end
-	if not selectedEffect then return end
+	if not selectedEffect then
+		selectedEffect = DONATION_EFFECTS[1]
+	end
 
 	local aura = Auras:FindFirstChild(selectedEffect.Attachment)
 	if aura then
@@ -326,8 +342,7 @@ local function Donate(player, plr:Player, price, def, test)
 			end)
 		end
 		
-		local text = --[[(test and "[TEST] " or "")..]]player.Name.." donated "..utf8.char(0xE002)..price.." to "..plr.Name
-		local color = Color3.fromRGB(116, 255, 202)
+		local text = player.Name.." donated "..utf8.char(0xE002)..price.." to "..plr.Name
 
 		-- Efectos de aura + sonido sobre el receptor
 		task.spawn(function()
@@ -335,15 +350,15 @@ local function Donate(player, plr:Player, price, def, test)
 		end)
 		
 		if price < 10000 then
-			game.ReplicatedStorage.Remotes.ChatMessage:FireAllClients(text, color, test)
+			EventMessage:FireAllClients(text, "donation")
 		else
-			local message = --[[(test and "[TEST] " or "")..]]--[["[GLOBAL] "..]]player.Name.." donated "..utf8.char(0xE002)..string.format("%s", formatNumber(price)).." to "..plr.Name
+			local message = player.Name.." donated "..utf8.char(0xE002)..string.format("%s", formatNumber(price)).." to "..plr.Name
 			
 			local data = {
 				["message"] = message,
 				["serverId"] = game.JobId,
 				["test"] = test,
-				["color"] = price >= 1000000 and Color3.fromRGB(138, 255, 65):ToHex() or Color3.fromRGB(93, 179, 255):ToHex()
+				["colorType"] = price >= 1000000 and "donation" or "donation"
 			}
 			
 			MessagingService:PublishAsync("Donation", data)
@@ -382,7 +397,52 @@ MessagingService:SubscribeAsync("Donation", function(data)
 	local serverId = data.Data.serverId
 	local test = data.Data.test
 	local txt = (serverId ~= game.JobId and "[GLOBAL] " or "[SERVER] ")..message
-	local color = Color3.fromHex(data.Data.color)
 
-	replicatedStorage.Remotes.ChatMessage:FireAllClients(txt, color, test)
+	EventMessage:FireAllClients(txt, "donation")
 end)
+
+
+-------------------------------------
+-- ── Comando ;fk username cantidad ────────────────────────────
+-------------------------------------
+
+local function setupFKCommand(player)
+	player.Chatted:Connect(function(msg)
+		if not AdminConfig:IsAdmin(player) then return end
+
+		local lower = msg:lower()
+		if not lower:match("^;fk%s") then return end
+
+		local args = {}
+		for word in msg:gmatch("%S+") do
+			table.insert(args, word)
+		end
+		local targetName = args[2]
+		local amount = tonumber(args[3])
+
+		if not targetName or not amount or amount <= 0 then return end
+
+		local target = players:FindFirstChild(targetName)
+		if not target then
+			for _, p in ipairs(players:GetPlayers()) do
+				if p.Name:lower():find(targetName:lower(), 1, true) then
+					target = p
+					break
+				end
+			end
+		end
+
+		if not target then return end
+
+		applyDonationEffect(target, amount, player)
+
+		local text = player.Name.." donated "..utf8.char(0xE002)..formatNumber(amount).." to "..target.Name
+		EventMessage:FireAllClients(text, "donation")
+	end)
+end
+
+-- Jugadores ya en el servidor cuando el script carga (ej. Studio)
+for _, player in ipairs(players:GetPlayers()) do
+	setupFKCommand(player)
+end
+players.PlayerAdded:Connect(setupFKCommand)

@@ -3,8 +3,10 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TextChatService = game:GetService("TextChatService")
 local StarterGui = game:GetService("StarterGui")
 
-local remotesGlobal = ReplicatedStorage:WaitForChild("RemotesGlobal", 10)
-local commandsFolder = remotesGlobal:WaitForChild("Commands", 10)
+local remotesGlobal = ReplicatedStorage:WaitForChild("RemotesGlobal", 30)
+if not remotesGlobal then warn("[CLIENT] RemotesGlobal NO encontrado!"); return end
+local commandsFolder = remotesGlobal:WaitForChild("Commands", 30)
+if not commandsFolder then warn("[CLIENT] Commands folder NO encontrado!"); return end
 
 -- Colores para diferentes tipos de mensajes
 local MESSAGE_COLORS = {
