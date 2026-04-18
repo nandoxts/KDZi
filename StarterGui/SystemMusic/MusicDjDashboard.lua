@@ -1,8 +1,6 @@
---[[ Music Dashboard - Professional (Sidebar Layout)
-	by ignxts- Nando
-	Layout refactor: Sidebar + Main Area (LOCAL REGISTER FIX)
-	NOTE: Forward-declared UI refs consolidated into _ui table
-	      to stay under Luau's 200 local register limit.
+--[[ Music Dashboard - Modern Sidebar Layout v2
+	Rediseño: DJs más visibles, animaciones modernas, estructura preservada
+	by nxndoxt- Nando
 ]]
 
 -- ════════════════════════════════════════════════════════════════
@@ -28,111 +26,86 @@ local ModernScrollbar = require(ReplicatedStorage:WaitForChild("UIComponents"):W
 local THEME = require(ReplicatedStorage:WaitForChild("Config"):WaitForChild("ThemeConfig"))
 
 -- ════════════════════════════════════════════════════════════════
--- INSTANCE HELPER
+-- HELPERS
 -- ════════════════════════════════════════════════════════════════
 local function make(className, props, children)
 	local inst = Instance.new(className)
-	for k, v in pairs(props) do
-		if k ~= "Parent" then inst[k] = v end
-	end
-	if children then
-		for _, child in ipairs(children) do child.Parent = inst end
-	end
+	for k, v in pairs(props) do if k ~= "Parent" then inst[k] = v end end
+	if children then for _, c in ipairs(children) do c.Parent = inst end end
 	if props.Parent then inst.Parent = props.Parent end
 	return inst
 end
 
-local function makeLabel(props)
+local function makeLabel(p)
 	return make("TextLabel", {
-		BackgroundTransparency = 1,
-		BorderSizePixel = 0,
-		Font = props.font or Enum.Font.Gotham,
-		TextSize = props.size or 13,
-		TextColor3 = props.color or THEME and THEME.text or Color3.new(1,1,1),
-		TextXAlignment = props.alignX or Enum.TextXAlignment.Left,
-		TextTruncate = props.truncate or Enum.TextTruncate.None,
-		Text = props.text or "",
-		Size = props.dim or UDim2.new(1, 0, 0, 20),
-		Position = props.pos or UDim2.new(0, 0, 0, 0),
-		ZIndex = props.z or 102,
-		Visible = props.visible ~= false,
-		Name = props.name or "Label",
-		TextWrapped = props.wrap or false,
-		Parent = props.parent,
+		BackgroundTransparency = 1, BorderSizePixel = 0,
+		Font = p.font or Enum.Font.Gotham, TextSize = p.size or 13,
+		TextColor3 = p.color or (THEME and THEME.text or Color3.new(1,1,1)),
+		TextXAlignment = p.alignX or Enum.TextXAlignment.Left,
+		TextTruncate = p.truncate or Enum.TextTruncate.None,
+		Text = p.text or "", Size = p.dim or UDim2.new(1, 0, 0, 20),
+		Position = p.pos or UDim2.new(0, 0, 0, 0),
+		ZIndex = p.z or 102, Visible = p.visible ~= false,
+		Name = p.name or "Label", TextWrapped = p.wrap or false,
+		Parent = p.parent,
 	})
 end
 
-local function makeBtn(props)
-	local btn = make("TextButton", {
-		Size = props.dim or UDim2.new(0, 80, 0, 30),
-		Position = props.pos or UDim2.new(0, 0, 0, 0),
-		BackgroundColor3 = props.bg or Color3.fromRGB(60, 60, 68),
-		Text = props.text or "",
-		TextColor3 = props.textColor or Color3.new(1, 1, 1),
-		Font = props.font or Enum.Font.GothamBold,
-		TextSize = props.textSize or 13,
-		BorderSizePixel = 0,
-		ZIndex = props.z or 103,
-		Name = props.name or "Button",
-		Parent = props.parent,
+local function makeBtn(p)
+	local b = make("TextButton", {
+		Size = p.dim or UDim2.new(0, 80, 0, 30), Position = p.pos or UDim2.new(0, 0, 0, 0),
+		BackgroundColor3 = p.bg or Color3.fromRGB(60, 60, 68),
+		Text = p.text or "", TextColor3 = p.textColor or Color3.new(1, 1, 1),
+		Font = p.font or Enum.Font.GothamBold, TextSize = p.textSize or 13,
+		BorderSizePixel = 0, ZIndex = p.z or 103,
+		Name = p.name or "Button", Parent = p.parent,
 	})
-	if props.round then UI.rounded(btn, props.round) end
-	return btn
+	if p.round then UI.rounded(b, p.round) end
+	return b
 end
 
-local function makeFrame(props)
+local function makeFrame(p)
 	return make("Frame", {
-		Size = props.dim or UDim2.new(1, 0, 1, 0),
-		Position = props.pos or UDim2.new(0, 0, 0, 0),
-		BackgroundColor3 = props.bg or Color3.fromRGB(20, 20, 24),
-		BackgroundTransparency = props.bgT or 1,
-		BorderSizePixel = 0,
-		ZIndex = props.z or 100,
-		ClipsDescendants = props.clip or false,
-		Name = props.name or "Frame",
-		Parent = props.parent,
+		Size = p.dim or UDim2.new(1, 0, 1, 0), Position = p.pos or UDim2.new(0, 0, 0, 0),
+		BackgroundColor3 = p.bg or Color3.fromRGB(20, 20, 24),
+		BackgroundTransparency = p.bgT or 1, BorderSizePixel = 0,
+		ZIndex = p.z or 100, ClipsDescendants = p.clip or false,
+		Name = p.name or "Frame", Parent = p.parent,
 	})
 end
 
-local function makeImage(props)
+local function makeImage(p)
 	return make("ImageLabel", {
-		Size = props.dim or UDim2.new(0, 40, 0, 40),
-		Position = props.pos or UDim2.new(0, 0, 0, 0),
-		BackgroundTransparency = props.bgT or 1,
-		BackgroundColor3 = props.bg or Color3.fromRGB(30, 30, 35),
-		Image = props.image or "",
-		ImageColor3 = props.imageColor or Color3.new(1, 1, 1),
-		ImageTransparency = props.imageT or 0,
-		ScaleType = props.scale or Enum.ScaleType.Crop,
-		BorderSizePixel = 0,
-		ZIndex = props.z or 103,
-		Visible = props.visible ~= false,
-		Name = props.name or "Image",
-		Parent = props.parent,
+		Size = p.dim or UDim2.new(0, 40, 0, 40), Position = p.pos or UDim2.new(0, 0, 0, 0),
+		BackgroundTransparency = p.bgT or 1,
+		BackgroundColor3 = p.bg or Color3.fromRGB(30, 30, 35),
+		Image = p.image or "", ImageColor3 = p.imageColor or Color3.new(1, 1, 1),
+		ImageTransparency = p.imageT or 0,
+		ScaleType = p.scale or Enum.ScaleType.Crop, BorderSizePixel = 0,
+		ZIndex = p.z or 103, Visible = p.visible ~= false,
+		Name = p.name or "Image", Parent = p.parent,
 	})
 end
 
-local function makeScrollColumn(parent, offsetY, paddingOpts, theme)
+local function makeScrollColumn(parent, offsetY, o, theme)
 	local scroll = make("ScrollingFrame", {
-		Size = UDim2.new(1, paddingOpts.sizeXOff or -8, 1, -(offsetY + (paddingOpts.bottomOff or 8))),
-		Position = UDim2.new(0, paddingOpts.posX or 4, 0, offsetY),
+		Size = UDim2.new(1, o.sizeXOff or -8, 1, -(offsetY + (o.bottomOff or 8))),
+		Position = UDim2.new(0, o.posX or 4, 0, offsetY),
 		BackgroundTransparency = 1, BorderSizePixel = 0,
 		ScrollBarThickness = 0, ScrollBarImageTransparency = 1,
 		CanvasSize = UDim2.new(0, 0, 0, 0),
 		ClipsDescendants = true, ZIndex = 101, Parent = parent,
 	})
 	ModernScrollbar.setup(scroll, parent, theme, {transparency = 0})
-	if paddingOpts.padding then
+	if o.padding then
 		make("UIPadding", {
-			PaddingLeft = UDim.new(0, paddingOpts.padding),
-			PaddingRight = UDim.new(0, paddingOpts.padding),
-			PaddingTop = UDim.new(0, paddingOpts.paddingTop or paddingOpts.padding),
-			PaddingBottom = UDim.new(0, paddingOpts.padding),
-			Parent = scroll,
+			PaddingLeft = UDim.new(0, o.padding), PaddingRight = UDim.new(0, o.padding),
+			PaddingTop = UDim.new(0, o.paddingTop or o.padding),
+			PaddingBottom = UDim.new(0, o.padding), Parent = scroll,
 		})
 	end
 	local layout = make("UIListLayout", {
-		Padding = UDim.new(0, paddingOpts.gap or 4),
+		Padding = UDim.new(0, o.gap or 4),
 		SortOrder = Enum.SortOrder.LayoutOrder, Parent = scroll,
 	})
 	layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
@@ -142,29 +115,17 @@ local function makeScrollColumn(parent, offsetY, paddingOpts, theme)
 end
 
 local function makeCanvas(parent, corner, z)
-	local canvas = Instance.new("CanvasGroup")
-	canvas.Name = "Canvas"
-	canvas.Size = UDim2.new(1, 0, 1, 0)
-	canvas.BackgroundTransparency = 1
-	canvas.BorderSizePixel = 0
-	canvas.GroupTransparency = 0
-	canvas.ZIndex = z or 103
-	canvas.Parent = parent
-	Instance.new("UICorner", canvas).CornerRadius = UDim.new(0, corner or 8)
-	return canvas
+	local c = Instance.new("CanvasGroup")
+	c.Name = "Canvas"; c.Size = UDim2.new(1, 0, 1, 0)
+	c.BackgroundTransparency = 1; c.BorderSizePixel = 0
+	c.GroupTransparency = 0; c.ZIndex = z or 103
+	c.Parent = parent
+	Instance.new("UICorner", c).CornerRadius = UDim.new(0, corner or 8)
+	return c
 end
 
-local function tween(obj, duration, props)
-	TweenService:Create(obj, TweenInfo.new(duration), props):Play()
-end
-
-local function addHover(btn, hoverColor, defaultColor, defaultTransparency)
-	btn.MouseEnter:Connect(function()
-		tween(btn, 0.15, {BackgroundColor3 = hoverColor, BackgroundTransparency = 0})
-	end)
-	btn.MouseLeave:Connect(function()
-		tween(btn, 0.15, {BackgroundColor3 = defaultColor, BackgroundTransparency = defaultTransparency or 0})
-	end)
+local function tween(obj, dur, props)
+	TweenService:Create(obj, TweenInfo.new(dur), props):Play()
 end
 
 -- ════════════════════════════════════════════════════════════════
@@ -203,8 +164,6 @@ local VISIBLE_BUFFER, MAX_POOL_SIZE = 3, 25
 local MAX_QUEUE_POOL = 30
 local DEV_USER_ID = 8387751399
 
--- ICONS: usar UI.ICONS directamente
-
 local VISUALIZER = {
 	BAR_COUNT = 20, BAR_WIDTH = 14, BAR_GAP = 3,
 	BAR_MIN_H = 3, BAR_MAX_H = 80,
@@ -212,7 +171,7 @@ local VISUALIZER = {
 }
 
 -- ════════════════════════════════════════════════════════════════
--- STATE — consolidated into tables to save local registers
+-- STATE
 -- ════════════════════════════════════════════════════════════════
 local state = {
 	playQueue = {}, currentSong = nil,
@@ -233,6 +192,7 @@ local state = {
 	searchDebounce = nil,
 	lastUpdateTime = 0, pendingUpdate = nil,
 	lastSkipTime = 0,
+	djCardTweens = {}, -- cache de tweens hover por card
 }
 
 local virtualScrollState = {
@@ -242,11 +202,10 @@ local virtualScrollState = {
 	pendingRequests = {},
 }
 
--- UI refs — single table instead of ~30 individual locals
 local _ui = {}
 
 -- ════════════════════════════════════════════════════════════════
--- HELPERS
+-- HELPERS DE ESTADO
 -- ════════════════════════════════════════════════════════════════
 local function isValidAudioId(text)
 	if not text or text == "" then return false end
@@ -297,22 +256,20 @@ local function isMusicMuted() return _G.MusicMutedState or false end
 -- ════════════════════════════════════════════════════════════════
 local R = {}
 do
-	local remoteNames = {
+	local names = {
 		"NextSong", "PlaySong", "StopSong", "AddToQueue", "AddToQueueResponse",
 		"RemoveFromQueue", "RemoveFromQueueResponse", "ClearQueue", "ClearQueueResponse",
 		"UpdateUI", "GetDJs", "GetSongsByDJ", "GetSongRange", "SearchSongs",
 		"GetSongMetadata", "ChangeVolume",
 	}
-	local shortNames = {
+	local short = {
 		NextSong = "Next", PlaySong = "Play", StopSong = "Stop",
 		AddToQueue = "Add", AddToQueueResponse = "AddResponse",
 		RemoveFromQueue = "Remove", RemoveFromQueueResponse = "RemoveResponse",
 		ClearQueue = "Clear", ClearQueueResponse = "ClearResponse",
 		UpdateUI = "Update",
 	}
-	for _, name in ipairs(remoteNames) do
-		R[shortNames[name] or name] = getRemote(name)
-	end
+	for _, n in ipairs(names) do R[short[n] or n] = getRemote(n) end
 end
 
 -- ════════════════════════════════════════════════════════════════
@@ -328,15 +285,16 @@ task.wait(0.5)
 local mob = UserInputService.TouchEnabled
 
 -- ════════════════════════════════════════════════════════════════
--- LAYOUT CONSTANTS
+-- LAYOUT CONSTANTS — Sidebar más ancho para DJs más visibles
 -- ════════════════════════════════════════════════════════════════
 local PANEL_W = mob and THEME.panelWidth or math.max(THEME.panelWidth, 850)
 local PANEL_H = mob and THEME.panelHeight or math.max(THEME.panelHeight, 600)
-local SIDEBAR_W = mob and 75 or 95  -- Reducido de 80/105
-local BOTTOM_BAR_H = mob and 75 or 90  -- Reducido de 80/100
-local MAIN_HEADER_H = mob and 110 or 150  -- Reducido de 120/170
-local QUEUE_BTN_H = mob and 65 or 75  -- Reducido de 70/82
-local DJ_THUMB_H = mob and 85 or 100  -- Reducido de 90/108
+local SIDEBAR_W = mob and 90 or 118     -- ampliado de 75/95 (DJs más grandes)
+local BOTTOM_BAR_H = mob and 75 or 90
+local MAIN_HEADER_H = mob and 110 or 150
+local QUEUE_BTN_H = mob and 60 or 72
+local DJ_THUMB_H = mob and 96 or 118    -- ampliado de 85/100 (más alto, más prominente)
+local GAP = 6
 
 -- ════════════════════════════════════════════════════════════════
 -- MODAL
@@ -352,7 +310,6 @@ local modal = ModalManager.new({
 	end,
 })
 
--- Hacer el panel contenedor transparente (las secciones tienen su propio fondo)
 modal:getPanel().BackgroundTransparency = 1
 local panelStroke = modal:getPanel():FindFirstChildWhichIsA("UIStroke")
 if panelStroke then panelStroke.Transparency = 1 end
@@ -362,8 +319,6 @@ local canvas = modal:getCanvas()
 -- ════════════════════════════════════════════════════════════════
 -- MAIN LAYOUT
 -- ════════════════════════════════════════════════════════════════
-local GAP = 6
-
 local contentArea = makeFrame({
 	dim = UDim2.new(1, -(SIDEBAR_W + GAP), 1, 0),
 	pos = UDim2.new(0, SIDEBAR_W + GAP, 0, 0),
@@ -379,16 +334,13 @@ do
 		z = 110, name = "BottomBar", parent = contentArea,
 	})
 	local bottomCanvas = makeCanvas(bottomBar, 12, 110)
-	-- UIStroke en el CanvasGroup, no en el Frame, para evitar que el composite lo sobrescriba
 	make("UIStroke", {
 		Color = THEME.stroke, Thickness = 1, Transparency = 0.4,
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = bottomCanvas,
 	})
 	UI.rounded(bottomBar, 12)
-	-- Gradient igual al header
 	local bbGrad = makeFrame({
-		dim = UDim2.new(1, 0, 1, 0),
-		bg = THEME.accent, bgT = 0.75,
+		dim = UDim2.new(1, 0, 1, 0), bg = THEME.accent, bgT = 0.75,
 		z = 110, name = "BottomBarGradient", parent = bottomCanvas,
 	})
 	make("UIGradient", {
@@ -404,56 +356,81 @@ do
 end
 
 -- ════════════════════════════════════════════════════════════════
--- SIDEBAR
+-- SIDEBAR — REDISEÑADO: Queue button + DJ grid vertical prominente
 -- ════════════════════════════════════════════════════════════════
 do
 	local sidebar = makeFrame({
 		dim = UDim2.new(0, SIDEBAR_W, 1, 0),
-		bg = THEME.card, bgT = 0,
-		z = 105, name = "Sidebar", parent = canvas,
+		bg = THEME.card, bgT = 0, z = 105, name = "Sidebar", parent = canvas,
 	})
-	local sidebarCanvas = makeCanvas(sidebar, 12, 105)
-	-- UIStroke en el CanvasGroup, no en el Frame
+	local sidebarCanvas = makeCanvas(sidebar, 14, 105)
 	make("UIStroke", {
 		Color = THEME.stroke, Thickness = 1, Transparency = 0.4,
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = sidebarCanvas,
 	})
-	UI.rounded(sidebar, 12)
+	UI.rounded(sidebar, 14)
 
-	-- Queue Toggle Button
-	local queueBtnContainer = makeFrame({
-		dim = UDim2.new(1, 0, 0, QUEUE_BTN_H),
-		bg = THEME.card, bgT = THEME.lightAlpha,
-		z = 102, name = "QueueBtnContainer", parent = sidebarCanvas,
+	-- Sidebar gradient sutil
+	local sbGrad = makeFrame({
+		dim = UDim2.new(1, 0, 1, 0), bg = THEME.accent, bgT = 0.92,
+		z = 105, name = "SidebarGradient", parent = sidebarCanvas,
 	})
-	-- UICorner para que el queueBtnStroke no se recorte en las esquinas del sidebarCanvas
-	UI.rounded(queueBtnContainer, 12)
+	make("UIGradient", {
+		Transparency = NumberSequence.new{
+			NumberSequenceKeypoint.new(0, 0.88),
+			NumberSequenceKeypoint.new(1, 1),
+		},
+		Rotation = 90, Parent = sbGrad,
+	})
 
-	-- Hamburger icon
+	-- ─── Queue Toggle Button (rediseñado con halo) ───
+	local queueBtnContainer = makeFrame({
+		dim = UDim2.new(1, -12, 0, QUEUE_BTN_H),
+		pos = UDim2.new(0, 6, 0, 6),
+		bg = Color3.fromRGB(26, 26, 34), bgT = 0,
+		z = 106, name = "QueueBtnContainer", parent = sidebarCanvas,
+	})
+	UI.rounded(queueBtnContainer, 10)
+
+	-- Gradient del botón Queue
+	local qbGrad = makeFrame({
+		dim = UDim2.new(1, 0, 1, 0), bg = THEME.accent, bgT = 0.7,
+		z = 106, parent = queueBtnContainer, clip = true,
+	})
+	UI.rounded(qbGrad, 10)
+	make("UIGradient", {
+		Transparency = NumberSequence.new{
+			NumberSequenceKeypoint.new(0, 0.5),
+			NumberSequenceKeypoint.new(1, 0.95),
+		},
+		Rotation = 135, Parent = qbGrad,
+	})
+
+	-- Hamburger icon (más limpio)
 	do
 		local hf = makeFrame({
-			dim = UDim2.new(0, 28, 0, 22),
-			pos = UDim2.new(0.5, -14, 0, mob and 10 or 14),
-			z = 103, parent = queueBtnContainer,
+			dim = UDim2.new(0, 24, 0, 18),
+			pos = UDim2.new(0.5, -12, 0, mob and 10 or 14),
+			z = 107, parent = queueBtnContainer,
 		})
 		for li = 0, 2 do
 			local line = Instance.new("Frame")
-			line.Size = UDim2.new(1, 0, 0, 3)
-			line.Position = UDim2.new(0, 0, 0, li * 9)
+			line.Size = UDim2.new(1, 0, 0, 2)
+			line.Position = UDim2.new(0, 0, 0, li * 8)
 			line.BackgroundColor3 = Color3.new(1, 1, 1)
-			line.BackgroundTransparency = 0
 			line.BorderSizePixel = 0
-			line.ZIndex = 104
+			line.ZIndex = 108
 			line.Parent = hf
+			Instance.new("UICorner", line).CornerRadius = UDim.new(0, 1)
 		end
 	end
 
 	makeLabel({
-		text = "Queue", font = Enum.Font.GothamBold, size = mob and 10 or 12,
-		dim = UDim2.new(1, 0, 0, 16),
-		pos = UDim2.new(0, 0, 1, mob and -20 or -22),
+		text = "QUEUE", font = Enum.Font.GothamBlack, size = mob and 10 or 12,
+		dim = UDim2.new(1, 0, 0, 14),
+		pos = UDim2.new(0, 0, 1, mob and -18 or -20),
 		color = THEME.text, alignX = Enum.TextXAlignment.Center,
-		z = 103, parent = queueBtnContainer,
+		z = 108, parent = queueBtnContainer,
 	})
 
 	_ui.queueBtnStroke = make("UIStroke", {
@@ -463,37 +440,48 @@ do
 	})
 
 	_ui.queueClickBtn = makeBtn({
-		dim = UDim2.new(1, 0, 1, 0), z = 110,
+		dim = UDim2.new(1, 0, 1, 0), z = 112,
 		name = "QueueClickBtn", parent = queueBtnContainer,
 	})
 	_ui.queueClickBtn.BackgroundTransparency = 1
 
-	-- Divider
-	makeFrame({
-		dim = UDim2.new(1, -12, 0, 1),
-		pos = UDim2.new(0, 6, 0, QUEUE_BTN_H),
-		bg = THEME.stroke, bgT = 0.5, z = 102, parent = sidebarCanvas,
+	-- ─── "DJS" label header (nuevo, sutil separador) ───
+	makeLabel({
+		text = "DJS", font = Enum.Font.GothamBlack, size = 10,
+		dim = UDim2.new(1, -12, 0, 14),
+		pos = UDim2.new(0, 6, 0, QUEUE_BTN_H + 14),
+		color = THEME.muted, alignX = Enum.TextXAlignment.Left,
+		z = 106, parent = sidebarCanvas,
 	})
 
-	-- DJ Thumbnails Scroll
+	-- Línea sutil
+	makeFrame({
+		dim = UDim2.new(1, -12, 0, 1),
+		pos = UDim2.new(0, 6, 0, QUEUE_BTN_H + 30),
+		bg = THEME.stroke, bgT = 0.6, z = 106, parent = sidebarCanvas,
+	})
+
+	-- ─── DJ Thumbnails Scroll ───
+	local djsTop = QUEUE_BTN_H + 36
 	_ui.djsScroll = make("ScrollingFrame", {
-		Size = UDim2.new(1, 0, 1, -(QUEUE_BTN_H + 4)),
-		Position = UDim2.new(0, 0, 0, QUEUE_BTN_H + 4),
+		Size = UDim2.new(1, 0, 1, -djsTop),
+		Position = UDim2.new(0, 0, 0, djsTop),
 		BackgroundTransparency = 1, BorderSizePixel = 0,
 		ScrollBarThickness = 0, ScrollBarImageTransparency = 1,
 		CanvasSize = UDim2.new(0, 0, 0, 0),
-		ClipsDescendants = true, ZIndex = 101, Parent = sidebarCanvas,
+		ClipsDescendants = true, ZIndex = 106, Parent = sidebarCanvas,
 	})
 	ModernScrollbar.setup(_ui.djsScroll, sidebarCanvas, THEME, {transparency = 0})
 
 	local djsLayout = make("UIListLayout", {
-		Padding = UDim.new(0, 5), SortOrder = Enum.SortOrder.LayoutOrder,
+		Padding = UDim.new(0, 8), -- más espacio entre DJs
+		SortOrder = Enum.SortOrder.LayoutOrder,
 		HorizontalAlignment = Enum.HorizontalAlignment.Center,
 		Parent = _ui.djsScroll,
 	})
 	make("UIPadding", {
-		PaddingLeft = UDim.new(0, 5), PaddingRight = UDim.new(0, 5),
-		PaddingTop = UDim.new(0, 3), PaddingBottom = UDim.new(0, 3),
+		PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 6),
+		PaddingTop = UDim.new(0, 4), PaddingBottom = UDim.new(0, 8),
 		Parent = _ui.djsScroll,
 	})
 	djsLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
@@ -507,16 +495,15 @@ end
 _ui.mainPanel = makeFrame({
 	dim = UDim2.new(1, 0, 1, -(BOTTOM_BAR_H + GAP)),
 	pos = UDim2.new(0, 0, 0, 0),
-	bg = THEME.card, bgT = 0,
-	z = 100, name = "MainPanel", parent = contentArea,
+	bg = THEME.card, bgT = 0, z = 100, name = "MainPanel", parent = contentArea,
 })
 UI.rounded(_ui.mainPanel, 12)
 _ui.mainPanelCanvas = makeCanvas(_ui.mainPanel, 12, 100)
--- UIStroke en el CanvasGroup, no en el Frame
 make("UIStroke", {
 	Color = THEME.stroke, Thickness = 1, Transparency = 0.4,
 	ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = _ui.mainPanelCanvas,
 })
+
 -- ── Main Header ──
 _ui.mainHeader = makeFrame({
 	dim = UDim2.new(1, 0, 0, MAIN_HEADER_H),
@@ -524,11 +511,9 @@ _ui.mainHeader = makeFrame({
 	z = 101, clip = true, name = "MainHeader", parent = _ui.mainPanelCanvas,
 })
 
--- Gradient decorativo del header
 do
 	local grad = makeFrame({
-		dim = UDim2.new(1, 0, 1, 0),
-		bg = THEME.accent, bgT = 0.75,
+		dim = UDim2.new(1, 0, 1, 0), bg = THEME.accent, bgT = 0.75,
 		z = 102, name = "HeaderGradient", parent = _ui.mainHeader,
 	})
 	make("UIGradient", {
@@ -541,7 +526,6 @@ do
 	})
 end
 
--- Sección izquierda: Avatar del requester (zoomed, sin borde, siempre visible)
 local HEADER_AVATAR_SZ = MAIN_HEADER_H
 local AVATAR_ZOOM = 1.2
 local ZOOM_SZ = math.floor(HEADER_AVATAR_SZ * AVATAR_ZOOM)
@@ -553,14 +537,13 @@ _ui.headerAvatar = makeImage({
 })
 _ui.headerAvatar.ImageTransparency = 0.15
 
--- Sección derecha: contenedor con barras + título
 _ui.headerContent = makeFrame({
 	dim = UDim2.new(1, -HEADER_AVATAR_SZ, 1, 0),
 	pos = UDim2.new(0, HEADER_AVATAR_SZ, 0, 0),
 	z = 104, clip = true, name = "HeaderContent", parent = _ui.mainHeader,
 })
 
--- Visualizer (barras gruesas, alineadas a la izquierda / pegadas al avatar)
+-- Visualizer
 do
 	local vizH = mob and 60 or 90
 	local vizContainer = makeFrame({
@@ -606,8 +589,7 @@ _ui.songCountLabel = makeLabel({
 if isAdmin then
 	_ui.clearB = UI.outlinedCircleBtn(_ui.headerContent, {
 		size = mob and 28 or 32,
-		icon = UI.ICONS.DELETE,
-		zIndex = 107,
+		icon = UI.ICONS.DELETE, zIndex = 107,
 		position = UDim2.new(1, mob and -34 or -38, 0, mob and 14 or 24),
 		name = "ClearBtn",
 		theme = {stroke = Color3.fromRGB(200, 140, 70), dim = Color3.fromRGB(200, 140, 70)},
@@ -633,8 +615,7 @@ do
 	})
 	sc.Position = UDim2.new(0, 8, 0, 4)
 	sc.Size = UDim2.new(1, -16, 0, mob and 28 or 32)
-	sc.ZIndex = 105
-	sc.Visible = false
+	sc.ZIndex = 105; sc.Visible = false
 	_ui.searchContainer = sc
 end
 
@@ -649,12 +630,10 @@ _ui.songsScroll = make("ScrollingFrame", {
 ModernScrollbar.setup(_ui.songsScroll, _ui.songsView, THEME, {transparency = 0})
 
 _ui.songsContainer = makeFrame({name = "SongsContainer", dim = UDim2.new(1, 0, 0, 0), z = 101, parent = _ui.songsScroll})
-
 _ui.loadingIndicator = makeLabel({
 	dim = UDim2.new(1, 0, 0, 40), text = "Cargando...",
 	color = THEME.muted, size = 15, z = 102, visible = false, parent = _ui.songsScroll,
 })
-
 _ui.songsPlaceholder = makeLabel({
 	dim = UDim2.new(1, -40, 0, 80), pos = UDim2.new(0, 20, 0.35, 0),
 	text = "Selecciona un DJ\npara ver sus canciones",
@@ -680,10 +659,8 @@ _ui.queueScroll = makeScrollColumn(_ui.queueView, 4, {
 local function switchView(view)
 	if state.currentView == view then return end
 	state.currentView = view
-
 	if view == "queue" then
-		_ui.songsView.Visible = false
-		_ui.queueView.Visible = true
+		_ui.songsView.Visible = false; _ui.queueView.Visible = true
 		_ui.songsTitle.Text = "PLAYLIST QUEUE"
 		_ui.songCountLabel.Visible = false
 		_ui.searchContainer.Visible = false
@@ -693,11 +670,13 @@ local function switchView(view)
 			local ps = state.selectedDJCard:FindFirstChild("CardStroke")
 			if ps then tween(ps, 0.2, {Color = THEME.stroke, Transparency = 0.7, Thickness = 1}) end
 			local pn = state.selectedDJCard:FindFirstChild("DJNameLabel")
-			if pn then tween(pn, 0.2, {TextColor3 = Color3.fromRGB(180, 180, 190)}) end
+			if pn then tween(pn, 0.2, {TextColor3 = Color3.fromRGB(220, 220, 230)}) end
+			-- reset scale del selected card
+			local sc = state.selectedDJCard:FindFirstChild("ScaleTag")
+			if sc then tween(sc, 0.2, {Scale = 1}) end
 		end
 	else
-		_ui.songsView.Visible = true
-		_ui.queueView.Visible = false
+		_ui.songsView.Visible = true; _ui.queueView.Visible = false
 		if _ui.clearB then _ui.clearB.Visible = false end
 		_ui.searchContainer.Visible = true
 		tween(_ui.queueBtnStroke, 0.2, {Color = THEME.stroke, Transparency = 0.7, Thickness = 1})
@@ -762,13 +741,12 @@ do
 		z = 113, parent = nowPlaying,
 	})
 
-	-- CENTER: Progress + Visualizer + Quick Add
+	-- CENTER
 	local centerSection = makeFrame({
 		dim = UDim2.new(0.40, -20, 1, 0), pos = UDim2.new(0.30, 10, 0, 0),
 		z = 112, clip = false, name = "CenterSection", parent = bottomContent,
 	})
 
-	-- Progress
 	local progContainer = makeFrame({
 		dim = UDim2.new(1, 0, 0, 26), pos = UDim2.new(0, 0, 0, mob and 3 or 6),
 		z = 113, parent = centerSection,
@@ -799,12 +777,10 @@ do
 		parent = progContainer,
 	})
 
-	-- Quick Add
 	local qaFrame = makeFrame({
 		dim = UDim2.new(1, 0, 0, 38),
 		pos = UDim2.new(0, 0, 0, mob and 34 or 40),
-		bg = THEME.card, bgT = THEME.lightAlpha,
-		z = 113, parent = centerSection,
+		bg = THEME.card, bgT = THEME.lightAlpha, z = 113, parent = centerSection,
 	})
 	UI.rounded(qaFrame, 8)
 	_ui.qiStroke = UI.stroked(qaFrame, 0.4)
@@ -838,7 +814,7 @@ do
 		z = 113, visible = false, parent = centerSection,
 	})
 
-	-- RIGHT: Skip + Volume
+	-- RIGHT
 	local rightSection = makeFrame({
 		dim = UDim2.new(0.30, -10, 1, 0), pos = UDim2.new(0.70, 10, 0, 0),
 		z = 112, parent = bottomContent,
@@ -857,54 +833,43 @@ do
 	})
 	_ui.skipB.LayoutOrder = 2
 
-	-- Volume slider (rectangular card)
 	local volSliderFrame = makeFrame({
 		dim = UDim2.new(0, 130, 0, 52),
-		bg = THEME.card, bgT = THEME.lightAlpha,
-		z = 113, parent = rightSection,
+		bg = THEME.card, bgT = THEME.lightAlpha, z = 113, parent = rightSection,
 	})
 	volSliderFrame.LayoutOrder = 1
 	UI.rounded(volSliderFrame, 8)
 	UI.stroked(volSliderFrame, 0.4)
 
 	_ui.volLabelText = makeLabel({
-		dim = UDim2.new(1, 0, 0, 16),
-		pos = UDim2.new(0, 0, 0, 8),
-		text = "100%",
-		color = THEME.text, font = Enum.Font.GothamBold,
-		size = mob and 10 or 12,
-		alignX = Enum.TextXAlignment.Center,
+		dim = UDim2.new(1, 0, 0, 16), pos = UDim2.new(0, 0, 0, 8),
+		text = "100%", color = THEME.text, font = Enum.Font.GothamBold,
+		size = mob and 10 or 12, alignX = Enum.TextXAlignment.Center,
 		z = 114, name = "VolLabel", parent = volSliderFrame,
 	})
 
 	local volTrack = makeFrame({
-		dim = UDim2.new(1, -20, 0, 8),
-		pos = UDim2.new(0, 10, 0, 32),
+		dim = UDim2.new(1, -20, 0, 8), pos = UDim2.new(0, 10, 0, 32),
 		bg = Color3.fromRGB(40, 40, 52), bgT = 0,
 		z = 114, name = "VolTrack", parent = volSliderFrame,
 	})
 	UI.rounded(volTrack, 4)
 
 	_ui.volFill = makeFrame({
-		dim = UDim2.new(1, 0, 1, 0),
-		bg = THEME.accent, bgT = 0,
+		dim = UDim2.new(1, 0, 1, 0), bg = THEME.accent, bgT = 0,
 		z = 115, name = "VolFill", parent = volTrack,
 	})
 	UI.rounded(_ui.volFill, 4)
 
 	_ui.volKnob = makeFrame({
-		dim = UDim2.new(0, 14, 0, 14),
-		pos = UDim2.new(1, -7, 0.5, -7),
-		bg = Color3.new(1, 1, 1), bgT = 0,
-		z = 116, name = "VolKnob", parent = volTrack,
+		dim = UDim2.new(0, 14, 0, 14), pos = UDim2.new(1, -7, 0.5, -7),
+		bg = Color3.new(1, 1, 1), bgT = 0, z = 116, name = "VolKnob", parent = volTrack,
 	})
 	UI.rounded(_ui.volKnob, 7)
 
 	_ui.volDragBtn = make("TextButton", {
-		Size = UDim2.new(1, 0, 1, 20),
-		Position = UDim2.new(0, 0, 0, -12),
-		BackgroundTransparency = 1, Text = "",
-		BorderSizePixel = 0, AutoButtonColor = false,
+		Size = UDim2.new(1, 0, 1, 20), Position = UDim2.new(0, 0, 0, -12),
+		BackgroundTransparency = 1, Text = "", BorderSizePixel = 0, AutoButtonColor = false,
 		ZIndex = 117, Name = "VolDragBtn", Parent = volSliderFrame,
 	})
 end
@@ -962,8 +927,7 @@ _ui.quickAddBtn.MouseButton1Click:Connect(function()
 	local aid = _ui.quickInput.Text:gsub("%s+", "")
 	if not isValidAudioId(aid) then
 		Notify:Warning("ID Inválido", "Ingresa un ID válido (6-19 dígitos)", 3)
-		setAddButtonState("error", "Invalid Audio ID")
-		return
+		setAddButtonState("error", "Invalid Audio ID"); return
 	end
 	setAddButtonState("loading")
 	if R.Add then R.Add:FireServer(tonumber(aid)) end
@@ -1028,7 +992,6 @@ end
 local maxVolume = MusicSystemConfig.PLAYBACK.MaxVolume
 local minVolume = MusicSystemConfig.PLAYBACK.MinVolume
 local currentVolume = player:GetAttribute("MusicVolume") or MusicSystemConfig.PLAYBACK.DefaultVolume
-local VOL_STEP = (maxVolume - minVolume) * 0.05
 
 local function updateVolumeDisplay()
 	if isMusicMuted() then
@@ -1076,13 +1039,11 @@ updateVolume(currentVolume)
 
 local function handleMuteCheck()
 	if isMusicMuted() then
-		Notify:Info("Música Silenciada", "Desmutea el sonido en el topbar para cambiar el volumen", 2)
-		return true
+		Notify:Info("Música Silenciada", "Desmutea el sonido en el topbar para cambiar el volumen", 2); return true
 	end
 	return false
 end
 
--- Slider de volumen (drag)
 do
 	local isDragging = false
 	local function getFracFromPos(inputPos)
@@ -1090,9 +1051,7 @@ do
 		local as = _ui.volFill.Parent.AbsoluteSize
 		return math.clamp((inputPos.X - at.X) / math.max(as.X, 1), 0, 1)
 	end
-	local function applyFrac(frac)
-		updateVolume(minVolume + frac * (maxVolume - minVolume))
-	end
+	local function applyFrac(frac) updateVolume(minVolume + frac * (maxVolume - minVolume)) end
 	_ui.volDragBtn.MouseButton1Down:Connect(function()
 		if handleMuteCheck() then return end
 		isDragging = true
@@ -1104,9 +1063,7 @@ do
 		end
 	end)
 	UserInputService.InputEnded:Connect(function(inp)
-		if inp.UserInputType == Enum.UserInputType.MouseButton1 then
-			isDragging = false
-		end
+		if inp.UserInputType == Enum.UserInputType.MouseButton1 then isDragging = false end
 	end)
 end
 
@@ -1121,8 +1078,7 @@ do
 	_ui.skipB.MouseButton1Click:Connect(function()
 		local elapsed = tick() - state.lastSkipTime
 		if not isAdmin and elapsed < skipCooldown then
-			Notify:Info("Cooldown", "Espera " .. math.ceil(skipCooldown - elapsed) .. " segundos")
-			return
+			Notify:Info("Cooldown", "Espera " .. math.ceil(skipCooldown - elapsed) .. " segundos"); return
 		end
 		state.lastSkipTime = tick()
 		if isAdmin then
@@ -1167,11 +1123,8 @@ local function createQueueCard()
 	makeLabel({dim = UDim2.new(1, -58, 0, 16), pos = UDim2.new(0, 50, 0, 28), text = "", color = THEME.muted, font = Enum.Font.GothamBold, size = 12, truncate = Enum.TextTruncate.AtEnd, z = 102, name = "RequesterLabel", parent = card})
 	if isAdmin then
 		UI.outlinedCircleBtn(card, {
-			size = 28,
-			icon = UI.ICONS.DELETE,
-			zIndex = 103,
-			position = UDim2.new(1, -32, 0.5, -14),
-			name = "RemoveBtn",
+			size = 28, icon = UI.ICONS.DELETE, zIndex = 103,
+			position = UDim2.new(1, -32, 0.5, -14), name = "RemoveBtn",
 			theme = {stroke = THEME.btnDanger, dim = THEME.btnDanger},
 		})
 	end
@@ -1278,7 +1231,6 @@ local function drawQueue()
 	end
 end
 
--- Pre-create queue card pool
 for _ = 1, math.min(MAX_QUEUE_POOL, 15) do
 	local card = createQueueCard(); card.Parent = _ui.queueScroll; table.insert(state.queueCardPool, card)
 	if isAdmin then
@@ -1303,9 +1255,8 @@ local function createSongCard()
 	makeLabel({dim = UDim2.new(1, -(textX + 44), 0, 20), pos = UDim2.new(0, textX, 0, 8), font = Enum.Font.GothamBold, size = 14, truncate = Enum.TextTruncate.AtEnd, z = 103, name = "NameLabel", parent = card})
 	makeLabel({dim = UDim2.new(1, -(textX + 44), 0, 16), pos = UDim2.new(0, textX, 0, 30), color = THEME.muted, font = Enum.Font.GothamBold, size = 12, truncate = Enum.TextTruncate.AtEnd, z = 103, name = "ArtistLabel", parent = card})
 	local addBtn = UI.outlinedCircleBtn(card, {
-		size = 32, icon = UI.ICONS.PLAY_ADD,
-		zIndex = 103, position = UDim2.new(1, -36, 0.5, -16),
-		name = "AddButton",
+		size = 32, icon = UI.ICONS.PLAY_ADD, zIndex = 103,
+		position = UDim2.new(1, -36, 0.5, -16), name = "AddButton",
 		theme = {stroke = THEME.stroke, dim = THEME.text},
 	})
 	makeImage({dim = UDim2.new(0.75, 0, 0.75, 0), pos = UDim2.new(0.125, 0, 0.125, 0), image = UI.ICONS.LOADING, imageColor = THEME.text, z = 105, visible = false, name = "LoadingIcon", parent = addBtn})
@@ -1365,8 +1316,7 @@ local function updateSongCard(card, data, index, inQ)
 	local al = card:FindFirstChild("ArtistLabel", true)
 	if al then
 		local artist = data.artist or "Unknown"
-		local idStr = tostring(data.id)
-		al.Text = artist .. "  ·  " .. idStr
+		al.Text = artist .. "  ·  " .. tostring(data.id)
 	end
 	local ab = card:FindFirstChild("AddButton", true)
 	if ab then
@@ -1458,7 +1408,7 @@ _ui.searchInput:GetPropertyChangedSignal("Text"):Connect(function()
 end)
 
 -- ════════════════════════════════════════════════════════════════
--- HEADER COVER UPDATE (bottom bar)
+-- HEADER COVER UPDATE
 -- ════════════════════════════════════════════════════════════════
 local function updateHeaderCover(song)
 	if not song then
@@ -1483,7 +1433,7 @@ local function updateHeaderCover(song)
 end
 
 -- ════════════════════════════════════════════════════════════════
--- DJ LIST — Sidebar Thumbnails
+-- DJ LIST — REDISEÑO: Cards más grandes con hover scale + active indicator lateral
 -- ════════════════════════════════════════════════════════════════
 local function clearChildren(parent, keep)
 	for _, child in pairs(parent:GetChildren()) do
@@ -1493,19 +1443,36 @@ local function clearChildren(parent, keep)
 	end
 end
 
+-- TweenInfos reutilizables para DJ cards
+local TW_HOVER_IN  = TweenInfo.new(0.22, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+local TW_HOVER_OUT = TweenInfo.new(0.28, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+local TW_SELECT    = TweenInfo.new(0.32, Enum.EasingStyle.Back,  Enum.EasingDirection.Out)
+
 local function selectDJ(djName, djData, card)
 	if state.selectedDJ == djName and state.currentView == "songs" then return end
+	-- Deseleccionar card anterior
 	if state.selectedDJCard and state.selectedDJCard ~= card then
 		local ps = state.selectedDJCard:FindFirstChild("CardStroke")
 		if ps then tween(ps, 0.25, {Color = THEME.stroke, Thickness = 1, Transparency = 0.7}) end
 		local pn = state.selectedDJCard:FindFirstChild("DJNameLabel")
-		if pn then tween(pn, 0.25, {TextColor3 = Color3.fromRGB(180, 180, 190)}) end
+		if pn then tween(pn, 0.25, {TextColor3 = Color3.fromRGB(220, 220, 230)}) end
+		local pInd = state.selectedDJCard:FindFirstChild("ActiveIndicator")
+		if pInd then tween(pInd, 0.25, {Size = UDim2.new(0, 3, 0, 0), BackgroundTransparency = 1}) end
+		local pScale = state.selectedDJCard:FindFirstChild("ScaleTag")
+		if pScale then tween(pScale, 0.25, {Scale = 1}) end
 	end
 	state.selectedDJ = djName; state.selectedDJInfo = djData; state.selectedDJCard = card
+	-- Seleccionar card nueva
 	local s = card:FindFirstChild("CardStroke")
-	if s then tween(s, 0.25, {Color = THEME.accent, Thickness = 2, Transparency = 0.2}) end
+	if s then tween(s, 0.3, {Color = THEME.accent, Thickness = 2, Transparency = 0.1}) end
 	local dn = card:FindFirstChild("DJNameLabel")
 	if dn then tween(dn, 0.25, {TextColor3 = Color3.new(1, 1, 1)}) end
+	local ind = card:FindFirstChild("ActiveIndicator")
+	if ind then
+		TweenService:Create(ind, TW_SELECT, {
+			Size = UDim2.new(0, 3, 0.7, 0), BackgroundTransparency = 0,
+		}):Play()
+	end
 	state.currentView = "queue"; switchView("songs")
 	_ui.songsTitle.Text = djName; _ui.songCountLabel.Text = djData.songCount .. " songs"; _ui.songCountLabel.Visible = true
 	_ui.songsPlaceholder.Visible = false
@@ -1523,6 +1490,145 @@ local function selectDJ(djName, djData, card)
 	if R.GetSongRange then R.GetSongRange:FireServer(djName, 1, math.min(djData.songCount, 25)) end
 end
 
+-- Builder centralizado — crea DJ card moderna
+local function buildDJCard(dj, parent)
+	local isSel = state.selectedDJ == dj.name
+	local card = makeCanvas(parent, 12, 103)
+	card.Name = "DJThumb"
+	card.Size = UDim2.new(1, 0, 0, DJ_THUMB_H)
+	card.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+	card.BackgroundTransparency = 0
+
+	-- UIScale para hover (más performante que cambiar Size)
+	local scaleTag = Instance.new("UIScale")
+	scaleTag.Name = "ScaleTag"
+	scaleTag.Scale = 1
+	scaleTag.Parent = card
+
+	local stroke = make("UIStroke", {
+		Color = isSel and THEME.accent or THEME.stroke,
+		Thickness = isSel and 2 or 1,
+		Transparency = isSel and 0.1 or 0.7,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		Name = "CardStroke", Parent = card,
+	})
+
+	-- Cover fondo
+	local coverBg = makeFrame({
+		dim = UDim2.new(1, 0, 1, 0),
+		bg = Color3.fromRGB(22, 22, 28), bgT = 0,
+		z = 104, name = "CoverBg", parent = card,
+	})
+	-- Ícono placeholder
+	makeLabel({
+		dim = UDim2.new(1, 0, 1, 0), text = "♪",
+		font = Enum.Font.GothamBold, size = 30,
+		color = isSel and THEME.accent or THEME.muted,
+		alignX = Enum.TextXAlignment.Center, z = 105, parent = coverBg,
+	})
+	if dj.cover and dj.cover ~= "" then
+		make("ImageLabel", {
+			Size = UDim2.new(1, 0, 1, 0),
+			BackgroundTransparency = 1, Image = dj.cover,
+			ScaleType = Enum.ScaleType.Crop,
+			BorderSizePixel = 0, ZIndex = 106, Parent = coverBg,
+		})
+	end
+
+	-- Overlay hover (aparece al pasar encima, oscurece ligeramente)
+	local hoverOverlay = makeFrame({
+		dim = UDim2.new(1, 0, 1, 0),
+		bg = THEME.accent, bgT = 1,
+		z = 107, name = "HoverOverlay", parent = card,
+	})
+
+	-- Gradient negro bottom → mejor legibilidad del nombre
+	local gradOverlay = makeFrame({
+		dim = UDim2.new(1, 0, 0.65, 0),
+		pos = UDim2.new(0, 0, 0.35, 0),
+		bg = Color3.fromRGB(0, 0, 0), bgT = 0,
+		z = 108, name = "GradOverlay", parent = card,
+	})
+	make("UIGradient", {
+		Transparency = NumberSequence.new{
+			NumberSequenceKeypoint.new(0, 1),
+			NumberSequenceKeypoint.new(0.5, 0.55),
+			NumberSequenceKeypoint.new(1, 0.1),
+		},
+		Rotation = 90, Parent = gradOverlay,
+	})
+
+	-- Active indicator (barra lateral izquierda que aparece al seleccionar)
+	local activeIndicator = makeFrame({
+		dim = UDim2.new(0, 3, isSel and 0.7 or 0, 0),
+		pos = UDim2.new(0, 0, 0.5, 0),
+		bg = THEME.accent, bgT = isSel and 0 or 1,
+		z = 110, name = "ActiveIndicator", parent = card,
+	})
+	activeIndicator.AnchorPoint = Vector2.new(0, 0.5)
+	UI.rounded(activeIndicator, 2)
+
+	-- Nombre del DJ
+	makeLabel({
+		dim = UDim2.new(1, -10, 0, mob and 18 or 20),
+		pos = UDim2.new(0, 5, 1, mob and -22 or -24),
+		text = dj.name, font = Enum.Font.GothamBlack,
+		size = mob and 10 or 12,
+		color = isSel and Color3.new(1, 1, 1) or Color3.fromRGB(230, 230, 235),
+		alignX = Enum.TextXAlignment.Center,
+		truncate = Enum.TextTruncate.AtEnd,
+		z = 111, name = "DJNameLabel", parent = card,
+	})
+
+	-- Song count (pequeño, esquina sup derecha, con badge)
+	if dj.songCount and dj.songCount > 0 then
+		local countBadge = makeFrame({
+			dim = UDim2.new(0, 26, 0, 16),
+			pos = UDim2.new(1, -30, 0, 4),
+			bg = Color3.fromRGB(0, 0, 0), bgT = 0.35,
+			z = 111, name = "CountBadge", parent = card,
+		})
+		UI.rounded(countBadge, 8)
+		makeLabel({
+			dim = UDim2.new(1, 0, 1, 0), text = tostring(dj.songCount),
+			font = Enum.Font.GothamBold, size = 9,
+			color = Color3.new(1, 1, 1),
+			alignX = Enum.TextXAlignment.Center,
+			z = 112, parent = countBadge,
+		})
+	end
+
+	-- Click button + hover handlers
+	local clickBtn = makeBtn({dim = UDim2.new(1, 0, 1, 0), z = 115, parent = card})
+	clickBtn.BackgroundTransparency = 1
+	clickBtn.AutoButtonColor = false
+
+	clickBtn.MouseEnter:Connect(function()
+		if state.selectedDJCard ~= card then
+			TweenService:Create(stroke, TW_HOVER_IN, {Color = THEME.accent, Transparency = 0.35, Thickness = 1.5}):Play()
+		end
+		TweenService:Create(scaleTag, TW_HOVER_IN, {Scale = 1.03}):Play()
+		TweenService:Create(hoverOverlay, TW_HOVER_IN, {BackgroundTransparency = 0.85}):Play()
+	end)
+	clickBtn.MouseLeave:Connect(function()
+		if state.selectedDJCard ~= card then
+			TweenService:Create(stroke, TW_HOVER_OUT, {Color = THEME.stroke, Transparency = 0.7, Thickness = 1}):Play()
+		end
+		TweenService:Create(scaleTag, TW_HOVER_OUT, {Scale = 1}):Play()
+		TweenService:Create(hoverOverlay, TW_HOVER_OUT, {BackgroundTransparency = 1}):Play()
+	end)
+	clickBtn.MouseButton1Down:Connect(function()
+		TweenService:Create(scaleTag, TW_HOVER_IN, {Scale = 0.97}):Play()
+	end)
+	clickBtn.MouseButton1Up:Connect(function()
+		TweenService:Create(scaleTag, TW_HOVER_OUT, {Scale = 1.03}):Play()
+	end)
+	clickBtn.MouseButton1Click:Connect(function() selectDJ(dj.name, dj, card) end)
+
+	if isSel then state.selectedDJCard = card end
+	return card
+end
+
 local function drawDJs()
 	clearChildren(_ui.djsScroll, {"UIListLayout", "UIPadding"})
 	state.selectedDJCard = nil
@@ -1531,72 +1637,7 @@ local function drawDJs()
 		return
 	end
 	for _, dj in ipairs(state.allDJs) do
-		local isSel = state.selectedDJ == dj.name
-		local card = makeCanvas(_ui.djsScroll, 10, 102)
-		card.Name = "DJThumb"; card.Size = UDim2.new(1, 0, 0, DJ_THUMB_H)
-		card.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
-		card.BackgroundTransparency = 0
-		local stroke = make("UIStroke", {
-			Color = isSel and THEME.accent or THEME.stroke, Thickness = isSel and 2 or 1,
-			Transparency = isSel and 0.2 or 0.7, ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-			Name = "CardStroke", Parent = card,
-		})
-		if isSel then state.selectedDJCard = card end
-
-		-- Cover al 100%: sin padding, llena toda la card
-		local coverBg = makeFrame({
-			dim = UDim2.new(1, 0, 1, 0), pos = UDim2.new(0, 0, 0, 0),
-			bg = Color3.fromRGB(22, 22, 28), bgT = 0,
-			z = 103, clip = false, name = "CoverBg", parent = card,
-		})
-		-- Ícono placeholder si no hay cover
-		makeLabel({
-			dim = UDim2.new(1, 0, 1, 0), text = "♪",
-			font = Enum.Font.GothamBold, size = 26,
-			color = isSel and THEME.accent or THEME.muted,
-			alignX = Enum.TextXAlignment.Center, z = 104, parent = coverBg,
-		})
-		if dj.cover and dj.cover ~= "" then
-			make("ImageLabel", {
-				Size = UDim2.new(1, 0, 1, 0), Position = UDim2.new(0, 0, 0, 0),
-				BackgroundTransparency = 1, Image = dj.cover,
-				ScaleType = Enum.ScaleType.Crop,
-				BorderSizePixel = 0, ZIndex = 105, Parent = coverBg,
-			})
-		end
-
-		-- Gradient negro de abajo para que el texto resalte
-		local gradOverlay = makeFrame({
-			dim = UDim2.new(1, 0, 0.55, 0),
-			pos = UDim2.new(0, 0, 0.45, 0),
-			bg = Color3.fromRGB(0, 0, 0), bgT = 0,
-			z = 106, name = "GradOverlay", parent = card,
-		})
-		make("UIGradient", {
-			Transparency = NumberSequence.new{
-				NumberSequenceKeypoint.new(0, 1),
-				NumberSequenceKeypoint.new(1, 0),
-			},
-			Rotation = 90, Parent = gradOverlay,
-		})
-
-		-- Texto encima del gradient
-		makeLabel({
-			dim = UDim2.new(1, -8, 0, mob and 16 or 18),
-			pos = UDim2.new(0, 4, 1, mob and -18 or -20),
-			text = dj.name, font = Enum.Font.GothamBold,
-			size = mob and 9 or 11,
-			color = Color3.new(1, 1, 1),
-			alignX = Enum.TextXAlignment.Center,
-			truncate = Enum.TextTruncate.AtEnd,
-			z = 107, name = "DJNameLabel", parent = card,
-		})
-
-		local clickBtn = makeBtn({dim = UDim2.new(1, 0, 1, 0), z = 110, parent = card})
-		clickBtn.BackgroundTransparency = 1
-		clickBtn.MouseEnter:Connect(function() if state.selectedDJCard ~= card then tween(stroke, 0.15, {Color = THEME.accent, Transparency = 0.35, Thickness = 1.5}) end end)
-		clickBtn.MouseLeave:Connect(function() if state.selectedDJCard ~= card then tween(stroke, 0.2, {Color = THEME.stroke, Transparency = 0.7, Thickness = 1}) end end)
-		clickBtn.MouseButton1Click:Connect(function() selectDJ(dj.name, dj, card) end)
+		buildDJCard(dj, _ui.djsScroll)
 	end
 end
 
@@ -1696,7 +1737,6 @@ local function updateNowPlayingInfo(song)
 		_ui.headerDJName.Text = song.dj or ""
 		_ui.headerSongID.Text = song.id and tostring(song.id) or ""
 		_ui.songIdDisplay.Text = song.id and tostring(song.id) or ""
-		-- Load requester avatar in header
 		local userId = song.userId or song.requestedByUserId or DEV_USER_ID
 		if state.avatarCache[userId] then
 			_ui.headerAvatar.Image = state.avatarCache[userId]
@@ -1789,8 +1829,6 @@ if R.GetDJs then R.GetDJs:FireServer() end
 for _ = 1, MAX_POOL_SIZE do
 	local card = createSongCard(); card.Parent = _ui.songsContainer; table.insert(state.cardPool, card)
 end
-
-print("[MusicDashboard] Sidebar layout v3 loaded OK")
 
 _G.OpenMusicUI = openUI
 _G.CloseMusicUI = closeUI
